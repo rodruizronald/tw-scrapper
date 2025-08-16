@@ -20,8 +20,8 @@ Example usage:
 
 from .base import SelectorParser
 from .factory import ParserFactory
-from .instances import DefaultParser, GreenhouseParser, AngularParser
-from .models import ParserType, ElementResult, ParseContext
+from .instances import AngularParser, DefaultParser, GreenhouseParser
+from .models import ElementResult, ParseContext, ParserType
 
 __all__ = [
     # Main factory for creating parsers

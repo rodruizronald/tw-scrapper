@@ -5,8 +5,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from dotenv import load_dotenv
 import openai
+from dotenv import load_dotenv
 from loguru import logger
 from playwright.async_api import async_playwright
 

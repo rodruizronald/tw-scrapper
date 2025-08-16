@@ -6,18 +6,16 @@ using different parsing strategies. It handles browser management, navigation,
 and error handling, delegating the actual parsing to the parsers module.
 """
 
-from typing import List, Optional, Dict, Any
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
 from loguru import logger
-from playwright.async_api import (
-    async_playwright,
-    Browser,
-    TimeoutError as PlaywrightTimeoutError,
-)
+from playwright.async_api import Browser
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+from playwright.async_api import async_playwright
 
-from parsers import ParserFactory, ParserType, ElementResult
+from parsers import ElementResult, ParserFactory, ParserType
 
 
 @dataclass

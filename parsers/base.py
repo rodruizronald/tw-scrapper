@@ -1,6 +1,7 @@
 """Base parser class for selector extraction."""
 
 from typing import List
+
 from loguru import logger
 from playwright.async_api import Page
 

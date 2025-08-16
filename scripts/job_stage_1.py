@@ -1,23 +1,18 @@
 import asyncio
+import hashlib
 import json
 import os
 import sys
 from datetime import datetime
 from pathlib import Path
-import hashlib
 
-from dotenv import load_dotenv
 import openai
+from dotenv import load_dotenv
 from loguru import logger
-
-from playwright.async_api import (
-    async_playwright,
-    TimeoutError as PlaywrightTimeoutError,
-)
-
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+from playwright.async_api import async_playwright
 from web_parser import ParserFactory, ParserType
 from web_parser.models import ElementResult
-
 
 # Get the root directory
 root_dir = Path(__file__).parent.parent

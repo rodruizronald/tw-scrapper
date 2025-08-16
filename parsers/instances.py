@@ -4,7 +4,7 @@ from loguru import logger
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from .base import SelectorParser
-from .models import ParseContext, ParserType, ElementResult
+from .models import ElementResult, ParseContext, ParserType
 
 
 class DefaultParser(SelectorParser):

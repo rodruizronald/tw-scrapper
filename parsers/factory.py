@@ -1,11 +1,12 @@
 """Factory class for creating parser instances."""
 
-from typing import List, Type, Dict
+from typing import Dict, List, Type
+
 from playwright.async_api import Page
 
 from .base import SelectorParser
+from .instances import AngularParser, DefaultParser, GreenhouseParser
 from .models import ParserType
-from .instances import DefaultParser, GreenhouseParser, AngularParser
 
 
 class ParserFactory:

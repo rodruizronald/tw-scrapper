@@ -3,7 +3,8 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
-from playwright.async_api import Page, Frame
+
+from playwright.async_api import Frame, Page
 
 
 class ParserType(Enum):
