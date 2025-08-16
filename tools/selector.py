@@ -34,7 +34,7 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from parsers import ParserType, ElementResult
-from services import extract_elements_by_selectors
+from services import extract_by_selectors
 from loguru import logger
 
 # Configure logger for this tool
@@ -185,7 +185,7 @@ class SelectorTester:
             print(f"{'='*80}\n")
 
         # Extract elements
-        results = await extract_elements_by_selectors(
+        results = await extract_by_selectors(
             url=url, selectors=selectors, parser_type=parser_type
         )
 
