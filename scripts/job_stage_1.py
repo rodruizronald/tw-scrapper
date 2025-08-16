@@ -369,6 +369,7 @@ async def main() -> None:
         companies_jobs["companies"].append(
             {
                 "company": company_name,
+                "html_parser": html_parser.value,
                 "job_eligibility_selector": job_eligibility_selector,
                 "job_description_selector": job_description_selector,
                 "jobs": jobs_with_signatures,
