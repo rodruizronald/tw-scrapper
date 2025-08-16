@@ -300,7 +300,7 @@ def filter_new_jobs(companies_jobs: Dict[str, Any]) -> Dict[str, Any]:
     return filtered_companies_jobs
 
 
-async def main():
+async def main() -> None:
     """Main function to process all companies."""
     # Check if prompt template file exists
     if not Path(PROMPT_FILE).exists():
