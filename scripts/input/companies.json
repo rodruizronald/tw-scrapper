@@ -1,6 +1,8 @@
 [
   {
     "name": "Growth Acceleration Partners",
+    "enabled": true,
+    "html_parser": "default",
     "html_selectors": {
       "job_board_selector": ["#jobs_list_container"],
       "job_eligibility_selector": ["main section div dl.company-links"],
@@ -10,6 +12,8 @@
   },
   {
     "name": "Akurey",
+    "enabled": false,
+    "html_parser": "default",
     "html_selectors": {
       "job_board_selector": ["body div.hEqhpu"],
       "job_eligibility_selector": ["body div.jnNIni", "body div.bUjZpO"],
@@ -19,6 +23,8 @@
   },
   {
     "name": "Golabs Tech",
+    "enabled": false,
+    "html_parser": "default",
     "html_selectors": {
       "job_board_selector": ["main ul.list-unstyled"],
       "job_eligibility_selector": ["main div.redactor-styles"],
@@ -28,6 +34,8 @@
   },
   {
     "name": "Gorilla Logic",
+    "enabled": false,
+    "html_parser": "default",
     "html_selectors": {
       "job_board_selector": ["main section.job-postings_parent__5Wlhh"],
       "job_eligibility_selector": [
@@ -40,6 +48,8 @@
   },
   {
     "name": "10Pearls",
+    "enabled": false,
+    "html_parser": "default",
     "html_selectors": {
       "job_board_selector": ["body section.elementor-element-5bf2785"],
       "job_eligibility_selector": [
@@ -52,6 +62,8 @@
   },
   {
     "name": "Hikru",
+    "enabled": false,
+    "html_parser": "default",
     "html_selectors": {
       "job_board_selector": ["body div.torre-careers"],
       "job_eligibility_selector": [
@@ -67,6 +79,8 @@
   },
   {
     "name": "Everstream Analytics",
+    "enabled": false,
+    "html_parser": "default",
     "html_selectors": {
       "job_board_selector": ["#job-listings"],
       "job_eligibility_selector": [
@@ -79,6 +93,8 @@
   },
   {
     "name": "Zencore",
+    "enabled": false,
+    "html_parser": "default",
     "html_selectors": {
       "job_board_selector": ["body div.postings-wrapper"],
       "job_eligibility_selector": [
@@ -93,6 +109,8 @@
   },
   {
     "name": "Applaudo",
+    "enabled": false,
+    "html_parser": "default",
     "html_selectors": {
       "job_board_selector": [
         "body > div > div:nth-child(9) > div:nth-child(2) > div > div > div.rt-Box.rt-r-mt-9"
@@ -108,6 +126,8 @@
   },
   {
     "name": "Admios",
+    "enabled": false,
+    "html_parser": "default",
     "html_selectors": {
       "job_board_selector": ["#job-positions-section > div > div > div > div"],
       "job_eligibility_selector": [
@@ -120,6 +140,8 @@
   },
   {
     "name": "Elite",
+    "enabled": false,
+    "html_parser": "default",
     "html_selectors": {
       "job_board_selector": ["main div.job-posts"],
       "job_eligibility_selector": [
@@ -132,6 +154,8 @@
   },
   {
     "name": "Launchpad Technologies",
+    "enabled": false,
+    "html_parser": "default",
     "html_selectors": {
       "job_board_selector": [
         "body > main > div > div.index__main > div.padding > div"
@@ -146,6 +170,7 @@
   },
   {
     "name": "Luflox",
+    "enabled": false,
     "html_parser": "angular",
     "html_selectors": {
       "job_board_selector": ["div.career-container.ng-star-inserted"],
@@ -160,6 +185,7 @@
   },
   {
     "name": "SMASH",
+    "enabled": false,
     "html_parser": "default",
     "html_selectors": {
       "job_board_selector": [
