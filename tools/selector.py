@@ -233,7 +233,7 @@ class SelectorTester:
         logger.info(f"Results saved to: {filepath}")
 
 
-def load_test_config(config_file: str) -> Dict[str, Any]:
+def load_test_config(config_file: str) -> Dict[str, Any] | None:
     """Load test configuration from JSON file."""
     config_path = Path(config_file)
     if not config_path.exists():

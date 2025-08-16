@@ -6,8 +6,9 @@ using different parsing strategies. It handles browser management, navigation,
 and error handling, delegating the actual parsing to the parsers module.
 """
 
+import asyncio
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from loguru import logger
@@ -34,14 +35,10 @@ class BrowserConfig:
 class ExtractionConfig:
     """Configuration for extraction operations."""
 
-    browser_config: BrowserConfig = None
+    browser_config: BrowserConfig = field(default_factory=BrowserConfig)
     parser_type: ParserType = ParserType.DEFAULT
     retry_on_failure: bool = False
     max_retries: int = 3
-
-    def __post_init__(self):
-        if self.browser_config is None:
-            self.browser_config = BrowserConfig()
 
 
 class WebExtractionService:
@@ -83,7 +80,7 @@ class WebExtractionService:
     @asynccontextmanager
     async def _page_context(self, browser: Browser):
         """Context manager for page lifecycle with configuration."""
-        context_options = {}
+        context_options: Dict[str, Any] = {}
 
         if self.config.browser_config.viewport:
             context_options["viewport"] = self.config.browser_config.viewport
@@ -305,7 +302,7 @@ __all__ = [
     "WebExtractionService",
     "ExtractionConfig",
     "BrowserConfig",
-    "extract_elements_by_selectors",
+    "extract_by_selectors",
     "extract_from_urls_batch",
 ]
 
@@ -316,7 +313,7 @@ if __name__ == "__main__":
 
     async def example():
         # Simple usage
-        results = await extract_elements_by_selectors(
+        results = await extract_by_selectors(
             url="https://example.com",
             selectors=["h1", "p"],
             parser_type=ParserType.DEFAULT,
