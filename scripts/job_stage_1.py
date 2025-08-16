@@ -5,17 +5,18 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, List, Optional, Any
+
+# Get the root directory and add it to Python path
+root_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(root_dir))
 
 import openai
 from dotenv import load_dotenv
 from loguru import logger
-from playwright.async_api import TimeoutError as PlaywrightTimeoutError
-from playwright.async_api import async_playwright
-from web_parser import ParserFactory, ParserType
-from web_parser.models import ElementResult
+from parsers import ParserType
+from services import extract_by_selectors
 
-# Get the root directory
-root_dir = Path(__file__).parent.parent
 
 # Load environment variables from .env file
 load_dotenv(root_dir / ".env")
@@ -51,71 +52,53 @@ logger.add(
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 
-async def extract_elements_by_selectors(
-    url: str, selectors: list[str] = None, parser: ParserType = ParserType.DEFAULT
-) -> List[ElementResult]:
-    results = []
-    browser = None
+async def extract_html_content(
+    url: str,
+    selectors: Optional[List[str]] = None,
+    parser: ParserType = ParserType.DEFAULT,
+) -> Optional[str]:
+    """
+    Extract HTML content from specified selectors on a webpage.
 
+    Args:
+        url: The URL to extract content from
+        selectors: List of CSS selectors to extract content from
+        parser: Parser type to use for extraction
+
+    Returns:
+        Concatenated HTML content from all selectors, or None if extraction fails
+    """
     try:
-        async with async_playwright() as p:
-            browser = await p.chromium.launch()
-            page = await browser.new_page()
+        results = await extract_by_selectors(
+            url=url, selectors=selectors or [], parser_type=parser
+        )
 
-            # Navigate to URL with different strategies based on parser type
-            logger.info(f"Navigating to {url}")
+        # Collect HTML content from all successful results
+        html_contents = []
+        for result in results:
+            if result.found and result.html_content:
+                html_contents.append(result.html_content)
+                logger.debug(f"Extracted content from selector: {result.selector}")
+            else:
+                logger.warning(f"No content found for selector: {result.selector}")
 
-            try:
-                await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-                logger.info("Initial page load complete (domcontentloaded)")
-
-            except PlaywrightTimeoutError:
-                logger.warning(
-                    f"Page load timeout for {url} - proceeding with partial content"
-                )
-                # Don't re-raise - the page might still be usable
-
-            except Exception as e:
-                logger.error(f"Failed to navigate to {url}: {e}")
-                # Return empty results with error messages
-                for selector in selectors:
-                    results.append(
-                        ElementResult(
-                            selector=selector,
-                            found=False,
-                            error_message=f"Navigation failed: {str(e)}",
-                            context="error",
-                        )
-                    )
-                return results
-
-            # Create appropriate parser using the factory
-            parser_instance = ParserFactory.create_parser(parser, page, selectors)
-
-            # Parse and collect results
-            results = await parser_instance.parse()
+        # Concatenate all HTML content with newlines
+        if html_contents:
+            concatenated_html = "\n".join(html_contents)
+            logger.info(
+                f"Successfully extracted HTML content from {len(html_contents)} selectors"
+            )
+            return concatenated_html
+        else:
+            logger.warning("No HTML content extracted from any selectors")
+            return None
 
     except Exception as e:
-        logger.error(f"Unexpected error testing selectors: {str(e)}")
-        # Ensure we return results even on error
-        if not results:
-            for selector in selectors:
-                results.append(
-                    ElementResult(
-                        selector=selector,
-                        found=False,
-                        error_message=f"Unexpected error: {str(e)}",
-                        context="error",
-                    )
-                )
-    finally:
-        if browser:
-            await browser.close()
-
-    return results
+        logger.error(f"Error extracting HTML content from {url}: {str(e)}")
+        return None
 
 
-def read_prompt_template():
+def read_prompt_template() -> str:
     """Read the prompt template from a file."""
     try:
         with open(PROMPT_FILE, "r") as f:
@@ -132,8 +115,8 @@ async def process_company(
     company_name: str,
     career_url: str,
     html_parser: ParserType = ParserType.DEFAULT,
-    selectors: list[str] = None,
-):
+    selectors: Optional[List[str]] = None,
+) -> Dict[str, Any]:
     """Process a single company's career page."""
     logger.info(f"Processing {company_name}...")
 
@@ -171,6 +154,13 @@ async def process_company(
 
         # Parse response
         response_text = response.choices[0].message.content
+        if response_text is None:
+            logger.error(f"Empty response from OpenAI for {company_name}")
+            return {
+                "jobs": [],
+                "error": "Empty response from OpenAI",
+            }
+
         job_data = json.loads(response_text)
 
         # Add company metadata
@@ -207,7 +197,7 @@ def generate_job_signature(url: str) -> str:
     return hashlib.sha256(url.encode()).hexdigest()
 
 
-def filter_new_jobs(companies_jobs: dict) -> dict:
+def filter_new_jobs(companies_jobs: Dict[str, Any]) -> Dict[str, Any]:
     """
     Filter out jobs that were processed the previous day based on signatures.
 
@@ -254,7 +244,7 @@ def filter_new_jobs(companies_jobs: dict) -> dict:
         return companies_jobs
 
     # Filter jobs for each company
-    filtered_companies_jobs = {"companies": []}
+    filtered_companies_jobs: Dict[str, List[Any]] = {"companies": []}
     total_original_jobs = 0
     total_filtered_jobs = 0
     total_duplicate_jobs = 0
@@ -326,12 +316,20 @@ async def main():
         return
 
     # Process each company
-    companies_jobs = {"companies": []}  # Initialize the structure for all jobs
+    companies_jobs: Dict[str, List[Any]] = {
+        "companies": []
+    }  # Initialize the structure for all jobs
 
     # Process each company
     for company in companies:
         company_name = company.get("name")
-        html_parser = company.get("html_parser")
+
+        # Skip companies that are not enabled
+        if not company.get("enabled", False):
+            logger.info(f"Skipping disabled company: {company_name}")
+            continue
+
+        html_parser = ParserType[company.get("html_parser", "DEFAULT").upper()]
         career_url = company.get("career_url")
         job_board_selector = company.get("html_selectors", {}).get(
             "job_board_selector", []
