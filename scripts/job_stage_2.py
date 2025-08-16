@@ -4,14 +4,17 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, List, Optional, Any
+
+# Get the root directory and add it to Python path
+root_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(root_dir))
 
 import openai
 from dotenv import load_dotenv
 from loguru import logger
-from playwright.async_api import async_playwright
-
-# Get the root directory
-root_dir = Path(__file__).parent.parent
+from parsers import ParserType
+from services import extract_by_selectors
 
 # Load environment variables from .env file
 load_dotenv(root_dir / ".env")
@@ -50,64 +53,53 @@ logger.add(
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 
-async def extract_html_content(url: str, selectors: list[str] = None) -> str:
+async def extract_html_content(
+    url: str,
+    selectors: Optional[List[str]] = None,
+    parser: ParserType = ParserType.DEFAULT,
+) -> Optional[str]:
     """
-    Use Playwright to fetch HTML content from multiple selectors on a webpage.
+    Extract HTML content from specified selectors on a webpage.
 
     Args:
-        url: The URL to fetch content from
-        selectors: List of CSS selectors to extract content from (optional)
+        url: The URL to extract content from
+        selectors: List of CSS selectors to extract content from
+        parser: Parser type to use for extraction
 
     Returns:
-        String containing concatenated HTML content from all selectors,
-        or full page HTML if no selectors provided
+        Concatenated HTML content from all selectors, or None if extraction fails
     """
     try:
-        async with async_playwright() as p:
-            browser = await p.chromium.launch()
-            page = await browser.new_page()
+        results = await extract_by_selectors(
+            url=url, selectors=selectors or [], parser_type=parser
+        )
 
-            # Navigate to the URL
-            logger.info(f"Navigating to {url}")
-            await page.goto(url, wait_until="networkidle", timeout=60000)
-
-            # Wait a bit for any dynamic content to load
-            await page.wait_for_timeout(3000)
-
-            if selectors:
-                contents = []
-                for selector in selectors:
-                    try:
-                        # Wait for the specific element to be available
-                        element = await page.wait_for_selector(selector, timeout=5000)
-                        if element:
-                            # Get the HTML content of this element
-                            content = await element.inner_html()
-                            contents.append(content)
-                            logger.info(
-                                f"Successfully extracted content from selector: {selector}"
-                            )
-                        else:
-                            logger.warning(f"Selector not found: {selector}")
-                    except Exception as e:
-                        logger.error(
-                            f"Error extracting content from selector {selector}: {str(e)}"
-                        )
-
-                # Concatenate all contents with a newline between them
-                content = "\n".join(contents) if contents else None
+        # Collect HTML content from all successful results
+        html_contents = []
+        for result in results:
+            if result.found and result.html_content:
+                html_contents.append(result.html_content)
+                logger.debug(f"Extracted content from selector: {result.selector}")
             else:
-                # Get the full page content if no selectors specified
-                content = await page.content()
+                logger.warning(f"No content found for selector: {result.selector}")
 
-            await browser.close()
-            return content
+        # Concatenate all HTML content with newlines
+        if html_contents:
+            concatenated_html = "\n".join(html_contents)
+            logger.info(
+                f"Successfully extracted HTML content from {len(html_contents)} selectors"
+            )
+            return concatenated_html
+        else:
+            logger.warning("No HTML content extracted from any selectors")
+            return None
+
     except Exception as e:
-        logger.error(f"Error fetching {url}: {str(e)}")
+        logger.error(f"Error extracting HTML content from {url}: {str(e)}")
         return None
 
 
-def read_prompt_template():
+def read_prompt_template() -> str:
     """Read the prompt template from a file."""
     try:
         with open(PROMPT_FILE, "r") as f:
@@ -120,12 +112,17 @@ def read_prompt_template():
         exit(1)
 
 
-async def process_job(job_url: str, selectors: list[str], company_name: str):
+async def process_job(
+    job_url: str,
+    selectors: List[str],
+    company_name: str,
+    parser_type: ParserType = ParserType.DEFAULT,
+) -> Dict[str, Any]:
     """Process a single job URL to extract eligibility and basic metadata."""
     logger.info(f"Processing job at {job_url} for {company_name}...")
 
     # Extract HTML content
-    html_content = await extract_html_content(job_url, selectors)
+    html_content = await extract_html_content(job_url, selectors, parser_type)
     if not html_content:
         logger.warning(f"Could not fetch content for job at {job_url}")
         return {
@@ -156,6 +153,13 @@ async def process_job(job_url: str, selectors: list[str], company_name: str):
 
         # Parse response
         response_text = response.choices[0].message.content
+        if response_text is None:
+            logger.error(f"Empty response from OpenAI for job at {job_url}")
+            return {
+                "job": {},
+                "error": "Empty response from OpenAI",
+            }
+
         job_data = json.loads(response_text)
 
         # Add metadata
@@ -175,7 +179,7 @@ async def process_job(job_url: str, selectors: list[str], company_name: str):
         }
 
 
-async def main():
+async def main() -> None:
     """Main function to process all jobs."""
     # Check if prompt template file exists
     if not Path(PROMPT_FILE).exists():
@@ -197,26 +201,33 @@ async def main():
         return
 
     # Process each company's jobs
-    processed_jobs = []
+    processed_jobs: List[Dict[str, Any]] = []
     total_jobs_processed = 0
     ineligible_jobs_count = 0
 
     for company_data in data["companies"]:
-        company_name = company_data["company"]
-        job_eligibility_selector = company_data.get("job_eligibility_selector", [])
-        job_description_selector = company_data.get("job_description_selector", [])
+        company_name: str = company_data["company"]
+        html_parser = ParserType[company_data.get("html_parser", "DEFAULT").upper()]
+        job_eligibility_selector: List[str] = company_data.get(
+            "job_eligibility_selector", []
+        )
+        job_description_selector: List[str] = company_data.get(
+            "job_description_selector", []
+        )
 
         for job in company_data.get("jobs", []):
-            job_url = job.get("url", "")
-            job_title = job.get("title", "")
-            job_signature = job.get("signature", "")
+            job_url: str = job.get("url", "")
+            job_title: str = job.get("title", "")
+            job_signature: str = job.get("signature", "")
 
             if not job_url:
                 logger.warning(f"Job missing URL, skipping: {job_title}")
                 continue
 
             logger.info(f"Processing new job: {job_title} at {job_url}")
-            result = await process_job(job_url, job_eligibility_selector, company_name)
+            result = await process_job(
+                job_url, job_eligibility_selector, company_name, html_parser
+            )
 
             # Check if there was an error
             if "error" in result:
@@ -228,6 +239,7 @@ async def main():
 
                 # Only add the job to processed_jobs if it's eligible
                 if result["job"].get("eligible", False):
+                    result["job"]["html_parser"] = html_parser.value
                     result["job"]["title"] = job_title
                     result["job"]["company"] = company_name
                     result["job"]["application_url"] = job_url
