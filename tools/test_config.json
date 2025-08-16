@@ -1,0 +1,5 @@
+{
+  "url": "https://careers.wearegap.com/jobs?country=Costa+Rica&query=",
+  "selectors": ["#jobs_list_container"],
+  "parser": "default"
+}
