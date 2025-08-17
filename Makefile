@@ -2,8 +2,8 @@
 
 # Load environment variables from .env file if it exists
 ifneq (,$(wildcard ./.env))
-	include .env
-	export
+    include .env
+    export
 endif
 
 # Python configuration
@@ -15,13 +15,13 @@ PIP ?= pip
 
 # Code quality checks
 format-check:
-	@echo "Checking code formatting with Black..."
-	@black --check --diff .
-	@echo "✅ Black formatting check completed successfully"
+	@echo "Checking code formatting with Ruff..."
+	@ruff format --check --diff .
+	@echo "✅ Ruff formatting check completed successfully"
 
 import-check:
-	@echo "Checking import sorting with isort..."
-	@isort --check-only --diff .
+	@echo "Checking import sorting with Ruff..."
+	@ruff check --select I --diff .
 	@echo "✅ Import sorting check completed successfully"
 
 type-check:
@@ -30,35 +30,47 @@ type-check:
 	@echo "✅ Type checking completed successfully"
 
 lint:
-	@echo "Running linting with flake8..."
-	@flake8 . --count --show-source --statistics
+	@echo "Running linting with Ruff..."
+	@ruff check . --statistics
 	@echo "✅ Linting completed successfully"
 
-check-all: format-check import-check type-check lint
+check-all: format-check lint type-check
 	@echo "✅ All code quality checks completed successfully!"
 
-# Auto-formatting
+# Auto-formatting and fixing
 format:
-	@echo "Auto-formatting code with Black..."
-	@black .
-	@echo "✅ Black formatting applied successfully"
+	@echo "Auto-formatting code with Ruff..."
+	@ruff format .
+	@echo "✅ Ruff formatting applied successfully"
 
-format-fix: format
-	@echo "Auto-sorting imports with isort..."
-	@isort .
-	@echo "✅ Code formatting and import sorting completed successfully"
+fix-imports:
+	@echo "Fixing import sorting with Ruff..."
+	@ruff check --select I --fix .
+	@echo "✅ Import sorting fixed successfully"
+
+fix-lint:
+	@echo "Auto-fixing linting issues with Ruff..."
+	@ruff check --fix .
+	@echo "✅ Linting issues fixed successfully"
+
+format-fix: format fix-lint
+	@echo "✅ Code formatting and linting fixes completed successfully"
+
+# Combined fix command (most commonly used)
+fix: format-fix
+	@echo "✅ All auto-fixes applied!"
 
 # Installation
 install:
 	@echo "Installing production dependencies..."
-	@$(PIP) install -r requirements.txt
+	@$(PIP) install -e .
 	@echo "Installing Playwright browsers..."
 	@playwright install
 	@echo "✅ Production dependencies installed successfully"
 
 install-dev:
 	@echo "Installing development dependencies..."
-	@$(PIP) install -r requirements-dev.txt
+	@$(PIP) install -e ".[dev]"
 	@echo "Installing Playwright browsers..."
 	@playwright install
 	@echo "✅ Development dependencies installed successfully"
@@ -68,34 +80,41 @@ clean:
 	@echo "Cleaning up Python cache files..."
 	@find . -type f -name "*.pyc" -delete
 	@find . -type d -name "__pycache__" -delete
-	@find . -type d -name "*.egg-info" -exec rm -rf {} +
-	@find . -type d -name ".mypy_cache" -exec rm -rf {} +
-	@find . -type d -name ".pytest_cache" -exec rm -rf {} +
+	@find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
 	@echo "✅ Cleanup completed successfully"
 
 # Show help
 help:
-	@echo "Available commands:"
+	@echo "╔══════════════════════════════════════════════════════════╗"
+	@echo "║                   Available Commands                      ║"
+	@echo "╚══════════════════════════════════════════════════════════╝"
 	@echo ""
-	@echo "Code Quality:"
-	@echo "  format-check   - Check code formatting with Black"
-	@echo "  import-check   - Check import sorting with isort"
-	@echo "  type-check     - Run type checking with mypy"
-	@echo "  lint           - Run linting with flake8"
-	@echo "  check-all      - Run all code quality checks"
+	@echo "📋 Code Quality Checks:"
+	@echo "  make format-check   - Check code formatting with Ruff"
+	@echo "  make import-check   - Check import sorting with Ruff"
+	@echo "  make lint           - Run linting with Ruff"
+	@echo "  make type-check     - Run type checking with mypy"
+	@echo "  make check-all      - Run ALL quality checks"
 	@echo ""
-	@echo "Code Formatting:"
-	@echo "  format         - Auto-format code with Black"
-	@echo "  format-fix     - Auto-format code and sort imports"
+	@echo "🔧 Code Formatting & Fixes:"
+	@echo "  make format         - Auto-format code with Ruff"
+	@echo "  make fix-imports    - Fix import sorting"
+	@echo "  make fix-lint       - Fix linting issues"
+	@echo "  make format-fix     - Fix formatting and linting"
+	@echo "  make fix            - Apply ALL auto-fixes (recommended)"
 	@echo ""
-	@echo "Environment Setup:"
-	@echo "  install        - Install production dependencies"
-	@echo "  install-dev    - Install development dependencies"
-	@echo "  clean          - Clean up Python cache files"
+	@echo "📦 Environment Setup:"
+	@echo "  make install        - Install production dependencies"
+	@echo "  make install-dev    - Install development dependencies"
+	@echo "  make clean          - Clean up cache files"
 	@echo ""
-	@echo "Examples:"
-	@echo "  make check-all     # Run all quality checks"
-	@echo "  make format-fix    # Fix formatting and imports"
-	@echo "  make install-dev   # Setup development environment"
+	@echo "⚡ Quick Commands:"
+	@echo "  make fix            - Fix everything automatically"
+	@echo "  make check-all      - Run all checks"
 	@echo ""
-	@echo "Note: Configuration is read from .env file if present"
+	@echo "💡 Common Workflows:"
+	@echo "  make install-dev && make fix    # Setup and format"
+	@echo "  make check-all                   # Before committing"
+	@echo "  make fix && make check-all       # Full cleanup"
