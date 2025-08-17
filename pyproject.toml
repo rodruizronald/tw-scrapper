@@ -46,7 +46,7 @@ select = [
     "C4",  # flake8-comprehensions
     "UP",  # pyupgrade
     "SIM", # flake8-simplify
-    "TCH", # flake8-type-checking
+    "TC",  # flake8-type-checking (CHANGED FROM "TCH" TO "TC")
     "RUF", # Ruff-specific rules
     "PL",  # Pylint
     "Q",   # flake8-quotes
@@ -62,7 +62,7 @@ ignore = [
     "PLR0913", # Too many arguments
     "PLR2004", # Magic value used in comparison
     "SIM108",  # Use ternary operator (sometimes less readable)
-    "TCH003",  # Move imports into type-checking block
+    "TC003",   # Move imports into type-checking block (CHANGED FROM "TCH003" TO "TC003")
 ]
 
 # Allow autofix for all enabled rules
