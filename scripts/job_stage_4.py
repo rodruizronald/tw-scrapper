@@ -4,13 +4,17 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, List, Optional, Any
+
+# Get the root directory and add it to Python path
+root_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(root_dir))
 
 import openai
 from dotenv import load_dotenv
 from loguru import logger
-
-# Get the root directory
-root_dir = Path(__file__).parent.parent
+from parsers import ParserType
+from services import extract_by_selectors
 
 # Load environment variables from .env file
 load_dotenv(root_dir / ".env")
@@ -49,7 +53,7 @@ logger.add(
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 
-def read_prompt_template():
+def read_prompt_template() -> str:
     """Read the prompt template from a file."""
     try:
         with open(PROMPT_FILE, "r") as f:
@@ -62,7 +66,9 @@ def read_prompt_template():
         exit(1)
 
 
-async def process_job(job_requirements: dict, job_title: str, company_name: str):
+async def process_job(
+    job_requirements: Dict[str, Any], job_title: str, company_name: str
+) -> Dict[str, Any]:
     """Process a single job's requirements to extract technologies.
 
     Args:
@@ -107,6 +113,14 @@ async def process_job(job_requirements: dict, job_title: str, company_name: str)
 
         # Parse response
         response_text = response.choices[0].message.content
+        if response_text is None:
+            logger.error(f"Empty response from OpenAI for job: {job_title}")
+            return {
+                "technologies": [],
+                "main_technologies": [],
+                "error": "Empty response from OpenAI",
+            }
+
         tech_data = json.loads(response_text)
 
         # Add metadata
@@ -226,7 +240,7 @@ def manage_past_jobs_signatures(combined_signatures: set) -> None:
         logger.error(f"Error saving historical jobs signatures: {str(e)}")
 
 
-async def main():
+async def main() -> None:
     """Main function to process all jobs."""
     # Check if prompt template file exists
     if not Path(PROMPT_FILE).exists():
@@ -306,7 +320,7 @@ async def main():
         clean_job = {
             k: v
             for k, v in job.items()
-            if k not in ["job_description_selector", "eligible"]
+            if k not in ["job_description_selector", "eligible", "html_parser"]
         }
 
         # Add job to final jobs list
