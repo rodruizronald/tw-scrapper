@@ -1,4 +1,4 @@
-.PHONY: format-check import-check type-check lint check-all format format-fix install install-dev clean help
+.PHONY: format-check import-check type-check lint lint-stats check-all format format-fix install install-dev clean help
 
 # Load environment variables from .env file if it exists
 ifneq (,$(wildcard ./.env))
@@ -29,12 +29,17 @@ type-check:
 	@mypy . --ignore-missing-imports
 	@echo "✅ Type checking completed successfully"
 
-lint:
+lint-stats:
 	@echo "Running linting with Ruff..."
 	@ruff check . --statistics
 	@echo "✅ Linting completed successfully"
 
-check-all: format-check lint type-check
+lint:
+	@echo "Running detailed linting with Ruff..."
+	@ruff check . --show-files
+	@echo "✅ Detailed linting completed"
+
+check-all: format-check import-check lint type-check
 	@echo "✅ All code quality checks completed successfully!"
 
 # Auto-formatting and fixing
