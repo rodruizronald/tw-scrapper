@@ -2,9 +2,9 @@ import asyncio
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import openai
 from dotenv import load_dotenv
@@ -31,7 +31,7 @@ PROMPT_FILE = (
 
 # Define global output directory path
 OUTPUT_DIR = Path("data")
-timestamp = datetime.now().strftime("%Y%m%d")
+timestamp = datetime.now(UTC).strftime("%Y%m%d")
 PIPELINE_INPUT_DIR = OUTPUT_DIR / timestamp / "pipeline_stage_2"
 PIPELINE_OUTPUT_DIR = OUTPUT_DIR / timestamp / "pipeline_stage_3"
 PIPELINE_OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
@@ -55,9 +55,9 @@ client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 async def extract_html_content(
     url: str,
-    selectors: Optional[List[str]] = None,
+    selectors: list[str] | None = None,
     parser: ParserType = ParserType.DEFAULT,
-) -> Optional[str]:
+) -> str | None:
     """
     Extract HTML content from specified selectors on a webpage.
 
@@ -106,18 +106,18 @@ def read_prompt_template() -> str:
             return f.read()
     except FileNotFoundError:
         logger.error(f"Error: Prompt template file '{PROMPT_FILE}' not found.")
-        exit(1)
+        sys.exit(1)
     except Exception as e:
         logger.error(f"Error reading prompt template: {e!s}")
-        exit(1)
+        sys.exit(1)
 
 
 async def process_job(
     job_url: str,
-    selectors: List[str],
+    selectors: list[str],
     company_name: str,
     parser_type: ParserType = ParserType.DEFAULT,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Process a single job URL to extract skills and responsibilities."""
     logger.info(f"Processing job at {job_url} for {company_name}...")
 
@@ -174,7 +174,7 @@ async def process_job(
             "skill_must_have": skills_data.get("skill_must_have", []),
             "skill_nice_to_have": skills_data.get("skill_nice_to_have", []),
             "benefits": skills_data.get("benefits", []),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         logger.success(f"Successfully processed job at {job_url}")
@@ -213,7 +213,7 @@ async def main() -> None:
         return
 
     # Process each job
-    processed_jobs: List[Dict[str, Any]] = []
+    processed_jobs: list[dict[str, Any]] = []
     total_jobs_processed = 0
     jobs_with_skills = 0
 
@@ -222,7 +222,7 @@ async def main() -> None:
         job_title: str = job.get("title", "")
         company_name: str = job.get("company", "")
         html_parser = ParserType[job.get("html_parser", "DEFAULT").upper()]
-        job_description_selector: List[str] = job.get("job_description_selector", [])
+        job_description_selector: list[str] = job.get("job_description_selector", [])
 
         if not job_url:
             logger.warning(f"Job missing URL, skipping: {job_title}")
@@ -298,7 +298,7 @@ if __name__ == "__main__":
     # Check for API key
     if not OPENAI_API_KEY:
         logger.error("OPENAI_API_KEY environment variable is not set")
-        exit(1)
+        sys.exit(1)
 
     logger.info("Starting job skills and responsibilities extraction process")
     # Run the async main function

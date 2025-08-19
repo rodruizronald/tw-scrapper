@@ -26,9 +26,9 @@ import argparse
 import asyncio
 import json
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, ClassVar
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -51,7 +51,7 @@ class SelectorTester:
     """Main class for selector testing functionality."""
 
     # ANSI color codes for terminal output
-    COLORS = {
+    COLORS: ClassVar[dict[str, str]] = {
         "GREEN": "\033[92m",
         "RED": "\033[91m",
         "YELLOW": "\033[93m",
@@ -116,7 +116,7 @@ class SelectorTester:
 
         return "\n".join(output)
 
-    def format_result_json(self, results: List[ElementResult]) -> str:
+    def format_result_json(self, results: list[ElementResult]) -> str:
         """Format results as JSON."""
         data = []
         for result in results:
@@ -132,11 +132,11 @@ class SelectorTester:
             )
         return json.dumps(data, indent=2)
 
-    def format_result_markdown(self, url: str, results: List[ElementResult]) -> str:
+    def format_result_markdown(self, url: str, results: list[ElementResult]) -> str:
         """Format results as Markdown."""
         output = ["# Selector Test Results\n"]
         output.append(f"**URL:** `{url}`\n")
-        output.append(f"**Timestamp:** {datetime.now().isoformat()}\n")
+        output.append(f"**Timestamp:** {datetime.now(tz=UTC).isoformat()}\n")
         output.append(f"**Total Selectors:** {len(results)}\n")
         output.append(
             f"**Found:** {sum(1 for r in results if r.found)}/{len(results)}\n"
@@ -163,9 +163,9 @@ class SelectorTester:
     async def test_selectors(
         self,
         url: str,
-        selectors: List[str],
+        selectors: list[str],
         parser_type: ParserType = ParserType.DEFAULT,
-    ) -> List[ElementResult]:
+    ) -> list[ElementResult]:
         """
         Test HTML selectors on a webpage.
 
@@ -216,9 +216,9 @@ class SelectorTester:
 
         return results
 
-    def _save_results(self, url: str, results: List[ElementResult]):
+    def _save_results(self, url: str, results: list[ElementResult]):
         """Save results to file."""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
         domain = url.split("/")[2].replace(".", "_")
 
         if self.output_format == "json":
@@ -233,15 +233,20 @@ class SelectorTester:
         logger.info(f"Results saved to: {filepath}")
 
 
-def load_test_config(config_file: str) -> Dict[str, Any] | None:
+def load_test_config(config_file: str) -> dict[str, Any] | None:
     """Load test configuration from JSON file."""
     config_path = Path(config_file)
     if not config_path.exists():
         logger.error(f"Config file not found: {config_file}")
         return None
 
-    with open(config_path) as f:
-        return json.load(f)
+    try:
+        with open(config_path) as f:
+            config: dict[str, Any] = json.load(f)
+            return config
+    except (json.JSONDecodeError, OSError) as e:
+        logger.error(f"Error loading config file: {e}")
+        return None
 
 
 def create_argument_parser() -> argparse.ArgumentParser:

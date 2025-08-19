@@ -2,9 +2,9 @@ import asyncio
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import openai
 from dotenv import load_dotenv
@@ -31,7 +31,7 @@ PROMPT_FILE = (
 
 # Define global output directory path
 OUTPUT_DIR = Path("data")
-timestamp = datetime.now().strftime("%Y%m%d")
+timestamp = datetime.now(UTC).strftime("%Y%m%d")
 PIPELINE_INPUT_DIR = OUTPUT_DIR / timestamp / "pipeline_stage_1"
 PIPELINE_OUTPUT_DIR = OUTPUT_DIR / timestamp / "pipeline_stage_2"
 PIPELINE_OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
@@ -55,9 +55,9 @@ client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 async def extract_html_content(
     url: str,
-    selectors: Optional[List[str]] = None,
+    selectors: list[str] | None = None,
     parser: ParserType = ParserType.DEFAULT,
-) -> Optional[str]:
+) -> str | None:
     """
     Extract HTML content from specified selectors on a webpage.
 
@@ -106,18 +106,18 @@ def read_prompt_template() -> str:
             return f.read()
     except FileNotFoundError:
         logger.error(f"Error: Prompt template file '{PROMPT_FILE}' not found.")
-        exit(1)
+        sys.exit(1)
     except Exception as e:
         logger.error(f"Error reading prompt template: {e!s}")
-        exit(1)
+        sys.exit(1)
 
 
 async def process_job(
     job_url: str,
-    selectors: List[str],
+    selectors: list[str],
     company_name: str,
     parser_type: ParserType = ParserType.DEFAULT,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Process a single job URL to extract eligibility and basic metadata."""
     logger.info(f"Processing job at {job_url} for {company_name}...")
 
@@ -165,7 +165,7 @@ async def process_job(
         # Add metadata
         result = {
             "job": job_data.get("job", {}),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         logger.success(f"Successfully processed job at {job_url}")
@@ -177,6 +177,65 @@ async def process_job(
             "job": {},
             "error": str(e),
         }
+
+
+async def process_company_jobs(
+    company_data: dict[str, Any],
+) -> tuple[list[dict[str, Any]], int, int]:
+    """Process all jobs for a single company."""
+    company_name: str = company_data["company"]
+    html_parser = ParserType[company_data.get("html_parser", "DEFAULT").upper()]
+    job_eligibility_selector: list[str] = company_data.get(
+        "job_eligibility_selector", []
+    )
+    job_description_selector: list[str] = company_data.get(
+        "job_description_selector", []
+    )
+
+    processed_jobs = []
+    total_jobs_processed = 0
+    ineligible_jobs_count = 0
+
+    for job in company_data.get("jobs", []):
+        job_url: str = job.get("url", "")
+        job_title: str = job.get("title", "")
+        job_signature: str = job.get("signature", "")
+
+        if not job_url:
+            logger.warning(f"Job missing URL, skipping: {job_title}")
+            continue
+
+        logger.info(f"Processing new job: {job_title} at {job_url}")
+        result = await process_job(
+            job_url, job_eligibility_selector, company_name, html_parser
+        )
+
+        # Check if there was an error
+        if "error" in result:
+            logger.error(f"Error processing job {job_title}: {result['error']}")
+            continue
+
+        if result and result["job"]:
+            total_jobs_processed += 1
+
+            # Only add the job to processed_jobs if it's eligible
+            if result["job"].get("eligible", False):
+                result["job"]["html_parser"] = html_parser.value
+                result["job"]["title"] = job_title
+                result["job"]["company"] = company_name
+                result["job"]["application_url"] = job_url
+                result["job"]["signature"] = job_signature
+                result["job"]["job_description_selector"] = job_description_selector
+                processed_jobs.append(result["job"])
+                logger.info(f"Job {job_title} is eligible and added to results")
+            else:
+                ineligible_jobs_count += 1
+                logger.info(f"Job {job_title} did not meet eligibility criteria")
+
+        # Delay to avoid rate limiting
+        await asyncio.sleep(1)
+
+    return processed_jobs, total_jobs_processed, ineligible_jobs_count
 
 
 async def main() -> None:
@@ -201,80 +260,35 @@ async def main() -> None:
         return
 
     # Process each company's jobs
-    processed_jobs: List[Dict[str, Any]] = []
-    total_jobs_processed = 0
-    ineligible_jobs_count = 0
+    all_processed_jobs: list[dict[str, Any]] = []
+    total_ineligible_jobs = 0
 
     for company_data in data["companies"]:
-        company_name: str = company_data["company"]
-        html_parser = ParserType[company_data.get("html_parser", "DEFAULT").upper()]
-        job_eligibility_selector: List[str] = company_data.get(
-            "job_eligibility_selector", []
-        )
-        job_description_selector: List[str] = company_data.get(
-            "job_description_selector", []
-        )
-
-        for job in company_data.get("jobs", []):
-            job_url: str = job.get("url", "")
-            job_title: str = job.get("title", "")
-            job_signature: str = job.get("signature", "")
-
-            if not job_url:
-                logger.warning(f"Job missing URL, skipping: {job_title}")
-                continue
-
-            logger.info(f"Processing new job: {job_title} at {job_url}")
-            result = await process_job(
-                job_url, job_eligibility_selector, company_name, html_parser
-            )
-
-            # Check if there was an error
-            if "error" in result:
-                logger.error(f"Error processing job {job_title}: {result['error']}")
-                continue
-
-            if result and result["job"]:
-                total_jobs_processed += 1
-
-                # Only add the job to processed_jobs if it's eligible
-                if result["job"].get("eligible", False):
-                    result["job"]["html_parser"] = html_parser.value
-                    result["job"]["title"] = job_title
-                    result["job"]["company"] = company_name
-                    result["job"]["application_url"] = job_url
-                    result["job"]["signature"] = job_signature
-                    result["job"]["job_description_selector"] = job_description_selector
-                    processed_jobs.append(result["job"])
-                    logger.info(f"Job {job_title} is eligible and added to results")
-                else:
-                    ineligible_jobs_count += 1
-                    logger.info(f"Job {job_title} did not meet eligibility criteria")
-
-            # Delay to avoid rate limiting
-            await asyncio.sleep(1)
+        processed_jobs, _, ineligible_count = await process_company_jobs(company_data)
+        all_processed_jobs.extend(processed_jobs)
+        total_ineligible_jobs += ineligible_count
 
     # Save results
     output_file = PIPELINE_OUTPUT_DIR / OUTPUT_FILE
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(
-            {"jobs": processed_jobs},
+            {"jobs": all_processed_jobs},
             f,
             indent=2,
             ensure_ascii=False,  # This will prevent Unicode escaping
         )
 
     logger.info(f"Processing complete. Results saved to {output_file}")
-    logger.info(f"Processed {len(processed_jobs)} eligible jobs")
-    if ineligible_jobs_count > 0:
-        logger.warning(f"Ineligible jobs: {ineligible_jobs_count}")
+    logger.info(f"Processed {len(all_processed_jobs)} eligible jobs")
+    if total_ineligible_jobs > 0:
+        logger.warning(f"Ineligible jobs: {total_ineligible_jobs}")
 
 
 if __name__ == "__main__":
     # Check for API key
     if not OPENAI_API_KEY:
         logger.error("OPENAI_API_KEY environment variable is not set")
-        exit(1)
+        sys.exit(1)
 
     logger.info("Starting job eligibility and basic metadata extraction process")
     # Run the async main function

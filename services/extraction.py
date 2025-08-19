@@ -9,7 +9,7 @@ and error handling, delegating the actual parsing to the parsers module.
 import asyncio
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from loguru import logger
 from playwright.async_api import Browser, async_playwright
@@ -23,11 +23,11 @@ class BrowserConfig:
     """Configuration for browser instances."""
 
     headless: bool = True
-    viewport: Optional[Dict[str, int]] = None
-    user_agent: Optional[str] = None
+    viewport: dict[str, int] | None = None
+    user_agent: str | None = None
     timeout: int = 30000
     wait_until: str = "domcontentloaded"
-    extra_headers: Optional[Dict[str, str]] = None
+    extra_headers: dict[str, str] | None = None
 
 
 @dataclass
@@ -48,7 +48,7 @@ class WebExtractionService:
     to extract elements from web pages.
     """
 
-    def __init__(self, config: Optional[ExtractionConfig] = None):
+    def __init__(self, config: ExtractionConfig | None = None):
         """
         Initialize the extraction service.
 
@@ -56,7 +56,7 @@ class WebExtractionService:
             config: Optional configuration for extraction operations
         """
         self.config = config or ExtractionConfig()
-        self._browser: Optional[Browser] = None
+        self._browser: Browser | None = None
         self._playwright = None
 
     @asynccontextmanager
@@ -79,7 +79,7 @@ class WebExtractionService:
     @asynccontextmanager
     async def _page_context(self, browser: Browser):
         """Context manager for page lifecycle with configuration."""
-        context_options: Dict[str, Any] = {}
+        context_options: dict[str, Any] = {}
 
         if self.config.browser_config.viewport:
             context_options["viewport"] = self.config.browser_config.viewport
@@ -105,9 +105,9 @@ class WebExtractionService:
     async def extract_elements(
         self,
         url: str,
-        selectors: List[str],
-        parser_type: Optional[ParserType] = None,
-    ) -> List[ElementResult]:
+        selectors: list[str],
+        parser_type: ParserType | None = None,
+    ) -> list[ElementResult]:
         """
         Extract elements from a web page using specified selectors.
 
@@ -122,50 +122,50 @@ class WebExtractionService:
         parser_type = parser_type or self.config.parser_type
         results = []
 
-        async with self._browser_context() as browser:
-            async with self._page_context(browser) as page:
-                try:
-                    # Navigate to URL
-                    logger.info(f"Navigating to {url}")
-                    await page.goto(
-                        url,
-                        wait_until=self.config.browser_config.wait_until,
-                        timeout=self.config.browser_config.timeout,
-                    )
-                    logger.info("Initial page load complete")
+        async with (
+            self._browser_context() as browser,
+            self._page_context(browser) as page,
+        ):
+            try:
+                # Navigate to URL
+                logger.info(f"Navigating to {url}")
+                await page.goto(
+                    url,
+                    wait_until=self.config.browser_config.wait_until,
+                    timeout=self.config.browser_config.timeout,
+                )
+                logger.info("Initial page load complete")
 
-                    # Create and run parser
+                # Create and run parser
+                parser = ParserFactory.create_parser(parser_type, page, selectors)
+                results = await parser.parse()
+
+            except PlaywrightTimeoutError:
+                logger.warning(
+                    f"Page load timeout for {url} - proceeding with partial content"
+                )
+                # Try to parse what we have
+                try:
                     parser = ParserFactory.create_parser(parser_type, page, selectors)
                     results = await parser.parse()
-
-                except PlaywrightTimeoutError:
-                    logger.warning(
-                        f"Page load timeout for {url} - proceeding with partial content"
-                    )
-                    # Try to parse what we have
-                    try:
-                        parser = ParserFactory.create_parser(
-                            parser_type, page, selectors
-                        )
-                        results = await parser.parse()
-                    except Exception as parse_error:
-                        logger.error(f"Failed to parse after timeout: {parse_error}")
-                        results = self._create_error_results(
-                            selectors,
-                            f"Page timeout and parse failed: {parse_error!s}",
-                        )
-
-                except Exception as e:
-                    logger.error(f"Failed to navigate to {url}: {e}")
+                except Exception as parse_error:
+                    logger.error(f"Failed to parse after timeout: {parse_error}")
                     results = self._create_error_results(
-                        selectors, f"Navigation failed: {e!s}"
+                        selectors,
+                        f"Page timeout and parse failed: {parse_error!s}",
                     )
+
+            except Exception as e:
+                logger.error(f"Failed to navigate to {url}: {e}")
+                results = self._create_error_results(
+                    selectors, f"Navigation failed: {e!s}"
+                )
 
         return results
 
     async def extract_from_multiple_urls(
-        self, url_configs: List[Dict[str, Any]]
-    ) -> Dict[str, List[ElementResult]]:
+        self, url_configs: list[dict[str, Any]]
+    ) -> dict[str, list[ElementResult]]:
         """
         Extract elements from multiple URLs.
 
@@ -189,10 +189,10 @@ class WebExtractionService:
     async def extract_with_retry(
         self,
         url: str,
-        selectors: List[str],
-        parser_type: Optional[ParserType] = None,
-        max_retries: Optional[int] = None,
-    ) -> List[ElementResult]:
+        selectors: list[str],
+        parser_type: ParserType | None = None,
+        max_retries: int | None = None,
+    ) -> list[ElementResult]:
         """
         Extract elements with retry logic on failure.
 
@@ -234,8 +234,8 @@ class WebExtractionService:
 
     @staticmethod
     def _create_error_results(
-        selectors: List[str], error_message: str
-    ) -> List[ElementResult]:
+        selectors: list[str], error_message: str
+    ) -> list[ElementResult]:
         """Create error results for all selectors."""
         return [
             ElementResult(
@@ -251,10 +251,10 @@ class WebExtractionService:
 # Convenience functions for simple use cases
 async def extract_by_selectors(
     url: str,
-    selectors: List[str],
+    selectors: list[str],
     parser_type: ParserType = ParserType.DEFAULT,
     headless: bool = True,
-) -> List[ElementResult]:
+) -> list[ElementResult]:
     """
     Convenience function for simple element extraction.
 
@@ -278,9 +278,9 @@ async def extract_by_selectors(
 
 
 async def extract_from_urls_batch(
-    url_configs: List[Dict[str, Any]],
+    url_configs: list[dict[str, Any]],
     headless: bool = True,
-) -> Dict[str, List[ElementResult]]:
+) -> dict[str, list[ElementResult]]:
     """
     Convenience function for batch extraction from multiple URLs.
 

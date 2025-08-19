@@ -14,11 +14,11 @@ from .extraction import (
 )
 
 __all__ = [
+    # Configuration classes
+    "BrowserConfig",
+    "ExtractionConfig",
     # Main service class
     "WebExtractionService",
-    # Configuration classes
-    "ExtractionConfig",
-    "BrowserConfig",
     # Convenience functions
     "extract_by_selectors",
     "extract_from_urls_batch",

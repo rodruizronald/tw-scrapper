@@ -2,9 +2,9 @@ import asyncio
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import openai
 from dotenv import load_dotenv
@@ -28,7 +28,7 @@ PROMPT_FILE = (
 
 # Define global output directory path
 OUTPUT_DIR = Path("data")
-timestamp = datetime.now().strftime("%Y%m%d")
+timestamp = datetime.now(UTC).strftime("%Y%m%d")
 PIPELINE_INPUT_DIR = OUTPUT_DIR / timestamp / "pipeline_stage_3"
 PIPELINE_OUTPUT_DIR = OUTPUT_DIR / timestamp / "pipeline_stage_4"
 PIPELINE_OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
@@ -57,15 +57,15 @@ def read_prompt_template() -> str:
             return f.read()
     except FileNotFoundError:
         logger.error(f"Error: Prompt template file '{PROMPT_FILE}' not found.")
-        exit(1)
+        sys.exit(1)
     except Exception as e:
         logger.error(f"Error reading prompt template: {e!s}")
-        exit(1)
+        sys.exit(1)
 
 
 async def process_job(
-    job_requirements: Dict[str, Any], job_title: str, company_name: str
-) -> Dict[str, Any]:
+    job_requirements: dict[str, Any], job_title: str, company_name: str
+) -> dict[str, Any]:
     """Process a single job's requirements to extract technologies.
 
     Args:
@@ -124,7 +124,7 @@ async def process_job(
         result = {
             "technologies": tech_data.get("technologies", []),
             "main_technologies": tech_data.get("main_technologies", []),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         logger.success(f"Successfully processed job: {job_title}")
@@ -146,10 +146,8 @@ def manage_past_jobs_signatures(combined_signatures: set) -> None:
     Args:
         combined_signatures: Set of current signatures to process
     """
-    from datetime import datetime, timedelta
-
     # Get current and previous day timestamps
-    current_date = datetime.now()
+    current_date = datetime.now(UTC)
     previous_date = current_date - timedelta(days=1)
 
     current_timestamp = current_date.strftime("%Y%m%d")
@@ -237,32 +235,14 @@ def manage_past_jobs_signatures(combined_signatures: set) -> None:
         logger.error(f"Error saving historical jobs signatures: {e!s}")
 
 
-async def main() -> None:
-    """Main function to process all jobs."""
-    # Check if prompt template file exists
-    if not Path(PROMPT_FILE).exists():
-        logger.error(f"Prompt template file '{PROMPT_FILE}' not found")
-        return
-
-    # Check if input directory exists
-    input_file_path = PIPELINE_INPUT_DIR / INPUT_FILE
-    if not input_file_path.exists():
-        logger.error(f"Input file {input_file_path} does not exist")
-        return
-
-    # Read input file with jobs data
-    try:
-        with open(input_file_path) as f:
-            data = json.load(f)
-    except Exception as e:
-        logger.error(f"Error reading input file: {e!s}")
-        return
-
-    # Process each job
+async def process_jobs_data(
+    data: dict[str, Any],
+) -> tuple[list[dict[str, Any]], set[str], int, int]:
+    """Process jobs data and return results."""
     processed_jobs = []
+    processed_signatures = set()
     total_jobs_processed = 0
     jobs_with_technologies = 0
-    processed_signatures = set()
 
     for job in data.get("jobs", []):
         job_title = job.get("title", "")
@@ -325,6 +305,43 @@ async def main() -> None:
         # Delay to avoid rate limiting
         await asyncio.sleep(1)
 
+    return (
+        processed_jobs,
+        processed_signatures,
+        total_jobs_processed,
+        jobs_with_technologies,
+    )
+
+
+async def main() -> None:
+    """Main function to process all jobs."""
+    # Check if prompt template file exists
+    if not Path(PROMPT_FILE).exists():
+        logger.error(f"Prompt template file '{PROMPT_FILE}' not found")
+        return
+
+    # Check if input directory exists
+    input_file_path = PIPELINE_INPUT_DIR / INPUT_FILE
+    if not input_file_path.exists():
+        logger.error(f"Input file {input_file_path} does not exist")
+        return
+
+    # Read input file with jobs data
+    try:
+        with open(input_file_path) as f:
+            data = json.load(f)
+    except Exception as e:
+        logger.error(f"Error reading input file: {e!s}")
+        return
+
+    # Process jobs data
+    (
+        processed_jobs,
+        processed_signatures,
+        total_jobs_processed,
+        jobs_with_technologies,
+    ) = await process_jobs_data(data)
+
     # Manage past jobs signatures with duplicate detection
     manage_past_jobs_signatures(processed_signatures)
 
@@ -347,7 +364,7 @@ if __name__ == "__main__":
     # Check for API key
     if not OPENAI_API_KEY:
         logger.error("OPENAI_API_KEY environment variable is not set")
-        exit(1)
+        sys.exit(1)
 
     logger.info("Starting job technologies extraction process")
     # Run the async main function

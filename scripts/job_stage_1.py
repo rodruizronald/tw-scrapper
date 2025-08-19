@@ -3,9 +3,9 @@ import hashlib
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import openai
 from dotenv import load_dotenv
@@ -33,7 +33,7 @@ PROMPT_FILE = (
 
 # Define global output directory path
 OUTPUT_DIR = Path("data")
-timestamp = datetime.now().strftime("%Y%m%d")
+timestamp = datetime.now(UTC).strftime("%Y%m%d")
 PIPELINE_OUTPUT_DIR = OUTPUT_DIR / timestamp / "pipeline_stage_1"
 PIPELINE_OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
 
@@ -53,9 +53,9 @@ client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 async def extract_html_content(
     url: str,
-    selectors: Optional[List[str]] = None,
+    selectors: list[str] | None = None,
     parser: ParserType = ParserType.DEFAULT,
-) -> Optional[str]:
+) -> str | None:
     """
     Extract HTML content from specified selectors on a webpage.
 
@@ -104,18 +104,18 @@ def read_prompt_template() -> str:
             return f.read()
     except FileNotFoundError:
         logger.error(f"Error: Prompt template file '{PROMPT_FILE}' not found.")
-        exit(1)
+        sys.exit(1)
     except Exception as e:
         logger.error(f"Error reading prompt template: {e!s}")
-        exit(1)
+        sys.exit(1)
 
 
 async def process_company(
     company_name: str,
     career_url: str,
     html_parser: ParserType = ParserType.DEFAULT,
-    selectors: Optional[List[str]] = None,
-) -> Dict[str, Any]:
+    selectors: list[str] | None = None,
+) -> dict[str, Any]:
     """Process a single company's career page."""
     logger.info(f"Processing {company_name}...")
 
@@ -165,7 +165,7 @@ async def process_company(
         # Add company metadata
         result = {
             "jobs": job_data.get("jobs", []),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         logger.success(f"Found {len(result['jobs'])} job links for {company_name}")
@@ -196,7 +196,7 @@ def generate_job_signature(url: str) -> str:
     return hashlib.sha256(url.encode()).hexdigest()
 
 
-def filter_new_jobs(companies_jobs: Dict[str, Any]) -> Dict[str, Any]:
+def filter_new_jobs(companies_jobs: dict[str, Any]) -> dict[str, Any]:
     """
     Filter out jobs that were processed the previous day based on signatures.
 
@@ -206,10 +206,8 @@ def filter_new_jobs(companies_jobs: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Dictionary with filtered companies_jobs containing only new jobs
     """
-    from datetime import datetime, timedelta
-
     # Get previous day timestamp
-    previous_date = datetime.now() - timedelta(days=1)
+    previous_date = datetime.now(UTC) - timedelta(days=1)
     previous_timestamp = previous_date.strftime("%Y%m%d")
 
     # Define path to previous day's historical_jobs.json
@@ -243,7 +241,7 @@ def filter_new_jobs(companies_jobs: Dict[str, Any]) -> Dict[str, Any]:
         return companies_jobs
 
     # Filter jobs for each company
-    filtered_companies_jobs: Dict[str, List[Any]] = {"companies": []}
+    filtered_companies_jobs: dict[str, list[Any]] = {"companies": []}
     total_original_jobs = 0
     total_filtered_jobs = 0
     total_duplicate_jobs = 0
@@ -315,7 +313,7 @@ async def main() -> None:
         return
 
     # Process each company
-    companies_jobs: Dict[str, List[Any]] = {
+    companies_jobs: dict[str, list[Any]] = {
         "companies": []
     }  # Initialize the structure for all jobs
 
@@ -392,7 +390,7 @@ if __name__ == "__main__":
     # Check for API key
     if not OPENAI_API_KEY:
         logger.error("OPENAI_API_KEY environment variable is not set")
-        exit(1)
+        sys.exit(1)
 
     logger.info("Starting job link extraction process")
     # Run the async main function
