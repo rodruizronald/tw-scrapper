@@ -1,17 +1,18 @@
 """Factory class for creating parser instances."""
 
-from typing import List, Type, Dict
+from typing import ClassVar
+
 from playwright.async_api import Page
 
 from .base import SelectorParser
+from .instances import AngularParser, DefaultParser, GreenhouseParser
 from .models import ParserType
-from .parsers import DefaultParser, GreenhouseParser, AngularParser
 
 
 class ParserFactory:
     """Factory class to create appropriate parser instances."""
 
-    _parsers: Dict[ParserType, Type[SelectorParser]] = {
+    _parsers: ClassVar[dict[ParserType, type[SelectorParser]]] = {
         ParserType.DEFAULT: DefaultParser,
         ParserType.GREENHOUSE: GreenhouseParser,
         ParserType.ANGULAR: AngularParser,
@@ -19,7 +20,7 @@ class ParserFactory:
 
     @classmethod
     def create_parser(
-        cls, parser_type: ParserType, page: Page, selectors: List[str]
+        cls, parser_type: ParserType, page: Page, selectors: list[str]
     ) -> SelectorParser:
         """
         Create a parser instance based on the specified type.
@@ -37,7 +38,7 @@ class ParserFactory:
 
     @classmethod
     def register_parser(
-        cls, parser_type: ParserType, parser_class: Type[SelectorParser]
+        cls, parser_type: ParserType, parser_class: type[SelectorParser]
     ) -> None:
         """
         Register a new parser type (for extensibility).
@@ -49,7 +50,7 @@ class ParserFactory:
         cls._parsers[parser_type] = parser_class
 
     @classmethod
-    def get_available_parsers(cls) -> List[ParserType]:
+    def get_available_parsers(cls) -> list[ParserType]:
         """
         Get a list of all available parser types.
 

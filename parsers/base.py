@@ -1,6 +1,5 @@
 """Base parser class for selector extraction."""
 
-from typing import List
 from loguru import logger
 from playwright.async_api import Page
 
@@ -10,10 +9,10 @@ from .models import ElementResult, ParseContext, ParserType
 class SelectorParser:
     """Base class for different parser implementations."""
 
-    def __init__(self, page: Page, selectors: List[str]):
+    def __init__(self, page: Page, selectors: list[str]):
         self.page = page
         self.selectors = selectors
-        self.results: List[ElementResult] = []
+        self.results: list[ElementResult] = []
         self.parser_type = ParserType.DEFAULT  # Override in subclasses
 
     async def setup(self) -> ParseContext:
@@ -64,7 +63,7 @@ class SelectorParser:
             return f"{context.parser_type.value}_frame"
         return context.parser_type.value
 
-    async def parse(self) -> List[ElementResult]:
+    async def parse(self) -> list[ElementResult]:
         """Main parsing method."""
         try:
             context = await self.setup()
@@ -84,7 +83,7 @@ class SelectorParser:
                         ElementResult(
                             selector=selector,
                             found=False,
-                            error_message=f"Parser error: {str(e)}",
+                            error_message=f"Parser error: {e!s}",
                             context=self.parser_type.value,
                         )
                     )

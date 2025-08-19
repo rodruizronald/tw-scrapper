@@ -2,15 +2,18 @@ import asyncio
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
-from dotenv import load_dotenv
 import openai
+from dotenv import load_dotenv
 from loguru import logger
-from playwright.async_api import async_playwright
 
-# Get the root directory
+from parsers import ParserType
+from services import extract_by_selectors
+
+# Get the root directory and add it to Python path
 root_dir = Path(__file__).parent.parent
 
 # Load environment variables from .env file
@@ -28,7 +31,7 @@ PROMPT_FILE = (
 
 # Define global output directory path
 OUTPUT_DIR = Path("data")
-timestamp = datetime.now().strftime("%Y%m%d")
+timestamp = datetime.now(UTC).strftime("%Y%m%d")
 PIPELINE_INPUT_DIR = OUTPUT_DIR / timestamp / "pipeline_stage_2"
 PIPELINE_OUTPUT_DIR = OUTPUT_DIR / timestamp / "pipeline_stage_3"
 PIPELINE_OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
@@ -50,82 +53,76 @@ logger.add(
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 
-async def extract_html_content(url: str, selectors: list[str] = None) -> str:
+async def extract_html_content(
+    url: str,
+    selectors: list[str] | None = None,
+    parser: ParserType = ParserType.DEFAULT,
+) -> str | None:
     """
-    Use Playwright to fetch HTML content from multiple selectors on a webpage.
+    Extract HTML content from specified selectors on a webpage.
 
     Args:
-        url: The URL to fetch content from
-        selectors: List of CSS selectors to extract content from (optional)
+        url: The URL to extract content from
+        selectors: List of CSS selectors to extract content from
+        parser: Parser type to use for extraction
 
     Returns:
-        String containing concatenated HTML content from all selectors,
-        or full page HTML if no selectors provided
+        Concatenated HTML content from all selectors, or None if extraction fails
     """
     try:
-        async with async_playwright() as p:
-            browser = await p.chromium.launch()
-            page = await browser.new_page()
+        results = await extract_by_selectors(
+            url=url, selectors=selectors or [], parser_type=parser
+        )
 
-            # Navigate to the URL
-            logger.info(f"Navigating to {url}")
-            await page.goto(url, wait_until="networkidle", timeout=60000)
-
-            # Wait a bit for any dynamic content to load
-            await page.wait_for_timeout(3000)
-
-            if selectors:
-                contents = []
-                for selector in selectors:
-                    try:
-                        # Wait for the specific element to be available
-                        element = await page.wait_for_selector(selector, timeout=5000)
-                        if element:
-                            # Get the HTML content of this element
-                            content = await element.inner_html()
-                            contents.append(content)
-                            logger.info(
-                                f"Successfully extracted content from selector: {selector}"
-                            )
-                        else:
-                            logger.warning(f"Selector not found: {selector}")
-                    except Exception as e:
-                        logger.error(
-                            f"Error extracting content from selector {selector}: {str(e)}"
-                        )
-
-                # Concatenate all contents with a newline between them
-                content = "\n".join(contents) if contents else None
+        # Collect HTML content from all successful results
+        html_contents = []
+        for result in results:
+            if result.found and result.html_content:
+                html_contents.append(result.html_content)
+                logger.debug(f"Extracted content from selector: {result.selector}")
             else:
-                # Get the full page content if no selectors specified
-                content = await page.content()
+                logger.warning(f"No content found for selector: {result.selector}")
 
-            await browser.close()
-            return content
+        # Concatenate all HTML content with newlines
+        if html_contents:
+            concatenated_html = "\n".join(html_contents)
+            logger.info(
+                f"Successfully extracted HTML content from {len(html_contents)} selectors"
+            )
+            return concatenated_html
+        else:
+            logger.warning("No HTML content extracted from any selectors")
+            return None
+
     except Exception as e:
-        logger.error(f"Error fetching {url}: {str(e)}")
+        logger.error(f"Error extracting HTML content from {url}: {e!s}")
         return None
 
 
-def read_prompt_template():
+def read_prompt_template() -> str:
     """Read the prompt template from a file."""
     try:
-        with open(PROMPT_FILE, "r") as f:
+        with open(PROMPT_FILE) as f:
             return f.read()
     except FileNotFoundError:
         logger.error(f"Error: Prompt template file '{PROMPT_FILE}' not found.")
-        exit(1)
+        sys.exit(1)
     except Exception as e:
-        logger.error(f"Error reading prompt template: {str(e)}")
-        exit(1)
+        logger.error(f"Error reading prompt template: {e!s}")
+        sys.exit(1)
 
 
-async def process_job(job_url: str, selectors: list[str], company_name: str):
+async def process_job(
+    job_url: str,
+    selectors: list[str],
+    company_name: str,
+    parser_type: ParserType = ParserType.DEFAULT,
+) -> dict[str, Any]:
     """Process a single job URL to extract skills and responsibilities."""
     logger.info(f"Processing job at {job_url} for {company_name}...")
 
     # Extract HTML content
-    html_content = await extract_html_content(job_url, selectors)
+    html_content = await extract_html_content(job_url, selectors, parser_type)
     if not html_content:
         logger.warning(f"Could not fetch content for job at {job_url}")
         return {
@@ -159,6 +156,16 @@ async def process_job(job_url: str, selectors: list[str], company_name: str):
 
         # Parse response
         response_text = response.choices[0].message.content
+        if response_text is None:
+            logger.error(f"Empty response from OpenAI for job at {job_url}")
+            return {
+                "responsibilities": [],
+                "skill_must_have": [],
+                "skill_nice_to_have": [],
+                "benefits": [],
+                "error": "Empty response from OpenAI",
+            }
+
         skills_data = json.loads(response_text)
 
         # Add metadata
@@ -167,14 +174,14 @@ async def process_job(job_url: str, selectors: list[str], company_name: str):
             "skill_must_have": skills_data.get("skill_must_have", []),
             "skill_nice_to_have": skills_data.get("skill_nice_to_have", []),
             "benefits": skills_data.get("benefits", []),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         logger.success(f"Successfully processed job at {job_url}")
         return result
 
     except Exception as e:
-        logger.error(f"Error processing job at {job_url} with OpenAI: {str(e)}")
+        logger.error(f"Error processing job at {job_url} with OpenAI: {e!s}")
         return {
             "responsibilities": [],
             "skill_must_have": [],
@@ -184,7 +191,7 @@ async def process_job(job_url: str, selectors: list[str], company_name: str):
         }
 
 
-async def main():
+async def main() -> None:
     """Main function to process all jobs."""
     # Check if prompt template file exists
     if not Path(PROMPT_FILE).exists():
@@ -199,22 +206,23 @@ async def main():
 
     # Read input file with jobs data
     try:
-        with open(input_file_path, "r") as f:
+        with open(input_file_path) as f:
             data = json.load(f)
     except Exception as e:
-        logger.error(f"Error reading input file: {str(e)}")
+        logger.error(f"Error reading input file: {e!s}")
         return
 
     # Process each job
-    processed_jobs = []
+    processed_jobs: list[dict[str, Any]] = []
     total_jobs_processed = 0
     jobs_with_skills = 0
 
     for job in data.get("jobs", []):
-        job_url = job.get("application_url", "")
-        job_title = job.get("title", "")
-        company_name = job.get("company", "")
-        job_description_selector = job.get("job_description_selector", [])
+        job_url: str = job.get("application_url", "")
+        job_title: str = job.get("title", "")
+        company_name: str = job.get("company", "")
+        html_parser = ParserType[job.get("html_parser", "DEFAULT").upper()]
+        job_description_selector: list[str] = job.get("job_description_selector", [])
 
         if not job_url:
             logger.warning(f"Job missing URL, skipping: {job_title}")
@@ -222,7 +230,9 @@ async def main():
             continue
 
         logger.info(f"Processing new job: {job_title} at {job_url}")
-        result = await process_job(job_url, job_description_selector, company_name)
+        result = await process_job(
+            job_url, job_description_selector, company_name, html_parser
+        )
 
         total_jobs_processed += 1
 
@@ -233,36 +243,35 @@ async def main():
             job["responsibilities"] = []
             job["requirements"] = {"must_have": [], "nice_to_have": []}
             job["benefits"] = []
+        elif (
+            result["responsibilities"]
+            or result["skill_must_have"]
+            or result["skill_nice_to_have"]
+            or result["benefits"]
+        ):
+            jobs_with_skills += 1
+            # Add extracted data to job
+            job["responsibilities"] = result["responsibilities"]
+            job["requirements"] = {
+                "must_have": result["skill_must_have"],
+                "nice_to_have": result["skill_nice_to_have"],
+            }
+            job["benefits"] = result["benefits"]
+            logger.info(
+                f"Added skills and responsibilities to job: {job_title} "
+                f"(responsibilities: {len(result['responsibilities'])}, "
+                f"must_have: {len(result['skill_must_have'])}, "
+                f"nice_to_have: {len(result['skill_nice_to_have'])}, "
+                f"benefits: {len(result['benefits'])})"
+            )
         else:
-            if (
-                result["responsibilities"]
-                or result["skill_must_have"]
-                or result["skill_nice_to_have"]
-                or result["benefits"]
-            ):
-                jobs_with_skills += 1
-                # Add extracted data to job
-                job["responsibilities"] = result["responsibilities"]
-                job["requirements"] = {
-                    "must_have": result["skill_must_have"],
-                    "nice_to_have": result["skill_nice_to_have"],
-                }
-                job["benefits"] = result["benefits"]
-                logger.info(
-                    f"Added skills and responsibilities to job: {job_title} "
-                    f"(responsibilities: {len(result['responsibilities'])}, "
-                    f"must_have: {len(result['skill_must_have'])}, "
-                    f"nice_to_have: {len(result['skill_nice_to_have'])}, "
-                    f"benefits: {len(result['benefits'])})"
-                )
-            else:
-                # Add empty arrays if extraction failed
-                job["responsibilities"] = []
-                job["requirements"] = {"must_have": [], "nice_to_have": []}
-                job["benefits"] = []
-                logger.warning(
-                    f"Failed to extract skills and responsibilities for job: {job_title}"
-                )
+            # Add empty arrays if extraction failed
+            job["responsibilities"] = []
+            job["requirements"] = {"must_have": [], "nice_to_have": []}
+            job["benefits"] = []
+            logger.warning(
+                f"Failed to extract skills and responsibilities for job: {job_title}"
+            )
 
         # Add job to final jobs list
         processed_jobs.append(job)
@@ -289,7 +298,7 @@ if __name__ == "__main__":
     # Check for API key
     if not OPENAI_API_KEY:
         logger.error("OPENAI_API_KEY environment variable is not set")
-        exit(1)
+        sys.exit(1)
 
     logger.info("Starting job skills and responsibilities extraction process")
     # Run the async main function

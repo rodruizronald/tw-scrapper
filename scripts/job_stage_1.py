@@ -1,17 +1,20 @@
 import asyncio
+import hashlib
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-import hashlib
+from typing import Any
 
-from dotenv import load_dotenv
 import openai
+from dotenv import load_dotenv
 from loguru import logger
-from playwright.async_api import async_playwright
 
-# Get the root directory
+from parsers import ParserType
+from services import extract_by_selectors
+
+# Get the root directory and add it to Python path
 root_dir = Path(__file__).parent.parent
 
 # Load environment variables from .env file
@@ -30,7 +33,7 @@ PROMPT_FILE = (
 
 # Define global output directory path
 OUTPUT_DIR = Path("data")
-timestamp = datetime.now().strftime("%Y%m%d")
+timestamp = datetime.now(UTC).strftime("%Y%m%d")
 PIPELINE_OUTPUT_DIR = OUTPUT_DIR / timestamp / "pipeline_stage_1"
 PIPELINE_OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
 
@@ -48,84 +51,76 @@ logger.add(
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 
-async def extract_html_content(url: str, selectors: list[str] = None) -> str:
+async def extract_html_content(
+    url: str,
+    selectors: list[str] | None = None,
+    parser: ParserType = ParserType.DEFAULT,
+) -> str | None:
     """
-    Use Playwright to fetch HTML content from multiple selectors on a webpage.
+    Extract HTML content from specified selectors on a webpage.
 
     Args:
-        url: The URL to fetch content from
-        selectors: List of CSS selectors to extract content from (optional)
+        url: The URL to extract content from
+        selectors: List of CSS selectors to extract content from
+        parser: Parser type to use for extraction
 
     Returns:
-        String containing concatenated HTML content from all selectors,
-        or full page HTML if no selectors provided
+        Concatenated HTML content from all selectors, or None if extraction fails
     """
     try:
-        async with async_playwright() as p:
-            browser = await p.chromium.launch()
-            page = await browser.new_page()
+        results = await extract_by_selectors(
+            url=url, selectors=selectors or [], parser_type=parser
+        )
 
-            # Navigate to the URL
-            logger.info(f"Navigating to {url}")
-            await page.goto(url, wait_until="networkidle", timeout=60000)
-
-            # Wait a bit for any dynamic content to load
-            await page.wait_for_timeout(3000)
-
-            if selectors:
-                contents = []
-                for selector in selectors:
-                    try:
-                        # Wait for the specific element to be available
-                        element = await page.wait_for_selector(selector, timeout=5000)
-                        if element:
-                            # Get the HTML content of this element
-                            content = await element.inner_html()
-                            contents.append(content)
-                            logger.info(
-                                f"Successfully extracted content from selector: {selector}"
-                            )
-                        else:
-                            logger.warning(f"Selector not found: {selector}")
-                    except Exception as e:
-                        logger.error(
-                            f"Error extracting content from selector {selector}: {str(e)}"
-                        )
-
-                # Concatenate all contents with a newline between them
-                content = "\n".join(contents) if contents else None
+        # Collect HTML content from all successful results
+        html_contents = []
+        for result in results:
+            if result.found and result.html_content:
+                html_contents.append(result.html_content)
+                logger.debug(f"Extracted content from selector: {result.selector}")
             else:
-                # Get the full page content if no selectors specified
-                content = await page.content()
+                logger.warning(f"No content found for selector: {result.selector}")
 
-            await browser.close()
-            return content
+        # Concatenate all HTML content with newlines
+        if html_contents:
+            concatenated_html = "\n".join(html_contents)
+            logger.info(
+                f"Successfully extracted HTML content from {len(html_contents)} selectors"
+            )
+            return concatenated_html
+        else:
+            logger.warning("No HTML content extracted from any selectors")
+            return None
+
     except Exception as e:
-        logger.error(f"Error fetching {url}: {str(e)}")
+        logger.error(f"Error extracting HTML content from {url}: {e!s}")
         return None
 
 
-def read_prompt_template():
+def read_prompt_template() -> str:
     """Read the prompt template from a file."""
     try:
-        with open(PROMPT_FILE, "r") as f:
+        with open(PROMPT_FILE) as f:
             return f.read()
     except FileNotFoundError:
         logger.error(f"Error: Prompt template file '{PROMPT_FILE}' not found.")
-        exit(1)
+        sys.exit(1)
     except Exception as e:
-        logger.error(f"Error reading prompt template: {str(e)}")
-        exit(1)
+        logger.error(f"Error reading prompt template: {e!s}")
+        sys.exit(1)
 
 
 async def process_company(
-    company_name: str, career_url: str, selectors: list[str] = None
-):
+    company_name: str,
+    career_url: str,
+    html_parser: ParserType = ParserType.DEFAULT,
+    selectors: list[str] | None = None,
+) -> dict[str, Any]:
     """Process a single company's career page."""
     logger.info(f"Processing {company_name}...")
 
     # Extract HTML content
-    html_content = await extract_html_content(career_url, selectors)
+    html_content = await extract_html_content(career_url, selectors, html_parser)
     if not html_content:
         logger.warning(f"Could not fetch content for {company_name}")
         return {
@@ -158,19 +153,26 @@ async def process_company(
 
         # Parse response
         response_text = response.choices[0].message.content
+        if response_text is None:
+            logger.error(f"Empty response from OpenAI for {company_name}")
+            return {
+                "jobs": [],
+                "error": "Empty response from OpenAI",
+            }
+
         job_data = json.loads(response_text)
 
         # Add company metadata
         result = {
             "jobs": job_data.get("jobs", []),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         logger.success(f"Found {len(result['jobs'])} job links for {company_name}")
         return result
 
     except Exception as e:
-        logger.error(f"Error processing {company_name} with OpenAI: {str(e)}")
+        logger.error(f"Error processing {company_name} with OpenAI: {e!s}")
         return {
             "jobs": [],
             "error": str(e),
@@ -194,7 +196,7 @@ def generate_job_signature(url: str) -> str:
     return hashlib.sha256(url.encode()).hexdigest()
 
 
-def filter_new_jobs(companies_jobs: dict) -> dict:
+def filter_new_jobs(companies_jobs: dict[str, Any]) -> dict[str, Any]:
     """
     Filter out jobs that were processed the previous day based on signatures.
 
@@ -204,10 +206,8 @@ def filter_new_jobs(companies_jobs: dict) -> dict:
     Returns:
         Dictionary with filtered companies_jobs containing only new jobs
     """
-    from datetime import datetime, timedelta
-
     # Get previous day timestamp
-    previous_date = datetime.now() - timedelta(days=1)
+    previous_date = datetime.now(UTC) - timedelta(days=1)
     previous_timestamp = previous_date.strftime("%Y%m%d")
 
     # Define path to previous day's historical_jobs.json
@@ -218,14 +218,14 @@ def filter_new_jobs(companies_jobs: dict) -> dict:
     previous_signatures = set()
     if previous_historical_jobs_file.exists():
         try:
-            with open(previous_historical_jobs_file, "r") as f:
+            with open(previous_historical_jobs_file) as f:
                 previous_data = json.load(f)
                 previous_signatures = set(previous_data.get("signatures", []))
             logger.info(
                 f"Loaded {len(previous_signatures)} signatures from previous day: {previous_historical_jobs_file}"
             )
         except Exception as e:
-            logger.error(f"Error loading previous day's signatures: {str(e)}")
+            logger.error(f"Error loading previous day's signatures: {e!s}")
             logger.info("Proceeding without filtering")
             return companies_jobs
     else:
@@ -241,7 +241,7 @@ def filter_new_jobs(companies_jobs: dict) -> dict:
         return companies_jobs
 
     # Filter jobs for each company
-    filtered_companies_jobs = {"companies": []}
+    filtered_companies_jobs: dict[str, list[Any]] = {"companies": []}
     total_original_jobs = 0
     total_filtered_jobs = 0
     total_duplicate_jobs = 0
@@ -289,7 +289,7 @@ def filter_new_jobs(companies_jobs: dict) -> dict:
         )
 
     # Log overall filtering results
-    logger.info(f"Filtering summary:")
+    logger.info("Filtering summary:")
     logger.info(f"  Original jobs: {total_original_jobs}")
     logger.info(f"  New jobs after filtering: {total_filtered_jobs}")
     logger.info(f"  Duplicate jobs filtered out: {total_duplicate_jobs}")
@@ -297,7 +297,7 @@ def filter_new_jobs(companies_jobs: dict) -> dict:
     return filtered_companies_jobs
 
 
-async def main():
+async def main() -> None:
     """Main function to process all companies."""
     # Check if prompt template file exists
     if not Path(PROMPT_FILE).exists():
@@ -306,18 +306,27 @@ async def main():
 
     # Read input file with company data
     try:
-        with open(COMPANIES_FILE, "r") as f:
+        with open(COMPANIES_FILE) as f:
             companies = json.load(f)
     except Exception as e:
-        logger.error(f"Error reading input file: {str(e)}")
+        logger.error(f"Error reading input file: {e!s}")
         return
 
     # Process each company
-    companies_jobs = {"companies": []}  # Initialize the structure for all jobs
+    companies_jobs: dict[str, list[Any]] = {
+        "companies": []
+    }  # Initialize the structure for all jobs
 
     # Process each company
     for company in companies:
         company_name = company.get("name")
+
+        # Skip companies that are not enabled
+        if not company.get("enabled", False):
+            logger.info(f"Skipping disabled company: {company_name}")
+            continue
+
+        html_parser = ParserType[company.get("html_parser", "DEFAULT").upper()]
         career_url = company.get("career_url")
         job_board_selector = company.get("html_selectors", {}).get(
             "job_board_selector", []
@@ -333,7 +342,9 @@ async def main():
             logger.warning("Skipping entry with missing name or URL")
             continue
 
-        result = await process_company(company_name, career_url, job_board_selector)
+        result = await process_company(
+            company_name, career_url, html_parser, job_board_selector
+        )
 
         # Check if there was an error or no jobs found
         if "error" in result:
@@ -355,6 +366,7 @@ async def main():
         companies_jobs["companies"].append(
             {
                 "company": company_name,
+                "html_parser": html_parser.value,
                 "job_eligibility_selector": job_eligibility_selector,
                 "job_description_selector": job_description_selector,
                 "jobs": jobs_with_signatures,
@@ -378,7 +390,7 @@ if __name__ == "__main__":
     # Check for API key
     if not OPENAI_API_KEY:
         logger.error("OPENAI_API_KEY environment variable is not set")
-        exit(1)
+        sys.exit(1)
 
     logger.info("Starting job link extraction process")
     # Run the async main function

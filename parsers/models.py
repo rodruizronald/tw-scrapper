@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
-from playwright.async_api import Page, Frame
+
+from playwright.async_api import Frame, Page
 
 
 class ParserType(Enum):
@@ -20,9 +20,9 @@ class ElementResult:
 
     selector: str
     found: bool
-    text_content: Optional[str] = None
-    html_content: Optional[str] = None
-    error_message: Optional[str] = None
+    text_content: str | None = None
+    html_content: str | None = None
+    error_message: str | None = None
     context: str = "main_page"
 
 
@@ -31,7 +31,7 @@ class ParseContext:
     """Context information for parsing operations."""
 
     page: Page
-    frame: Optional[Frame] = None
+    frame: Frame | None = None
     parser_type: ParserType = ParserType.DEFAULT
 
     @property
