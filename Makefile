@@ -1,4 +1,4 @@
-.PHONY: format-check import-check type-check lint lint-stats check-all format format-fix install install-dev clean help
+.PHONY: format-check import-check type-check lint check-all format fix-imports fix-lint fix-all install install-dev clean help
 
 # Load environment variables from .env file if it exists
 ifneq (,$(wildcard ./.env))
@@ -29,15 +29,10 @@ type-check:
 	@mypy . --ignore-missing-imports
 	@echo "✅ Type checking completed successfully"
 
-lint-stats:
+lint:
 	@echo "Running linting with Ruff..."
 	@ruff check . --statistics
 	@echo "✅ Linting completed successfully"
-
-lint:
-	@echo "Running detailed linting with Ruff..."
-	@ruff check . --show-files
-	@echo "✅ Detailed linting completed"
 
 check-all: format-check import-check lint type-check
 	@echo "✅ All code quality checks completed successfully!"
@@ -58,12 +53,9 @@ fix-lint:
 	@ruff check --fix .
 	@echo "✅ Linting issues fixed successfully"
 
-format-fix: format fix-lint
-	@echo "✅ Code formatting and linting fixes completed successfully"
-
 # Combined fix command (most commonly used)
-fix: format-fix
-	@echo "✅ All auto-fixes applied!"
+fix-all: format fix-lint fix-imports
+	@echo "✅ All formatting and linting fixes completed applied!"
 
 # Installation
 install:
@@ -107,8 +99,7 @@ help:
 	@echo "  make format         - Auto-format code with Ruff"
 	@echo "  make fix-imports    - Fix import sorting"
 	@echo "  make fix-lint       - Fix linting issues"
-	@echo "  make format-fix     - Fix formatting and linting"
-	@echo "  make fix            - Apply ALL auto-fixes (recommended)"
+	@echo "  make fix-al         - Apply ALL auto-fixes (recommended)"
 	@echo ""
 	@echo "📦 Environment Setup:"
 	@echo "  make install        - Install production dependencies"
