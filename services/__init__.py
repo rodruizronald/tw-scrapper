@@ -5,8 +5,13 @@ This module contains service classes that orchestrate complex operations
 involving multiple components like parsers, browsers, and data processing.
 """
 
-from .extraction import (BrowserConfig, ExtractionConfig, WebExtractionService,
-                         extract_by_selectors, extract_from_urls_batch)
+from .extraction import (
+    BrowserConfig,
+    ExtractionConfig,
+    WebExtractionService,
+    extract_by_selectors,
+    extract_from_urls_batch,
+)
 
 __all__ = [
     # Main service class

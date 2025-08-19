@@ -4,17 +4,17 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Any
-
-# Get the root directory and add it to Python path
-root_dir = Path(__file__).parent.parent
-sys.path.insert(0, str(root_dir))
+from typing import Any, Dict, List, Optional
 
 import openai
 from dotenv import load_dotenv
 from loguru import logger
+
 from parsers import ParserType
 from services import extract_by_selectors
+
+# Get the root directory and add it to Python path
+root_dir = Path(__file__).parent.parent
 
 # Load environment variables from .env file
 load_dotenv(root_dir / ".env")
@@ -95,20 +95,20 @@ async def extract_html_content(
             return None
 
     except Exception as e:
-        logger.error(f"Error extracting HTML content from {url}: {str(e)}")
+        logger.error(f"Error extracting HTML content from {url}: {e!s}")
         return None
 
 
 def read_prompt_template() -> str:
     """Read the prompt template from a file."""
     try:
-        with open(PROMPT_FILE, "r") as f:
+        with open(PROMPT_FILE) as f:
             return f.read()
     except FileNotFoundError:
         logger.error(f"Error: Prompt template file '{PROMPT_FILE}' not found.")
         exit(1)
     except Exception as e:
-        logger.error(f"Error reading prompt template: {str(e)}")
+        logger.error(f"Error reading prompt template: {e!s}")
         exit(1)
 
 
@@ -172,7 +172,7 @@ async def process_job(
         return result
 
     except Exception as e:
-        logger.error(f"Error processing job at {job_url} with OpenAI: {str(e)}")
+        logger.error(f"Error processing job at {job_url} with OpenAI: {e!s}")
         return {
             "job": {},
             "error": str(e),
@@ -194,10 +194,10 @@ async def main() -> None:
 
     # Read input file with jobs data
     try:
-        with open(input_file_path, "r") as f:
+        with open(input_file_path) as f:
             data = json.load(f)
     except Exception as e:
-        logger.error(f"Error reading input file: {str(e)}")
+        logger.error(f"Error reading input file: {e!s}")
         return
 
     # Process each company's jobs

@@ -85,7 +85,7 @@ class SelectorParser:
                         ElementResult(
                             selector=selector,
                             found=False,
-                            error_message=f"Parser error: {str(e)}",
+                            error_message=f"Parser error: {e!s}",
                             context=self.parser_type.value,
                         )
                     )

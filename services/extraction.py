@@ -12,9 +12,8 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from loguru import logger
-from playwright.async_api import Browser
+from playwright.async_api import Browser, async_playwright
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
-from playwright.async_api import async_playwright
 
 from parsers import ElementResult, ParserFactory, ParserType
 
@@ -153,13 +152,13 @@ class WebExtractionService:
                         logger.error(f"Failed to parse after timeout: {parse_error}")
                         results = self._create_error_results(
                             selectors,
-                            f"Page timeout and parse failed: {str(parse_error)}",
+                            f"Page timeout and parse failed: {parse_error!s}",
                         )
 
                 except Exception as e:
                     logger.error(f"Failed to navigate to {url}: {e}")
                     results = self._create_error_results(
-                        selectors, f"Navigation failed: {str(e)}"
+                        selectors, f"Navigation failed: {e!s}"
                     )
 
         return results
@@ -230,7 +229,7 @@ class WebExtractionService:
         # All retries failed
         logger.error(f"All {max_retries} attempts failed")
         return self._create_error_results(
-            selectors, f"All retries failed. Last error: {str(last_error)}"
+            selectors, f"All retries failed. Last error: {last_error!s}"
         )
 
     @staticmethod
@@ -299,9 +298,9 @@ async def extract_from_urls_batch(
 
 # For backward compatibility and simple imports
 __all__ = [
-    "WebExtractionService",
-    "ExtractionConfig",
     "BrowserConfig",
+    "ExtractionConfig",
+    "WebExtractionService",
     "extract_by_selectors",
     "extract_from_urls_batch",
 ]

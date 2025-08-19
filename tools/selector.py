@@ -134,7 +134,7 @@ class SelectorTester:
 
     def format_result_markdown(self, url: str, results: List[ElementResult]) -> str:
         """Format results as Markdown."""
-        output = [f"# Selector Test Results\n"]
+        output = ["# Selector Test Results\n"]
         output.append(f"**URL:** `{url}`\n")
         output.append(f"**Timestamp:** {datetime.now().isoformat()}\n")
         output.append(f"**Total Selectors:** {len(results)}\n")
@@ -146,7 +146,7 @@ class SelectorTester:
         for i, result in enumerate(results, 1):
             output.append(f"### {i}. Selector: `{result.selector}`\n")
             if result.found:
-                output.append(f"- **Status:** ✅ Found\n")
+                output.append("- **Status:** ✅ Found\n")
                 output.append(f"- **Context:** {result.context}\n")
                 if result.text_content:
                     text_preview = result.text_content[:200]
@@ -154,7 +154,7 @@ class SelectorTester:
                         text_preview += "..."
                     output.append(f"- **Text Content:** {text_preview}\n")
             else:
-                output.append(f"- **Status:** ❌ Not Found\n")
+                output.append("- **Status:** ❌ Not Found\n")
                 output.append(f"- **Error:** {result.error_message}\n")
             output.append("")
 
@@ -179,11 +179,11 @@ class SelectorTester:
         """
         # Print header for console output
         if self.output_format == "console":
-            print(f"\n{'='*80}")
+            print(f"\n{'=' * 80}")
             print(f"{self._colorize('TESTING SELECTORS ON:', 'BOLD')} {url}")
             print(f"{self._colorize('📋 PARSER:', 'CYAN')} {parser_type.value}")
             print(f"{self._colorize('📊 SELECTORS TO TEST:', 'CYAN')} {len(selectors)}")
-            print(f"{'='*80}\n")
+            print(f"{'=' * 80}\n")
 
         # Extract elements
         results = await extract_by_selectors(
@@ -196,7 +196,7 @@ class SelectorTester:
                 print(
                     f"\n{self._colorize(f'[{i}/{len(results)}]', 'YELLOW')} {self.format_result_console(result)}"
                 )
-                print(f"\n{'='*80}")
+                print(f"\n{'=' * 80}")
 
             # Print summary
             successful = sum(1 for r in results if r.found)
