@@ -36,6 +36,18 @@ line-length = 88
 target-version = "py38"
 src = ["scripts", "parsers", "services", "web_parser", "tools"]
 
+# Exclude common directories
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "*.egg-info",
+]
+
+[tool.ruff.lint]
 # Enable specific rule sets (more controlled than "ALL")
 select = [
     "E",   # pycodestyle errors
@@ -46,7 +58,7 @@ select = [
     "C4",  # flake8-comprehensions
     "UP",  # pyupgrade
     "SIM", # flake8-simplify
-    "TC",  # flake8-type-checking (CHANGED FROM "TCH" TO "TC")
+    "TC",  # flake8-type-checking
     "RUF", # Ruff-specific rules
     "PL",  # Pylint
     "Q",   # flake8-quotes
@@ -62,23 +74,18 @@ ignore = [
     "PLR0913", # Too many arguments
     "PLR2004", # Magic value used in comparison
     "SIM108",  # Use ternary operator (sometimes less readable)
-    "TC003",   # Move imports into type-checking block (CHANGED FROM "TCH003" TO "TC003")
+    "TC003",   # Move imports into type-checking block
 ]
 
 # Allow autofix for all enabled rules
 fixable = ["ALL"]
 unfixable = []
 
-# Exclude common directories
-exclude = [
-    ".git",
-    ".venv",
-    "venv",
-    "__pycache__",
-    "build",
-    "dist",
-    "*.egg-info",
-]
+[tool.ruff.lint.isort]
+known-first-party = ["scripts", "parsers", "services", "web_parser", "tools"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401", "F403"] # Unused imports in init files
 
 [tool.ruff.format]
 # Format like Black
@@ -86,12 +93,6 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
-
-[tool.ruff.isort]
-known-first-party = ["scripts", "parsers", "services", "web_parser", "tools"]
-
-[tool.ruff.per-file-ignores]
-"__init__.py" = ["F401", "F403"] # Unused imports in init files
 
 # ===== MYPY (Type Checking - Ruff doesn't replace this) =====
 [tool.mypy]
