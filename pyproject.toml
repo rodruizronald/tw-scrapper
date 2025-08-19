@@ -9,7 +9,7 @@ description = "Job Link Extraction and Analysis Pipeline"
 authors = [{ name = "Ronald Rodriguez", email = "rodruizronald@gmail.com" }]
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 dependencies = [
     "playwright~=1.51.0",
     "openai>=1.75.0",
@@ -33,7 +33,7 @@ include = ["scripts*", "parsers*", "services*", "web_parser*", "tools*"]
 # ===== RUFF (Linting & Formatting) =====
 [tool.ruff]
 line-length = 88
-target-version = "py38"
+target-version = "py312"
 src = ["scripts", "parsers", "services", "web_parser", "tools"]
 
 # Exclude common directories
@@ -96,7 +96,7 @@ line-ending = "auto"
 
 # ===== MYPY (Type Checking - Ruff doesn't replace this) =====
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
