@@ -1,5 +1,0 @@
-# Main application dependencies
-playwright~=1.51.0
-openai>=1.75.0
-python-dotenv~=1.1.0
-loguru~=0.7.0

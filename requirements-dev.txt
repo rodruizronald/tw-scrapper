@@ -1,6 +1,0 @@
-# Include production dependencies
--r requirements.txt
-
-# Development and code quality tools
-mypy>=1.17.0
-ruff>=0.12.9
