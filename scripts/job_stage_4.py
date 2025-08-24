@@ -235,6 +235,89 @@ def manage_past_jobs_signatures(combined_signatures: set) -> None:
         logger.error(f"Error saving historical jobs signatures: {e!s}")
 
 
+def filter_removed_jobs_signatures() -> None:
+    """
+    Filter out job signatures that are no longer available by comparing
+    historical_jobs.json with new_jobs.json from stage 1.
+
+    Signatures not present in new_jobs.json are considered removed and filtered out.
+    """
+    current_date = datetime.now(UTC)
+    current_timestamp = current_date.strftime("%Y%m%d")
+
+    # Define paths
+    current_stage_4_dir = OUTPUT_DIR / current_timestamp / "pipeline_stage_4"
+    current_stage_1_dir = OUTPUT_DIR / current_timestamp / "pipeline_stage_1"
+
+    historical_jobs_file = current_stage_4_dir / "historical_jobs.json"
+    new_jobs_file = current_stage_1_dir / "new_jobs.json"
+    removed_signatures_file = current_stage_4_dir / "removed_signatures.json"
+
+    # Check if required files exist
+    if not historical_jobs_file.exists():
+        logger.warning(f"Historical jobs file not found: {historical_jobs_file}")
+        return
+
+    if not new_jobs_file.exists():
+        logger.warning(f"New jobs file not found: {new_jobs_file}")
+        return
+
+    try:
+        # Load historical signatures
+        with open(historical_jobs_file) as f:
+            historical_data = json.load(f)
+        historical_signatures = set(historical_data.get("signatures", []))
+
+        # Load current day's new signatures
+        with open(new_jobs_file) as f:
+            new_jobs_data = json.load(f)
+        new_signatures = set(new_jobs_data.get("signatures", []))
+
+        logger.info(f"Historical signatures count: {len(historical_signatures)}")
+        logger.info(f"New signatures count: {len(new_signatures)}")
+
+        # Find removed signatures (in historical but not in new)
+        removed_signatures = historical_signatures - new_signatures
+
+        # Filter historical signatures to keep only those still present
+        filtered_signatures = historical_signatures.intersection(new_signatures)
+
+        if removed_signatures:
+            logger.warning(f"Found {len(removed_signatures)} removed job signatures")
+
+            # Save removed signatures to file
+            removed_data = {
+                "removed_signatures": list(removed_signatures),
+                "count": len(removed_signatures),
+                "timestamp": current_date.isoformat(),
+            }
+
+            with open(removed_signatures_file, "w") as f:
+                json.dump(removed_data, f, indent=2)
+            logger.info(f"Removed signatures saved to {removed_signatures_file}")
+
+            # Update historical_jobs.json with filtered signatures
+            historical_data["signatures"] = list(filtered_signatures)
+            historical_data["count"] = len(filtered_signatures)
+            historical_data["removed_count"] = len(removed_signatures)
+            historical_data["last_filtered_timestamp"] = current_date.isoformat()
+
+            with open(historical_jobs_file, "w") as f:
+                json.dump(historical_data, f, indent=2)
+
+            logger.info(
+                f"Updated historical jobs file with {len(filtered_signatures)} remaining signatures"
+            )
+            logger.info(f"Filtered out {len(removed_signatures)} removed signatures")
+        else:
+            logger.info(
+                "No removed signatures found - all historical signatures are still active"
+            )
+
+    except Exception as e:
+        logger.error(f"Error filtering removed job signatures: {e!s}")
+
+
 async def process_jobs_data(
     data: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], set[str], int, int]:
@@ -344,6 +427,9 @@ async def main() -> None:
 
     # Manage past jobs signatures with duplicate detection
     manage_past_jobs_signatures(processed_signatures)
+
+    # Filter removed job signatures
+    filter_removed_jobs_signatures()
 
     # Save results
     output_file = PIPELINE_OUTPUT_DIR / OUTPUT_FILE

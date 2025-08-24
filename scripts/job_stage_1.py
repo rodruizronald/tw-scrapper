@@ -248,6 +248,8 @@ def filter_new_jobs(companies_jobs: dict[str, Any]) -> dict[str, Any]:
 
     for company_data in companies_jobs.get("companies", []):
         company_name = company_data.get("company", "")
+        html_parser = ParserType[company_data.get("html_parser", "DEFAULT").upper()]
+        job_eligibility_selector = company_data.get("job_eligibility_selector", [])
         job_description_selector = company_data.get("job_description_selector", [])
         original_jobs = company_data.get("jobs", [])
 
@@ -283,6 +285,8 @@ def filter_new_jobs(companies_jobs: dict[str, Any]) -> dict[str, Any]:
         filtered_companies_jobs["companies"].append(
             {
                 "company": company_name,
+                "html_parser": html_parser.value,
+                "job_eligibility_selector": job_eligibility_selector,
                 "job_description_selector": job_description_selector,
                 "jobs": filtered_jobs,
             }
@@ -295,6 +299,44 @@ def filter_new_jobs(companies_jobs: dict[str, Any]) -> dict[str, Any]:
     logger.info(f"  Duplicate jobs filtered out: {total_duplicate_jobs}")
 
     return filtered_companies_jobs
+
+
+def create_new_jobs_file(companies_jobs: dict[str, Any]) -> None:
+    """
+    Create a historical_jobs.json file containing all job signatures from the current run.
+
+    Args:
+        companies_jobs: Dictionary containing companies and their jobs
+
+    Raises:
+        SystemExit: If the file cannot be created or written
+    """
+    try:
+        # Collect all signatures from all companies
+        all_signatures = []
+        for company_data in companies_jobs.get("companies", []):
+            for job in company_data.get("jobs", []):
+                signature = job.get("signature", "")
+                if signature:
+                    all_signatures.append(signature)
+
+        # Create the new jobs data structure
+        historical_data = {
+            "signatures": all_signatures,
+            "count": len(all_signatures),
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
+
+        # Save to new_jobs.json file
+        historical_jobs_file = PIPELINE_OUTPUT_DIR / "new_jobs.json"
+        with open(historical_jobs_file, "w", encoding="utf-8") as f:
+            json.dump(historical_data, f, indent=2, ensure_ascii=False)
+
+        logger.info(f"Historical jobs file created: {historical_jobs_file}")
+        logger.info(f"Total signatures saved: {len(all_signatures)}")
+    except Exception as e:
+        logger.error(f"Error creating new jobs file: {e!s}")
+        sys.exit(1)
 
 
 async def main() -> None:
@@ -375,6 +417,9 @@ async def main() -> None:
 
         # Delay to avoid rate limiting
         await asyncio.sleep(1)
+
+    # Create historical jobs file with all signatures before filtering
+    create_new_jobs_file(companies_jobs)
 
     # Filter out jobs that were processed the previous day
     companies_jobs = filter_new_jobs(companies_jobs)
