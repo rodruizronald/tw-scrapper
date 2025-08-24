@@ -28,7 +28,7 @@ PROMPT_FILE = (
 
 # Define global output directory path
 OUTPUT_DIR = Path("data")
-timestamp = datetime.now(UTC).strftime("%Y%m%d")
+timestamp = datetime.now(UTC).astimezone().strftime("%Y%m%d")
 PIPELINE_INPUT_DIR = OUTPUT_DIR / timestamp / "pipeline_stage_3"
 PIPELINE_OUTPUT_DIR = OUTPUT_DIR / timestamp / "pipeline_stage_4"
 PIPELINE_OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
@@ -124,7 +124,7 @@ async def process_job(
         result = {
             "technologies": tech_data.get("technologies", []),
             "main_technologies": tech_data.get("main_technologies", []),
-            "timestamp": datetime.now(UTC).isoformat(),
+            "timestamp": datetime.now(UTC).astimezone().isoformat(),
         }
 
         logger.success(f"Successfully processed job: {job_title}")
@@ -147,7 +147,7 @@ def manage_past_jobs_signatures(combined_signatures: set) -> None:
         combined_signatures: Set of current signatures to process
     """
     # Get current and previous day timestamps
-    current_date = datetime.now(UTC)
+    current_date = datetime.now(UTC).astimezone()
     previous_date = current_date - timedelta(days=1)
 
     current_timestamp = current_date.strftime("%Y%m%d")
@@ -238,11 +238,11 @@ def manage_past_jobs_signatures(combined_signatures: set) -> None:
 def filter_removed_jobs_signatures() -> None:
     """
     Filter out job signatures that are no longer available by comparing
-    historical_jobs.json with new_jobs.json from stage 1.
+    historical_jobs.json with found_jobs.json from stage 1.
 
-    Signatures not present in new_jobs.json are considered removed and filtered out.
+    Signatures not present in found_jobs.json are considered removed and filtered out.
     """
-    current_date = datetime.now(UTC)
+    current_date = datetime.now(UTC).astimezone()
     current_timestamp = current_date.strftime("%Y%m%d")
 
     # Define paths
@@ -250,7 +250,7 @@ def filter_removed_jobs_signatures() -> None:
     current_stage_1_dir = OUTPUT_DIR / current_timestamp / "pipeline_stage_1"
 
     historical_jobs_file = current_stage_4_dir / "historical_jobs.json"
-    new_jobs_file = current_stage_1_dir / "new_jobs.json"
+    new_jobs_file = current_stage_1_dir / "found_jobs.json"
     removed_signatures_file = current_stage_4_dir / "removed_signatures.json"
 
     # Check if required files exist
