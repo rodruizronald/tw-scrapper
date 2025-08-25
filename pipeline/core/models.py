@@ -1,12 +1,11 @@
-
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Optional
 from enum import Enum
+from pathlib import Path
 
 
 class ParserType(Enum):
     """HTML parser types supported by the pipeline."""
+
     DEFAULT = "DEFAULT"
     GREENHOUSE = "GREENHOUSE"
     ANGULAR = "ANGULAR"
@@ -15,6 +14,7 @@ class ParserType(Enum):
 @dataclass
 class CompanyData:
     """Data structure for company information."""
+
     name: str
     career_url: str
     html_parser: str
@@ -27,7 +27,7 @@ class CompanyData:
         """Validate and normalize data after initialization."""
         if not self.name or not self.career_url:
             raise ValueError("Company name and career_url are required")
-        
+
         # Normalize parser type
         if isinstance(self.html_parser, str):
             try:
@@ -39,12 +39,13 @@ class CompanyData:
 @dataclass
 class JobData:
     """Data structure for individual job information."""
+
     title: str
     url: str
     signature: str
     company: str
     timestamp: str
-    
+
     def __post_init__(self):
         """Validate job data after initialization."""
         if not self.url:
@@ -54,19 +55,20 @@ class JobData:
 @dataclass
 class ProcessingResult:
     """Result of processing a company's job listings."""
+
     success: bool
     company_name: str
     jobs_found: int = 0
     jobs_saved: int = 0
-    output_path: Optional[Path] = None
-    error: Optional[str] = None
+    output_path: Path | None = None
+    error: str | None = None
     processing_time: float = 0.0
-    
+
     @property
     def is_successful(self) -> bool:
         """Check if processing was successful."""
         return self.success and self.error is None
-    
+
     def __str__(self) -> str:
         """String representation of the result."""
         if self.success:

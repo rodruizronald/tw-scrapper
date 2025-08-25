@@ -1,4 +1,3 @@
-
 """
 Service layer for the job pipeline.
 
@@ -8,12 +7,8 @@ This module contains service classes that handle specific aspects of the pipelin
 - File operations and data persistence
 """
 
+from .file_service import FileService
 from .html_service import HTMLExtractor
 from .openai_service import OpenAIService
-from .file_service import FileService
 
-__all__ = [
-    "HTMLExtractor",
-    "OpenAIService",
-    "FileService"
-]
+__all__ = ["FileService", "HTMLExtractor", "OpenAIService"]

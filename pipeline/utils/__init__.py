@@ -1,4 +1,3 @@
-
 """
 Utility modules for the job pipeline.
 
@@ -9,21 +8,21 @@ This module contains utility functions and classes used throughout the pipeline:
 """
 
 from .exceptions import (
-    PipelineError,
     CompanyProcessingError,
+    ConfigurationError,
+    FileOperationError,
     HTMLExtractionError,
     OpenAIProcessingError,
-    FileOperationError,
+    PipelineError,
     ValidationError,
-    ConfigurationError
 )
 
 __all__ = [
-    "PipelineError",
-    "CompanyProcessingError", 
+    "CompanyProcessingError",
+    "ConfigurationError",
+    "FileOperationError",
     "HTMLExtractionError",
     "OpenAIProcessingError",
-    "FileOperationError",
+    "PipelineError",
     "ValidationError",
-    "ConfigurationError"
 ]

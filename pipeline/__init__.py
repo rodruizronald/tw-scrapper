@@ -48,27 +48,27 @@ Advanced Usage:
 """
 
 # Core pipeline components
+from .core.config import LoggingConfig, OpenAIConfig, PipelineConfig, StageConfig
+from .core.models import CompanyData, JobData, ParserType, ProcessingResult
 from .core.pipeline import JobPipeline
-from .core.config import PipelineConfig, StageConfig, OpenAIConfig, LoggingConfig
-from .core.models import CompanyData, JobData, ProcessingResult, ParserType
+from .services.file_service import FileService
 
 # Service layer
 from .services.html_service import HTMLExtractor
 from .services.openai_service import OpenAIService
-from .services.file_service import FileService
 
 # Stage processors
 from .stages.stage_1 import Stage1Processor
 
 # Utilities
 from .utils.exceptions import (
-    PipelineError,
     CompanyProcessingError,
+    ConfigurationError,
+    FileOperationError,
     HTMLExtractionError,
     OpenAIProcessingError,
-    FileOperationError,
+    PipelineError,
     ValidationError,
-    ConfigurationError,
 )
 
 # Version information

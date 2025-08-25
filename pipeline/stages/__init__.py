@@ -1,4 +1,3 @@
-
 """
 Pipeline stage processors.
 
@@ -8,6 +7,4 @@ specific phases of the job data processing pipeline.
 
 from .stage_1 import Stage1Processor
 
-__all__ = [
-    "Stage1Processor"
-]
+__all__ = ["Stage1Processor"]
