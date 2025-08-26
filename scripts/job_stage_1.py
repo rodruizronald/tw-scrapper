@@ -33,7 +33,7 @@ PROMPT_FILE = (
 
 # Define global output directory path
 OUTPUT_DIR = Path("data")
-timestamp = datetime.now(UTC).strftime("%Y%m%d")
+timestamp = datetime.now(UTC).astimezone().strftime("%Y%m%d")
 PIPELINE_OUTPUT_DIR = OUTPUT_DIR / timestamp / "pipeline_stage_1"
 PIPELINE_OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
 
@@ -165,7 +165,7 @@ async def process_company(
         # Add company metadata
         result = {
             "jobs": job_data.get("jobs", []),
-            "timestamp": datetime.now(UTC).isoformat(),
+            "timestamp": datetime.now(UTC).astimezone().isoformat(),
         }
 
         logger.success(f"Found {len(result['jobs'])} job links for {company_name}")
@@ -196,7 +196,7 @@ def generate_job_signature(url: str) -> str:
     return hashlib.sha256(url.encode()).hexdigest()
 
 
-def filter_new_jobs(companies_jobs: dict[str, Any]) -> dict[str, Any]:
+def filter_found_jobs(companies_jobs: dict[str, Any]) -> dict[str, Any]:
     """
     Filter out jobs that were processed the previous day based on signatures.
 
@@ -207,7 +207,7 @@ def filter_new_jobs(companies_jobs: dict[str, Any]) -> dict[str, Any]:
         Dictionary with filtered companies_jobs containing only new jobs
     """
     # Get previous day timestamp
-    previous_date = datetime.now(UTC) - timedelta(days=1)
+    previous_date = datetime.now(UTC).astimezone() - timedelta(days=1)
     previous_timestamp = previous_date.strftime("%Y%m%d")
 
     # Define path to previous day's historical_jobs.json
@@ -301,7 +301,7 @@ def filter_new_jobs(companies_jobs: dict[str, Any]) -> dict[str, Any]:
     return filtered_companies_jobs
 
 
-def create_new_jobs_file(companies_jobs: dict[str, Any]) -> None:
+def create_found_jobs_file(companies_jobs: dict[str, Any]) -> None:
     """
     Create a historical_jobs.json file containing all job signatures from the current run.
 
@@ -320,22 +320,22 @@ def create_new_jobs_file(companies_jobs: dict[str, Any]) -> None:
                 if signature:
                     all_signatures.append(signature)
 
-        # Create the new jobs data structure
+        # Create the found jobs data structure
         historical_data = {
             "signatures": all_signatures,
             "count": len(all_signatures),
-            "timestamp": datetime.now(UTC).isoformat(),
+            "timestamp": datetime.now(UTC).astimezone().isoformat(),
         }
 
-        # Save to new_jobs.json file
-        historical_jobs_file = PIPELINE_OUTPUT_DIR / "new_jobs.json"
+        # Save to found_jobs.json file
+        historical_jobs_file = PIPELINE_OUTPUT_DIR / "found_jobs.json"
         with open(historical_jobs_file, "w", encoding="utf-8") as f:
             json.dump(historical_data, f, indent=2, ensure_ascii=False)
 
         logger.info(f"Historical jobs file created: {historical_jobs_file}")
         logger.info(f"Total signatures saved: {len(all_signatures)}")
     except Exception as e:
-        logger.error(f"Error creating new jobs file: {e!s}")
+        logger.error(f"Error creating found jobs file: {e!s}")
         sys.exit(1)
 
 
@@ -419,10 +419,10 @@ async def main() -> None:
         await asyncio.sleep(1)
 
     # Create historical jobs file with all signatures before filtering
-    create_new_jobs_file(companies_jobs)
+    create_found_jobs_file(companies_jobs)
 
     # Filter out jobs that were processed the previous day
-    companies_jobs = filter_new_jobs(companies_jobs)
+    companies_jobs = filter_found_jobs(companies_jobs)
 
     output_file = PIPELINE_OUTPUT_DIR / JOBS_FILE
     with open(output_file, "w", encoding="utf-8") as f:

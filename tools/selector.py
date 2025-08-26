@@ -136,7 +136,7 @@ class SelectorTester:
         """Format results as Markdown."""
         output = ["# Selector Test Results\n"]
         output.append(f"**URL:** `{url}`\n")
-        output.append(f"**Timestamp:** {datetime.now(tz=UTC).isoformat()}\n")
+        output.append(f"**Timestamp:** {datetime.now(UTC).astimezone().isoformat()}\n")
         output.append(f"**Total Selectors:** {len(results)}\n")
         output.append(
             f"**Found:** {sum(1 for r in results if r.found)}/{len(results)}\n"
@@ -218,7 +218,7 @@ class SelectorTester:
 
     def _save_results(self, url: str, results: list[ElementResult]):
         """Save results to file."""
-        timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(UTC).astimezone().strftime("%Y%m%d_%H%M%S")
         domain = url.split("/")[2].replace(".", "_")
 
         if self.output_format == "json":

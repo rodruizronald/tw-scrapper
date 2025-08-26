@@ -31,7 +31,7 @@ PROMPT_FILE = (
 
 # Define global output directory path
 OUTPUT_DIR = Path("data")
-timestamp = datetime.now(UTC).strftime("%Y%m%d")
+timestamp = datetime.now(UTC).astimezone().strftime("%Y%m%d")
 PIPELINE_INPUT_DIR = OUTPUT_DIR / timestamp / "pipeline_stage_2"
 PIPELINE_OUTPUT_DIR = OUTPUT_DIR / timestamp / "pipeline_stage_3"
 PIPELINE_OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
@@ -174,7 +174,7 @@ async def process_job(
             "skill_must_have": skills_data.get("skill_must_have", []),
             "skill_nice_to_have": skills_data.get("skill_nice_to_have", []),
             "benefits": skills_data.get("benefits", []),
-            "timestamp": datetime.now(UTC).isoformat(),
+            "timestamp": datetime.now(UTC).astimezone().isoformat(),
         }
 
         logger.success(f"Successfully processed job at {job_url}")
