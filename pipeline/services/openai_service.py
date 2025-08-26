@@ -6,8 +6,8 @@ from typing import Any
 import openai
 from loguru import logger
 
-from ..core.config import OpenAIConfig
-from ..utils.exceptions import FileOperationError, OpenAIProcessingError
+from pipeline.core.config import OpenAIConfig
+from pipeline.utils.exceptions import FileOperationError, OpenAIProcessingError
 
 
 class OpenAIService:
@@ -58,103 +58,140 @@ class OpenAIService:
         # Process with OpenAI with retries
         for attempt in range(self.config.max_retries + 1):
             try:
-                logger.info(
-                    f"{company_context}Sending content to OpenAI (attempt {attempt + 1})..."
+                result = await self._attempt_openai_request(
+                    filled_prompt, attempt, company_context
                 )
+                if result is not None:
+                    return result
 
-                # Add rate limiting delay
-                if attempt > 0:
-                    delay = self._rate_limit_delay * (
-                        2 ** (attempt - 1)
-                    )  # Exponential backoff
-                    logger.info(f"{company_context}Waiting {delay}s before retry...")
-                    await asyncio.sleep(delay)
-
-                response = self.client.chat.completions.create(
-                    model=self.config.model,
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": "You extract job href links from HTML content.",
-                        },
-                        {"role": "user", "content": filled_prompt},
-                    ],
-                    response_format={"type": "json_object"},
-                    timeout=self.config.timeout,
-                )
-
-                # Parse response
-                response_text = response.choices[0].message.content
-                if response_text is None:
-                    error_msg = "Empty response from OpenAI"
-                    logger.error(f"{company_context}{error_msg}")
-
-                    if attempt < self.config.max_retries:
-                        continue
-                    else:
-                        raise OpenAIProcessingError(error_msg, company_name)
-
-                # Parse JSON response
-                try:
-                    job_data = json.loads(response_text)
-                    logger.success(
-                        f"{company_context}Successfully parsed response from OpenAI"
-                    )
-                    return job_data
-
-                except json.JSONDecodeError as e:
-                    error_msg = f"Invalid JSON response from OpenAI: {e}"
-                    logger.error(f"{company_context}{error_msg}")
-
-                    if attempt < self.config.max_retries:
-                        continue
-                    else:
-                        raise OpenAIProcessingError(
-                            error_msg, company_name, response_text
-                        )
-
-            except openai.RateLimitError as e:
-                error_msg = f"OpenAI rate limit exceeded: {e}"
-                logger.warning(f"{company_context}{error_msg}")
-
-                if attempt < self.config.max_retries:
-                    # Increase delay for rate limit errors
-                    delay = self._rate_limit_delay * (3**attempt)
-                    logger.info(f"{company_context}Rate limited, waiting {delay}s...")
-                    await asyncio.sleep(delay)
-                    continue
-                else:
-                    raise OpenAIProcessingError(error_msg, company_name)
-
-            except openai.APITimeoutError as e:
-                error_msg = f"OpenAI API timeout: {e}"
-                logger.warning(f"{company_context}{error_msg}")
-
-                if attempt < self.config.max_retries:
-                    continue
-                else:
-                    raise OpenAIProcessingError(error_msg, company_name)
-
-            except openai.APIError as e:
-                error_msg = f"OpenAI API error: {e}"
-                logger.error(f"{company_context}{error_msg}")
-
-                if attempt < self.config.max_retries:
-                    continue
-                else:
-                    raise OpenAIProcessingError(error_msg, company_name)
+            except (
+                openai.RateLimitError,
+                openai.APITimeoutError,
+                openai.APIError,
+            ) as e:
+                if not await self._handle_openai_error(
+                    e, attempt, company_context, company_name
+                ):
+                    raise
 
             except Exception as e:
-                error_msg = f"Unexpected error during OpenAI processing: {e}"
-                logger.error(f"{company_context}{error_msg}")
-
-                if attempt < self.config.max_retries:
-                    continue
-                else:
-                    raise OpenAIProcessingError(error_msg, company_name)
+                if not self._handle_unexpected_error(
+                    e, attempt, company_context, company_name
+                ):
+                    raise
 
         # This should never be reached
         raise OpenAIProcessingError("Maximum retries exceeded", company_name)
+
+    async def _attempt_openai_request(
+        self,
+        filled_prompt: str,
+        attempt: int,
+        company_context: str,
+    ) -> dict[str, Any] | None:
+        """Attempt a single OpenAI request."""
+        logger.info(
+            f"{company_context}Sending content to OpenAI (attempt {attempt + 1})..."
+        )
+
+        # Add rate limiting delay
+        if attempt > 0:
+            delay = self._rate_limit_delay * (2 ** (attempt - 1))  # Exponential backoff
+            logger.info(f"{company_context}Waiting {delay}s before retry...")
+            await asyncio.sleep(delay)
+
+        response = self.client.chat.completions.create(
+            model=self.config.model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You extract job href links from HTML content.",
+                },
+                {"role": "user", "content": filled_prompt},
+            ],
+            response_format={"type": "json_object"},
+            timeout=self.config.timeout,
+        )
+
+        return self._parse_openai_response(response, company_context)
+
+    def _parse_openai_response(
+        self,
+        response: openai.types.chat.ChatCompletion,
+        company_context: str,
+    ) -> dict[str, Any] | None:
+        """Parse and validate OpenAI response."""
+        response_text = response.choices[0].message.content
+        if response_text is None:
+            error_msg = "Empty response from OpenAI"
+            logger.error(f"{company_context}{error_msg}")
+            return None
+
+        try:
+            job_data: dict[str, Any] = json.loads(response_text)
+            logger.success(f"{company_context}Successfully parsed response from OpenAI")
+            return job_data
+
+        except json.JSONDecodeError as e:
+            error_msg = f"Invalid JSON response from OpenAI: {e}"
+            logger.error(f"{company_context}{error_msg}")
+            return None
+
+    async def _handle_openai_error(
+        self,
+        error: Exception,
+        attempt: int,
+        company_context: str,
+        company_name: str | None,
+    ) -> bool:
+        """Handle OpenAI-specific errors. Returns True if should continue retrying."""
+        if isinstance(error, openai.RateLimitError):
+            error_msg = f"OpenAI rate limit exceeded: {error}"
+            logger.warning(f"{company_context}{error_msg}")
+
+            if attempt < self.config.max_retries:
+                delay = self._rate_limit_delay * (3**attempt)
+                logger.info(f"{company_context}Rate limited, waiting {delay}s...")
+                await asyncio.sleep(delay)
+                return True
+            else:
+                raise OpenAIProcessingError(error_msg, company_name) from error
+
+        elif isinstance(error, openai.APITimeoutError):
+            error_msg = f"OpenAI API timeout: {error}"
+            logger.warning(f"{company_context}{error_msg}")
+
+            if attempt < self.config.max_retries:
+                return True
+            else:
+                raise OpenAIProcessingError(error_msg, company_name) from error
+
+        elif isinstance(error, openai.APIError):
+            error_msg = f"OpenAI API error: {error}"
+            logger.error(f"{company_context}{error_msg}")
+
+            if attempt < self.config.max_retries:
+                return True
+            else:
+                raise OpenAIProcessingError(error_msg, company_name) from error
+
+        return False
+
+    def _handle_unexpected_error(
+        self,
+        error: Exception,
+        attempt: int,
+        company_context: str,
+        company_name: str | None,
+    ) -> bool:
+        """Handle unexpected errors. Returns True if should continue retrying."""
+        error_msg = f"Unexpected error during OpenAI processing: {error}"
+        logger.error(f"{company_context}{error_msg}")
+
+        if attempt < self.config.max_retries:
+            return True
+        else:
+            raise OpenAIProcessingError(error_msg, company_name) from error
 
     def _read_prompt_template(
         self, template_path: Path, company_name: str | None = None
@@ -163,12 +200,14 @@ class OpenAIService:
         try:
             with open(template_path, encoding="utf-8") as f:
                 return f.read()
-        except FileNotFoundError:
+        except FileNotFoundError as e:
             raise FileOperationError(
                 "read", str(template_path), "File not found", company_name
-            )
+            ) from e
         except Exception as e:
-            raise FileOperationError("read", str(template_path), str(e), company_name)
+            raise FileOperationError(
+                "read", str(template_path), str(e), company_name
+            ) from e
 
     def _prepare_prompt(self, template: str, html_content: str, career_url: str) -> str:
         """Prepare the prompt by filling in template variables."""

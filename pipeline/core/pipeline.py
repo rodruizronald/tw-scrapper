@@ -5,8 +5,13 @@ from typing import Any
 
 from loguru import logger
 
-from ..stages.stage_1 import Stage1Processor
-from ..utils.exceptions import ConfigurationError, FileOperationError, PipelineError
+from pipeline.stages.stage_1 import Stage1Processor
+from pipeline.utils.exceptions import (
+    ConfigurationError,
+    FileOperationError,
+    PipelineError,
+)
+
 from .config import LoggingConfig, OpenAIConfig, PipelineConfig, StageConfig
 from .models import CompanyData, ProcessingResult
 
@@ -74,14 +79,14 @@ class JobPipeline:
             config = PipelineConfig.from_dict(config_dict)
             return cls(config)
 
-        except FileNotFoundError:
+        except FileNotFoundError as e:
             raise FileOperationError(
                 "read", str(config_path), "Configuration file not found"
-            )
+            ) from e
         except json.JSONDecodeError as e:
-            raise ConfigurationError(f"Invalid JSON in configuration file: {e}")
+            raise ConfigurationError(f"Invalid JSON in configuration file: {e}") from e
         except Exception as e:
-            raise ConfigurationError(f"Error loading configuration: {e}")
+            raise ConfigurationError(f"Error loading configuration: {e}") from e
 
     @classmethod
     def create_default_config(
@@ -139,14 +144,14 @@ class JobPipeline:
             logger.info(f"📋 Loaded {len(companies)} companies from {companies_file}")
             return companies
 
-        except FileNotFoundError:
+        except FileNotFoundError as e:
             raise FileOperationError(
                 "read", str(companies_file), "Companies file not found"
-            )
+            ) from e
         except json.JSONDecodeError as e:
-            raise ConfigurationError(f"Invalid JSON in companies file: {e}")
+            raise ConfigurationError(f"Invalid JSON in companies file: {e}") from e
         except Exception as e:
-            raise FileOperationError("read", str(companies_file), str(e))
+            raise FileOperationError("read", str(companies_file), str(e)) from e
 
     async def run_stage_1(
         self, companies: list[CompanyData], prompt_template_path: Path
@@ -187,7 +192,7 @@ class JobPipeline:
             if isinstance(e, PipelineError):
                 raise
             else:
-                raise PipelineError(f"Stage 1 processing failed: {e}")
+                raise PipelineError(f"Stage 1 processing failed: {e}") from e
 
     async def run_full_pipeline(
         self, companies_file: Path, prompt_template_path: Path

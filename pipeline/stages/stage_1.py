@@ -2,22 +2,36 @@ import asyncio
 import hashlib
 import time
 from datetime import UTC, datetime
-from typing import Any
+from pathlib import Path
+from typing import Any, TypedDict
 
 from loguru import logger
 
-from ..core.config import PipelineConfig
-from ..core.models import CompanyData, JobData, ParserType, ProcessingResult
-from ..services.file_service import FileService
-from ..services.html_service import HTMLExtractor
-from ..services.openai_service import OpenAIService
-from ..utils.exceptions import (
+from parsers import ParserType
+from pipeline.core.config import PipelineConfig
+from pipeline.core.models import CompanyData, JobData, ProcessingResult
+from pipeline.services.file_service import FileService
+from pipeline.services.html_service import HTMLExtractor
+from pipeline.services.openai_service import OpenAIService
+from pipeline.utils.exceptions import (
     CompanyProcessingError,
     FileOperationError,
     HTMLExtractionError,
     OpenAIProcessingError,
     ValidationError,
 )
+
+
+class ProcessingStats(TypedDict):
+    """Type definition for processing statistics."""
+
+    companies_processed: int
+    companies_successful: int
+    companies_failed: int
+    total_jobs_found: int
+    total_jobs_saved: int
+    processing_start_time: datetime | None
+    processing_end_time: datetime | None
 
 
 class Stage1Processor:
@@ -39,15 +53,15 @@ class Stage1Processor:
         self.openai_service = OpenAIService(config.openai)
         self.file_service = FileService(config.stage_1.output_dir)
 
-        # Processing statistics
-        self.stats = {
+        # Processing statistics - properly typed
+        self.stats: ProcessingStats = {
             "companies_processed": 0,
             "companies_successful": 0,
             "companies_failed": 0,
             "total_jobs_found": 0,
             "total_jobs_saved": 0,
-            "processing_start_time": None,
-            "processing_end_time": None,
+            "processing_start_time": None,  # Will store datetime
+            "processing_end_time": None,  # Will store datetime
         }
 
     async def process_company(self, company_data: CompanyData) -> ProcessingResult:
@@ -128,15 +142,13 @@ class Stage1Processor:
             # Wrap in CompanyProcessingError if it's not already a pipeline error
             if not isinstance(
                 e,
-                (
-                    CompanyProcessingError,
-                    HTMLExtractionError,
-                    OpenAIProcessingError,
-                    FileOperationError,
-                    ValidationError,
-                ),
+                CompanyProcessingError
+                | HTMLExtractionError
+                | OpenAIProcessingError
+                | FileOperationError
+                | ValidationError,
             ):
-                raise CompanyProcessingError(company_name, e, "stage_1")
+                raise CompanyProcessingError(company_name, e, "stage_1") from e
 
             return result
 
@@ -176,7 +188,7 @@ class Stage1Processor:
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Handle any exceptions that weren't caught
-        processed_results = []
+        processed_results: list[ProcessingResult] = []
         for i, result in enumerate(results):
             if isinstance(result, Exception):
                 company_name = enabled_companies[i].name
@@ -188,7 +200,7 @@ class Stage1Processor:
                         error=f"Unhandled exception: {result!s}",
                     )
                 )
-            else:
+            elif isinstance(result, ProcessingResult):
                 processed_results.append(result)
 
         self.stats["processing_end_time"] = datetime.now(UTC).astimezone()
@@ -221,10 +233,10 @@ class Stage1Processor:
         # Validate parser type
         try:
             ParserType[company_data.html_parser.upper()]
-        except KeyError:
+        except KeyError as e:
             raise ValidationError(
                 "html_parser", company_data.html_parser, "Invalid parser type"
-            )
+            ) from e
 
     async def _extract_career_page_content(self, company_data: CompanyData) -> str:
         """Extract HTML content from company career page."""
@@ -246,15 +258,13 @@ class Stage1Processor:
                 company_data.career_url,
                 f"Unexpected error during HTML extraction: {e!s}",
                 company_data.name,
-            )
+            ) from e
 
     async def _parse_job_listings(
         self, company_data: CompanyData, html_content: str
     ) -> dict[str, Any]:
         """Parse job listings from HTML content using OpenAI."""
         try:
-            from pathlib import Path
-
             prompt_path = Path(self.prompt_template_path)
 
             job_listings = await self.openai_service.parse_job_listings(
@@ -280,7 +290,7 @@ class Stage1Processor:
             raise OpenAIProcessingError(
                 f"Unexpected error during OpenAI processing: {e!s}",
                 company_data.name,
-            )
+            ) from e
 
     def _process_job_listings(
         self, company_data: CompanyData, job_listings: dict[str, Any]
@@ -363,12 +373,15 @@ class Stage1Processor:
         """Log final processing statistics."""
         successful = len([r for r in results if r.success])
         failed = len([r for r in results if not r.success])
-        total_time = 0
+        total_time = 0.0
 
-        if self.stats["processing_start_time"] and self.stats["processing_end_time"]:
-            total_time = (
-                self.stats["processing_end_time"] - self.stats["processing_start_time"]
-            ).total_seconds()
+        # Calculate total time if both timestamps are set
+        start_time = self.stats.get("processing_start_time")
+        end_time = self.stats.get("processing_end_time")
+
+        if isinstance(start_time, datetime) and isinstance(end_time, datetime):
+            # Both are datetime objects, calculate the difference
+            total_time = (end_time - start_time).total_seconds()
 
         logger.info("=" * 60)
         logger.info("📊 STAGE 1 PROCESSING SUMMARY")

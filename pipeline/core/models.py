@@ -32,8 +32,8 @@ class CompanyData:
         if isinstance(self.html_parser, str):
             try:
                 ParserType[self.html_parser.upper()]
-            except KeyError:
-                raise ValueError(f"Invalid parser type: {self.html_parser}")
+            except KeyError as e:
+                raise ValueError(f"Invalid parser type: {self.html_parser}") from e
 
 
 @dataclass

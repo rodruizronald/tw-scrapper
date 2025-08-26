@@ -47,6 +47,10 @@ Advanced Usage:
     pipeline = JobPipeline(config)
 """
 
+# Package initialization logging
+import logging
+from pathlib import Path
+
 # Core pipeline components
 from .core.config import LoggingConfig, OpenAIConfig, PipelineConfig, StageConfig
 from .core.models import CompanyData, JobData, ParserType, ProcessingResult
@@ -78,42 +82,35 @@ __description__ = "AI-powered job listing extraction pipeline"
 
 # Public API
 __all__ = [
-    # Core pipeline
-    "JobPipeline",
-    # Configuration
-    "PipelineConfig",
-    "StageConfig",
-    "OpenAIConfig",
-    "LoggingConfig",
-    # Data models
     "CompanyData",
-    "JobData",
-    "ProcessingResult",
-    "ParserType",
-    # Services (for advanced usage)
-    "HTMLExtractor",
-    "OpenAIService",
-    "FileService",
-    # Stage processors (for advanced usage)
-    "Stage1Processor",
-    # Exceptions
-    "PipelineError",
     "CompanyProcessingError",
-    "HTMLExtractionError",
-    "OpenAIProcessingError",
-    "FileOperationError",
-    "ValidationError",
     "ConfigurationError",
-    # Package metadata
-    "__version__",
+    "FileOperationError",
+    "FileService",
+    "HTMLExtractionError",
+    "HTMLExtractor",
+    "JobData",
+    "JobPipeline",
+    "LoggingConfig",
+    "OpenAIConfig",
+    "OpenAIProcessingError",
+    "OpenAIService",
+    "ParserType",
+    "PipelineConfig",
+    "PipelineError",
+    "ProcessingResult",
+    "Stage1Processor",
+    "StageConfig",
+    "ValidationError",
     "__author__",
     "__description__",
+    "__version__",
 ]
 
 
 # Package-level convenience functions
 def create_pipeline(
-    output_dir: str, openai_api_key: str = None, log_level: str = "INFO"
+    output_dir: str, openai_api_key: str = "", log_level: str = "INFO"
 ) -> JobPipeline:
     """
     Convenience function to create a pipeline with default settings.
@@ -126,7 +123,6 @@ def create_pipeline(
     Returns:
         Configured JobPipeline instance
     """
-    from pathlib import Path
 
     return JobPipeline.create_default_config(
         output_dir=Path(output_dir), openai_api_key=openai_api_key, log_level=log_level
@@ -143,13 +139,9 @@ def load_pipeline_from_config(config_file: str) -> JobPipeline:
     Returns:
         Configured JobPipeline instance
     """
-    from pathlib import Path
 
     return JobPipeline.from_config_file(Path(config_file))
 
-
-# Package initialization logging
-import logging
 
 logger = logging.getLogger(__name__)
 logger.info(f"Job Pipeline package v{__version__} initialized")

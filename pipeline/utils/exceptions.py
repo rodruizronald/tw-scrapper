@@ -1,5 +1,3 @@
-
-
 class PipelineError(Exception):
     """Base exception for all pipeline operations."""
 

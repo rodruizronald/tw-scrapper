@@ -1,13 +1,13 @@
 import json
 import re
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 from loguru import logger
 
-from ..core.models import JobData, ProcessingResult
-from ..utils.exceptions import FileOperationError
+from pipeline.core.models import JobData, ProcessingResult
+from pipeline.utils.exceptions import FileOperationError
 
 
 class FileService:
@@ -122,7 +122,9 @@ class FileService:
         except Exception as e:
             error_msg = f"Failed to save jobs: {e!s}"
             logger.error(f"{company_context} {error_msg}")
-            raise FileOperationError("save", str(output_path), error_msg, company_name)
+            raise FileOperationError(
+                "save", str(output_path), error_msg, company_name
+            ) from e
 
     def load_historical_signatures(self, company_name: str) -> set[str]:
         """
@@ -137,9 +139,6 @@ class FileService:
         company_context = f"[{company_name}]"
 
         try:
-            # Calculate previous day's directory
-            from datetime import timedelta
-
             current_date = datetime.now(UTC).astimezone()
             previous_date = current_date - timedelta(days=1)
             previous_timestamp = previous_date.strftime("%Y%m%d")
@@ -216,7 +215,9 @@ class FileService:
         except Exception as e:
             error_msg = f"Failed to save historical signatures: {e!s}"
             logger.error(f"{company_context} {error_msg}")
-            raise FileOperationError("save", str(output_path), error_msg, company_name)
+            raise FileOperationError(
+                "save", str(output_path), error_msg, company_name
+            ) from e
 
     def load_company_jobs(
         self, company_name: str, filename: str = "jobs_stage_1.json"
@@ -242,9 +243,9 @@ class FileService:
                 return []
 
             with open(input_path, encoding="utf-8") as f:
-                data = json.load(f)
+                data: dict[str, Any] = json.load(f)
 
-            jobs = data.get("jobs", [])
+            jobs: list[dict[str, Any]] = data.get("jobs", [])
             logger.info(f"{company_context} Loaded {len(jobs)} jobs from {input_path}")
             return jobs
 
@@ -299,4 +300,4 @@ class FileService:
 
         except Exception as e:
             logger.error(f"Error creating processing summary: {e}")
-            raise FileOperationError("save", str(summary_path), str(e))
+            raise FileOperationError("save", str(summary_path), str(e)) from e

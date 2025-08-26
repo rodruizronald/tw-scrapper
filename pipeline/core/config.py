@@ -5,7 +5,7 @@ from pathlib import Path
 
 @dataclass
 class StageConfig:
-    """Configuration for Stage 1 processing."""
+    """Configuration for Stage processing."""
 
     output_dir: Path
     save_output: bool = True
