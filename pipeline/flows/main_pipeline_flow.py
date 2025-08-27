@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Any
 
 from prefect import flow, get_run_logger
-from prefect.task_runners import ConcurrentTaskRunner
 
 from pipeline.core.config import PipelineConfig
 from pipeline.core.models import CompanyData
@@ -17,7 +16,6 @@ from pipeline.flows.utils import (
     name="Main Job Processing Pipeline",
     description="Complete end-to-end job processing pipeline (all stages)",
     version="1.0.0",
-    task_runner=ConcurrentTaskRunner(),
     retries=0,  # No retries at pipeline level - let individual stages handle retries
     timeout_seconds=3600,  # 1 hour total pipeline timeout
 )

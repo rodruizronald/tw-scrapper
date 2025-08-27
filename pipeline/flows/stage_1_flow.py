@@ -2,7 +2,6 @@ import asyncio
 from typing import Any
 
 from prefect import flow, get_run_logger
-from prefect.task_runners import ConcurrentTaskRunner
 
 from pipeline.core.config import PipelineConfig
 from pipeline.core.models import CompanyData
@@ -26,20 +25,15 @@ async def _validate_companies(
     logger = get_run_logger()
 
     logger.info("🔍 Step 1: Validating company data...")
-    validation_tasks = []
 
-    for company in enabled_companies:
-        company_dict = prepare_company_data_for_task(company)
-        validation_task = validate_company_data_task.submit(company_dict)
-        validation_tasks.append((company, validation_task))
-
-    # Wait for all validations to complete
+    # In Prefect 3.x, call tasks directly within flows
     validated_companies = []
     validation_failures = []
 
-    for company, validation_task in validation_tasks:
+    for company in enabled_companies:
+        company_dict = prepare_company_data_for_task(company)
         try:
-            validated_data = await validation_task
+            validated_data = await validate_company_data_task(company_dict)
             validated_companies.append((company, validated_data))
             logger.debug(f"✅ Validation passed: {company.name}")
         except Exception as e:
@@ -76,37 +70,24 @@ async def _process_companies_concurrently(
     )
 
     # Create processing tasks with concurrency control
-    processing_tasks = []
     semaphore = asyncio.Semaphore(max_concurrent_companies)
 
-    async def process_with_semaphore(company_data_dict: dict[str, Any]):
+    async def process_single_company(
+        company_data_dict: dict[str, Any], company_name: str
+    ):
         async with semaphore:
-            return await process_company_task.submit(
-                company_data_dict, config_dict, prompt_template_path
-            )
-
-    # Submit all processing tasks
-    for _, validated_data in validated_companies:
-        task = process_with_semaphore(validated_data)
-        processing_tasks.append(task)
-
-    # Wait for all processing tasks to complete
-    processing_results = []
-    for i, task in enumerate(processing_tasks):
-        try:
-            result = await task
-            processing_results.append(result)
-            company_name = validated_companies[i][0].name
-            if result.get("success", False):
-                logger.info(f"✅ Completed: {company_name}")
-            else:
-                logger.warning(f"❌ Failed: {company_name}")
-        except Exception as e:
-            # This shouldn't happen as tasks handle their own exceptions
-            company_name = validated_companies[i][0].name
-            logger.error(f"💥 Unexpected task failure: {company_name} - {e}")
-            processing_results.append(
-                {
+            try:
+                result = await process_company_task(
+                    company_data_dict, config_dict, prompt_template_path
+                )
+                if result.get("success", False):
+                    logger.info(f"✅ Completed: {company_name}")
+                else:
+                    logger.warning(f"❌ Failed: {company_name}")
+                return result
+            except Exception as e:
+                logger.error(f"💥 Unexpected task failure: {company_name} - {e}")
+                return {
                     "success": False,
                     "company_name": company_name,
                     "error": f"Task execution failed: {e}",
@@ -114,7 +95,15 @@ async def _process_companies_concurrently(
                     "retryable": True,
                     "stage": "processing",
                 }
-            )
+
+    # Create tasks for all companies
+    tasks = []
+    for company, validated_data in validated_companies:
+        task = process_single_company(validated_data, company.name)
+        tasks.append(task)
+
+    # Wait for all tasks to complete
+    processing_results = await asyncio.gather(*tasks, return_exceptions=False)
 
     return processing_results
 
@@ -145,7 +134,6 @@ async def _save_results_if_configured(
     name="Stage 1: Job Extraction Pipeline",
     description="Extract job listings from company career pages with concurrent processing",
     version="1.0.0",
-    task_runner=ConcurrentTaskRunner(),
     retries=1,
     retry_delay_seconds=60,
 )
@@ -214,7 +202,7 @@ async def stage_1_flow(
     # Step 3: Combine all results and aggregate
     all_results = validation_failures + processing_results
     logger.info(f"📊 Step 3: Aggregating results from {len(all_results)} companies...")
-    aggregated_results = await aggregate_results_task.submit(all_results)
+    aggregated_results = await aggregate_results_task(all_results)
 
     # Step 4: Save results if configured
     aggregated_results = await _save_results_if_configured(aggregated_results, config)
@@ -262,7 +250,7 @@ async def stage_1_single_company_flow(
 
     # Validate
     try:
-        validated_data = await validate_company_data_task.submit(company_dict)
+        validated_data = await validate_company_data_task(company_dict)
         logger.info(f"✅ Validation passed for {company.name}")
     except Exception as e:
         logger.error(f"❌ Validation failed for {company.name}: {e}")
@@ -276,12 +264,12 @@ async def stage_1_single_company_flow(
 
     # Process
     try:
-        result = await process_company_task.submit(
+        result: dict[str, Any] = await process_company_task(
             validated_data, config_dict, prompt_template_path
         )
 
         if result.get("success", False):
-            logger.success(f"✅ Successfully processed {company.name}")
+            logger.info(f"✅ Successfully processed {company.name}")
         else:
             logger.error(
                 f"❌ Failed to process {company.name}: {result.get('error', 'Unknown error')}"
