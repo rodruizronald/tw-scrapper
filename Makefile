@@ -1,4 +1,4 @@
-.PHONY: format-check import-check type-check lint check-all format fix-imports fix-lint fix-all install install-dev clean help
+.PHONY: format-check import-check type-check lint check-all format fix-imports fix-lint fix-all install install-dev clean help prefect-server prefect-config prefect-reset
 
 # Load environment variables from .env file if it exists
 ifneq (,$(wildcard ./.env))
@@ -82,6 +82,23 @@ clean:
 	@find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
 	@echo "✅ Cleanup completed successfully"
 
+# Prefect server management
+prefect-server:
+	@echo "Starting Prefect server..."
+	@echo "🚀 Server will be available at http://127.0.0.1:4200"
+	@echo "Press Ctrl+C to stop the server"
+	@prefect server start
+
+prefect-config:
+	@echo "Configuring Prefect to use local server..."
+	@prefect config set PREFECT_API_URL=http://127.0.0.1:4200/api
+	@echo "✅ Prefect configured for local server"
+
+prefect-reset:
+	@echo "Resetting Prefect to default configuration..."
+	@prefect config unset PREFECT_API_URL
+	@echo "✅ Prefect reset to default configuration"
+
 # Show help
 help:
 	@echo "╔══════════════════════════════════════════════════════════╗"
@@ -109,6 +126,11 @@ help:
 	@echo "⚡ Quick Commands:"
 	@echo "  make fix            - Fix everything automatically"
 	@echo "  make check-all      - Run all checks"
+	@echo ""
+	@echo "🔮 Prefect Management:"
+	@echo "  make prefect-server - Start Prefect server locally"
+	@echo "  make prefect-config - Configure Prefect to use local server"
+	@echo "  make prefect-reset  - Reset Prefect to default configuration"
 	@echo ""
 	@echo "💡 Common Workflows:"
 	@echo "  make install-dev && make fix    # Setup and format"
