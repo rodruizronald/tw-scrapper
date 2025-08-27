@@ -1,15 +1,16 @@
 # Job Pipeline Module
 
-A comprehensive, AI-powered pipeline for extracting and processing job listings from company career pages. This module provides a modular, scalable architecture that combines web scraping with intelligent content analysis using OpenAI.
+A comprehensive, AI-powered pipeline for extracting and processing job listings from company career pages. This module provides a modular, scalable architecture that combines web scraping with intelligent content analysis using OpenAI and Prefect orchestration.
 
 ## 🎯 Overview
 
-The Job Pipeline is designed to automate the extraction of job listings from company career websites. It uses a multi-stage approach where each stage processes and enriches the job data progressively. Currently, Stage 1 (Job Listing Extraction) is fully implemented, with the architecture ready for additional stages.
+The Job Pipeline is designed to automate the extraction of job listings from company career websites. It uses a multi-stage approach where each stage processes and enriches the job data progressively. The pipeline now includes both traditional script-based execution and modern Prefect-orchestrated workflows for enhanced monitoring, error handling, and scalability.
 
 ### Key Features
 
 - **🤖 AI-Powered Parsing**: Uses OpenAI GPT models to intelligently extract job information
 - **⚡ Concurrent Processing**: Processes multiple companies simultaneously with configurable concurrency
+- **🔄 Prefect Orchestration**: Modern workflow orchestration with monitoring, retries, and UI dashboard
 - **🛡️ Robust Error Handling**: Comprehensive error handling with graceful failure recovery
 - **📊 Rich Monitoring**: Detailed logging, statistics tracking, and processing metrics
 - **🔍 Smart Duplicate Detection**: Historical signature-based duplicate filtering
@@ -17,6 +18,7 @@ The Job Pipeline is designed to automate the extraction of job listings from com
 - **⚙️ Flexible Configuration**: Highly configurable for different use cases and environments
 - **🔧 Modular Architecture**: Easy to extend with additional processing stages
 - **🔄 Integration Ready**: Drop-in replacement for existing job processing scripts
+- **🎛️ CLI Interface**: User-friendly command-line interface for easy execution
 
 ## 🏗️ Architecture
 
@@ -24,7 +26,7 @@ The Job Pipeline is designed to automate the extraction of job listings from com
 pipeline/
 ├── core/                      # Core pipeline components
 │   ├── __init__.py           # Core module exports
-│   ├── pipeline.py           # Main pipeline orchestrator
+│   ├── pipeline.py           # Main pipeline orchestrator (legacy)
 │   ├── config.py             # Configuration management
 │   └── models.py             # Data models and types
 ├── services/                  # Service layer
@@ -35,9 +37,19 @@ pipeline/
 ├── stages/                    # Pipeline stage processors
 │   ├── __init__.py           # Stages module exports
 │   └── stage_1.py            # Stage 1: Job listing extraction
+├── flows/                     # Prefect flow orchestration
+│   ├── __init__.py           # Flows module exports
+│   ├── stage_1_flow.py       # Stage 1 Prefect flows
+│   ├── main_pipeline_flow.py # Main pipeline orchestration
+│   └── utils.py              # Flow utility functions
+├── tasks/                     # Prefect task definitions
+│   ├── __init__.py           # Tasks module exports
+│   ├── company_processing.py # Company processing tasks
+│   └── utils.py              # Task utility functions
 ├── utils/                     # Utility modules
 │   ├── __init__.py           # Utils module exports
 │   └── exceptions.py         # Custom exception classes
+├── main.py                   # CLI entry point for Prefect flows
 └── README.md                 # This documentation
 ```
 
@@ -49,6 +61,7 @@ pipeline/
 4. **Error Isolation**: Errors in one company don't affect others
 5. **Extensibility**: Easy to add new stages and services
 6. **Observability**: Comprehensive logging and metrics collection
+7. **Orchestration**: Prefect flows provide workflow management and monitoring
 
 ## 🚀 Quick Start
 
@@ -57,11 +70,147 @@ pipeline/
 The pipeline module is part of the job scraping project. Ensure you have the required dependencies:
 
 ```bash
-pip install playwright openai loguru python-dotenv
+pip install playwright openai loguru python-dotenv prefect
 playwright install  # Install browser binaries
 ```
 
-### Basic Usage
+### Environment Setup
+
+Create a `.env` file in your project root:
+
+```bash
+# Required
+OPENAI_API_KEY=your-openai-api-key-here
+
+# Optional - Pipeline Configuration
+OPENAI_MODEL=gpt-4o-mini
+OPENAI_MAX_RETRIES=3
+OPENAI_TIMEOUT=30
+LOG_LEVEL=INFO
+LOG_TO_FILE=true
+LOG_TO_CONSOLE=true
+
+# Optional - Prefect Configuration
+PREFECT_MAX_CONCURRENT=3
+PREFECT_FLOW_TIMEOUT=3600
+PREFECT_TASK_TIMEOUT=300
+PREFECT_DEFAULT_RETRIES=2
+PREFECT_RETRY_DELAY=30
+```
+
+### Using the CLI Interface (Recommended)
+
+The easiest way to run the pipeline is through the CLI interface:
+
+#### 1. Full Pipeline Execution
+
+```bash
+# Run complete pipeline with default settings
+python pipeline/main.py run
+
+# Run with custom settings
+python pipeline/main.py run \
+  --companies-file input/companies.json \
+  --prompt-template input/prompts/job_title_url_parser.md \
+  --max-concurrent 5 \
+  --stages stage_1
+
+# Run multiple stages (when available)
+python pipeline/main.py run --stages stage_1,stage_2,stage_3
+```
+
+#### 2. Quick Extraction (Stage 1 Only)
+
+```bash
+# Quick job extraction with optimized flow
+python pipeline/main.py quick
+
+# Quick extraction with custom concurrency
+python pipeline/main.py quick --max-concurrent 5
+```
+
+#### 3. Execution Time Estimation
+
+```bash
+# Estimate how long the pipeline will take
+python pipeline/main.py estimate
+
+# Estimate with custom concurrency
+python pipeline/main.py estimate --max-concurrent 10
+```
+
+#### 4. CLI Help
+
+```bash
+# General help
+python pipeline/main.py --help
+
+# Command-specific help
+python pipeline/main.py run --help
+python pipeline/main.py quick --help
+python pipeline/main.py estimate --help
+```
+
+### CLI Output Examples
+
+```bash
+$ python pipeline/main.py run --max-concurrent 3
+
+✅ Configuration loaded
+✅ Loaded 5 companies
+🎯 Stages to run: stage_1
+✅ Input validation passed
+⏱️ Estimated duration: 4.2 minutes
+🚀 Starting pipeline execution...
+🎉 Pipeline execution completed!
+
+📊 PIPELINE EXECUTION SUMMARY
+========================================
+✅ Successful companies: 4/5 (80.0%)
+❌ Failed companies: 1
+📋 Total jobs found: 47
+💾 Total jobs saved: 43
+⏱️ Total processing time: 245.3s
+📈 Average time per company: 49.1s
+
+💾 Results saved to: data/20241201/pipeline_stage_1/stage_1_flow_results.json
+```
+
+## Programmatic Usage (Advanced)
+
+For advanced use cases, you can use the pipeline programmatically:
+
+### Using Prefect Flows Directly
+
+```python
+import asyncio
+from pathlib import Path
+from pipeline.flows import stage_1_flow
+from pipeline.core.config import PipelineConfig
+from pipeline.flows.utils import load_companies_from_file
+
+async def main():
+    # Load configuration
+    config = PipelineConfig.load_from_env()
+
+    # Load companies
+    companies = load_companies_from_file(Path("input/companies.json"))
+
+    # Run Stage 1 flow
+    results = await stage_1_flow(
+        companies=companies,
+        config=config,
+        prompt_template_path="input/prompts/job_title_url_parser.md",
+        max_concurrent_companies=3,
+    )
+
+    print(f"✅ Processed {results['successful_companies']} companies")
+    print(f"📋 Found {results['total_jobs_found']} jobs")
+
+asyncio.run(main())
+```
+
+### Using Legacy Pipeline (Backward Compatibility)
 
 ```python
 import asyncio
@@ -94,81 +243,126 @@ async def main():
 asyncio.run(main())
 ```
 
-### Advanced Configuration
+## 🎛️ CLI Interface Details
 
-```python
-from pipeline import JobPipeline, PipelineConfig, StageConfig, OpenAIConfig, LoggingConfig
+The `pipeline/main.py` file provides a comprehensive command-line interface for the pipeline:
 
-# Create custom configuration
-config = PipelineConfig(
-    stage_1=StageConfig(
-        output_dir=Path("data/custom_output"),
-        save_output=True
-    ),
-    openai=OpenAIConfig(
-        model="gpt-4",
-        max_retries=5,
-        timeout=60,
-        api_key="your-api-key"
-    ),
-    logging=LoggingConfig(
-        level="DEBUG",
-        log_to_file=True,
-        log_to_console=True
-    )
-)
+### Main Commands
 
-# Initialize pipeline with custom config
-pipeline = JobPipeline(config)
+| Command    | Description                   | Use Case                         |
+| ---------- | ----------------------------- | -------------------------------- |
+| `run`      | Execute the complete pipeline | Production runs, multiple stages |
+| `quick`    | Quick Stage 1 extraction only | Fast job extraction, testing     |
+| `estimate` | Estimate execution time       | Planning, resource allocation    |
 
-# Load companies and run
-companies = pipeline.load_companies_from_file(Path("input/companies.json"))
-results = await pipeline.run_stage_1(companies, Path("input/prompts/job_title_url_parser.md"))
+### Global Options
+
+| Option        | Default | Description                                     |
+| ------------- | ------- | ----------------------------------------------- |
+| `--log-level` | `INFO`  | Set logging level (DEBUG, INFO, WARNING, ERROR) |
+
+### Run Command Options
+
+| Option                  | Default                                 | Description                   |
+| ----------------------- | --------------------------------------- | ----------------------------- |
+| `--companies-file, -c`  | `input/companies.json`                  | Path to companies JSON file   |
+| `--prompt-template, -p` | `input/prompts/job_title_url_parser.md` | Path to prompt template       |
+| `--max-concurrent, -m`  | `3`                                     | Maximum concurrent companies  |
+| `--stages`              | `stage_1`                               | Comma-separated stages to run |
+
+### Quick Command Options
+
+| Option                  | Default                                 | Description                  |
+| ----------------------- | --------------------------------------- | ---------------------------- |
+| `--companies-file, -c`  | `input/companies.json`                  | Path to companies JSON file  |
+| `--prompt-template, -p` | `input/prompts/job_title_url_parser.md` | Path to prompt template      |
+| `--max-concurrent, -m`  | `3`                                     | Maximum concurrent companies |
+
+### CLI Features
+
+- **Path Resolution**: Automatically resolves relative paths from project root
+- **Input Validation**: Validates files and configuration before execution
+- **Progress Indicators**: Shows progress with emojis and clear messages
+- **Error Handling**: Graceful error handling with helpful error messages
+- **Results Summary**: Detailed execution summary with statistics
+- **Estimation**: Pre-execution time and resource estimation
+
+## 🔄 Prefect Integration
+
+The pipeline now includes full Prefect integration for workflow orchestration:
+
+### Benefits of Prefect Integration
+
+- **🎛️ Web UI**: Monitor pipeline execution through Prefect's web dashboard
+- **🔄 Automatic Retries**: Configurable retry logic for failed tasks
+- **⚡ Concurrency Control**: Intelligent task scheduling and resource management
+- **📊 Metrics & Logging**: Enhanced monitoring and observability
+- **🔍 Task Isolation**: Individual task failure doesn't crash entire pipeline
+- **📈 Performance Tracking**: Detailed execution metrics and timing
+- **🚨 Alerting**: Built-in alerting for failures and issues
+
+### Prefect Flows Available
+
+1. `stage_1_flow`: Optimized flow for Stage 1 job extraction
+2. `stage_1_single_company_flow`: Single company processing (testing)
+3. `main_pipeline_flow`: Multi-stage pipeline orchestration
+4. `quick_pipeline_flow`: Fast extraction with minimal setup
+
+### Running with Prefect UI
+
+To use the Prefect UI for monitoring:
+
+```bash
+# Start Prefect server (in separate terminal)
+prefect server start
+
+# Run pipeline (will appear in UI)
+python pipeline/main.py run --max-concurrent 5
 ```
+
+Then visit http://localhost:4200 to see the Prefect dashboard with real-time pipeline monitoring.
+
+### Prefect Task Structure
+
+The pipeline uses the following task hierarchy:
+
+```
+stage_1_flow
+├── validate_company_data_task (parallel for each company)
+├── process_company_task (parallel with concurrency control)
+└── aggregate_results_task (final aggregation)
+```
+
+Each task includes:
+
+- Automatic retry logic
+- Timeout protection
+- Detailed logging
+- Error isolation
+- Progress tracking
 
 ## 📋 Configuration
 
-The pipeline uses a hierarchical configuration system with the following components:
+The pipeline uses a hierarchical configuration system with enhanced Prefect support:
 
-### StageConfig
+### PrefectConfig (New)
 
-Controls stage-specific behavior:
-
-```python
-@dataclass
-class StageConfig:
-    output_dir: Path          # Directory for stage output
-    save_output: bool = True  # Whether to save results to files
-```
-
-### OpenAIConfig
-
-Controls OpenAI API integration:
+Controls Prefect-specific behavior:
 
 ```python
 @dataclass
-class OpenAIConfig:
-    model: str = "gpt-4o-mini"    # OpenAI model to use
-    max_retries: int = 3          # Maximum API retry attempts
-    timeout: int = 30             # Request timeout in seconds
-    api_key: str | None = None    # API key (uses env var if None)
+class PrefectConfig:
+    max_concurrent_companies: int = 3      # Max concurrent company processing
+    flow_timeout_seconds: int = 3600       # Flow timeout (1 hour)
+    task_timeout_seconds: int = 300        # Task timeout (5 minutes)
+    default_retries: int = 2               # Default retry attempts
+    retry_delay_seconds: int = 30          # Delay between retries
+    log_level: str = "INFO"                # Prefect logging level
 ```
 
-### LoggingConfig
+### Enhanced PipelineConfig
 
-Controls logging behavior:
-
-```python
-@dataclass
-class LoggingConfig:
-    level: str = "INFO"           # Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-    log_to_file: bool = True      # Enable file logging
-    log_to_console: bool = True   # Enable console logging
-```
-
-### PipelineConfig
-
-Main configuration container:
+The main configuration now includes Prefect settings:
 
 ```python
 @dataclass
@@ -176,33 +370,52 @@ class PipelineConfig:
     stage_1: StageConfig
     openai: OpenAIConfig = field(default_factory=OpenAIConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
+    prefect: PrefectConfig = field(default_factory=PrefectConfig)  # New
+
+    # Project paths for Prefect integration
+    project_root: Path = field(default_factory=lambda: Path.cwd())
+    input_dir: Path = field(default_factory=lambda: Path("input"))
+    output_dir: Path = field(default_factory=lambda: Path("data"))
 ```
 
-### Configuration from File
+### Environment Variables
 
-You can load configuration from a JSON file:
+All configuration can be controlled via environment variables:
 
-```json
-{
-  "stage_1": {
-    "output_dir": "data/pipeline_output",
-    "save_output": true
-  },
-  "openai": {
-    "model": "gpt-4o-mini",
-    "max_retries": 3,
-    "timeout": 30
-  },
-  "logging": {
-    "level": "INFO",
-    "log_to_file": true,
-    "log_to_console": true
-  }
-}
+```bash
+# Existing variables (unchanged)
+OPENAI_API_KEY=your_key
+OPENAI_MODEL=gpt-4o-mini
+OPENAI_MAX_RETRIES=3
+OPENAI_TIMEOUT=30
+STAGE_1_SAVE_OUTPUT=true
+LOG_LEVEL=INFO
+LOG_TO_FILE=true
+LOG_TO_CONSOLE=true
+
+# New Prefect variables
+PREFECT_MAX_CONCURRENT=3
+PREFECT_FLOW_TIMEOUT=3600
+PREFECT_TASK_TIMEOUT=300
+PREFECT_DEFAULT_RETRIES=2
+PREFECT_RETRY_DELAY=30
+PREFECT_LOG_LEVEL=INFO
 ```
+
+### Configuration Loading
 
 ```python
-pipeline = JobPipeline.from_config_file(Path("config/pipeline_config.json"))
+# Load from environment (recommended)
+config = PipelineConfig.load_from_env()
+
+# Load from specific .env file
+config = PipelineConfig.load_from_env(Path(".env.production"))
+
+# Load from dictionary
+config = PipelineConfig.from_dict({
+    "stage_1": {"output_dir": "data/output"},
+    "prefect": {"max_concurrent_companies": 5}
+})
 ```
 
 ## 📊 Data Models
@@ -249,6 +462,11 @@ class ProcessingResult:
     processing_time: float = 0.0    # Processing time in seconds
     output_path: Optional[str] = None  # Path to output file
     error: Optional[str] = None     # Error message if failed
+    error_type: Optional[str] = None # Error type for categorization
+    retryable: bool = True          # Whether error is retryable
+    stage: str = "unknown"          # Processing stage
+    start_time: Optional[datetime] = None  # Start timestamp
+    end_time: Optional[datetime] = None    # End timestamp
 ```
 
 ## 📁 Input/Output Formats
@@ -317,7 +535,7 @@ You are an AI assistant that extracts job listings from HTML content.
 
 ### Output Structure
 
-The pipeline creates a structured output directory:
+The pipeline creates a structured output directory with timestamp-based organization:
 
 ```
 
@@ -331,50 +549,18 @@ data/
 │ ├── jobs_stage_1.json
 │ └── historical_jobs.json
 ├── processing_summary.json # Overall processing summary
+├── stage_1_flow_results.json # Prefect flow results
 └── pipeline.log # Detailed processing logs
 
 ````
 
-### Job Output Format
+### Enhanced Output with Prefect
 
-Each company's `jobs_stage_1.json` contains:
+When using Prefect flows, additional output files are created:
 
-```json
-{
-  "company": "Tech Company A",
-  "jobs": [
-    {
-      "title": "Senior Software Engineer",
-      "url": "https://company-a.com/jobs/senior-engineer-123",
-      "signature": "a1b2c3d4e5f6...",
-      "company": "Tech Company A",
-      "timestamp": "2024-12-01T10:30:00-08:00"
-    }
-  ],
-  "total_jobs": 1,
-  "processing_time": 2.45,
-  "timestamp": "2024-12-01T10:30:00-08:00"
-}
-````
-
-### Processing Summary Format
-
-The `processing_summary.json` contains overall statistics:
-
-```json
-{
-  "success": true,
-  "pipeline_start_time": "2024-12-01T10:25:00-08:00",
-  "pipeline_end_time": "2024-12-01T10:35:00-08:00",
-  "total_processing_time": 600.0,
-  "companies_processed": 5,
-  "companies_successful": 4,
-  "companies_failed": 1,
-  "total_jobs_found": 25,
-  "total_jobs_saved": 23,
-  "stage_1_results": [...]
-}
-```
+- `stage_1_flow_results.json`: Detailed Prefect flow execution results
+- Enhanced logging: Prefect-specific logs with task execution details
+- Metrics tracking: Performance metrics for each task and flow
 
 ## 🔧 Services
 
@@ -391,9 +577,9 @@ html_content = await extractor.extract_html(
     selectors=[".job-listing", ".career-item"],
     parser_type=ParserType.DEFAULT
 )
-```
+````
 
-**Features:**
+Features:
 
 - Multiple parser support (Default, Angular, Greenhouse)
 - Configurable CSS selectors
@@ -415,7 +601,7 @@ result = await service.parse_job_listings(
 )
 ```
 
-**Features:**
+Features:
 
 - Configurable models and parameters
 - Automatic retry logic
@@ -434,7 +620,7 @@ await service.save_jobs(jobs, "Tech Company")
 historical_signatures = await service.load_historical_signatures("Tech Company")
 ```
 
-**Features:**
+Features:
 
 - Company-specific file organization
 - Historical signature management
@@ -454,7 +640,32 @@ Stage 1 is the core job extraction stage that processes company career pages and
 5. **Duplicate Filtering**: Filters out duplicate jobs using historical signatures
 6. **File Persistence**: Saves results to company-specific files
 
-### Usage
+### Usage Options
+
+#### Option 1: CLI (Recommended)
+
+```bash
+# Single stage execution
+python pipeline/main.py run --stages stage_1
+
+# Quick extraction
+python pipeline/main.py quick
+```
+
+#### Option 2: Prefect Flow
+
+```python
+from pipeline.flows import stage_1_flow
+
+results = await stage_1_flow(
+    companies=companies,
+    config=config,
+    prompt_template_path="input/prompts/job_title_url_parser.md",
+    max_concurrent_companies=3,
+)
+```
+
+#### Option 3: Direct Stage Processor
 
 ```python
 from pipeline.stages import Stage1Processor
@@ -462,9 +673,9 @@ from pipeline.stages import Stage1Processor
 processor = Stage1Processor(config, "path/to/prompt_template.md")
 
 # Process single company
-result = await processor.process_company(company_data)
+result = await processor.process_single_company(company_data)
 
-# Process multiple companies
+# Process multiple companies (legacy)
 results = await processor.process_companies(companies_list)
 ```
 
@@ -476,6 +687,7 @@ Stage 1 includes comprehensive error handling:
 - **HTML extraction errors**: Retry logic and fallback strategies
 - **OpenAI API errors**: Automatic retries with exponential backoff
 - **File operation errors**: Graceful handling with detailed error messages
+- **Prefect task isolation**: Failed companies don't affect others
 
 ## 🛡️ Error Handling
 
@@ -515,12 +727,15 @@ except PipelineError as e:
     print(f"General pipeline error: {e}")
 ```
 
-### Error Recovery
+### Error Recovery with Prefect
 
-- **Company-level isolation**: Errors in one company don't affect others
-- **Automatic retries**: Configurable retry logic for transient failures
-- **Graceful degradation**: Pipeline continues processing even with partial failures
-- **Detailed error reporting**: Comprehensive error messages with context
+Prefect enhances error handling with:
+
+- **Automatic Retries**: Configurable retry logic for transient failures
+- **Task Isolation**: Errors in one task don't affect others
+- **Error Categorization**: Retryable vs non-retryable errors
+- **Detailed Error Tracking**: Full error context in Prefect UI
+- **Graceful Degradation**: Pipeline continues with partial failures
 
 ## 📈 Performance and Monitoring
 
@@ -531,10 +746,13 @@ except PipelineError as e:
 - **Rate Limiting**: Respects API rate limits and website politeness
 - **Memory Efficiency**: Streams processing for large datasets
 - **Caching**: Intelligent caching of results and signatures
+- **Prefect Optimization**: Task-level parallelization and resource management
 
 ### Monitoring and Metrics
 
-The pipeline provides comprehensive monitoring:
+The pipeline provides comprehensive monitoring through multiple channels:
+
+#### 1. Application Logging (Loguru)
 
 **Processing Statistics:**
 
@@ -551,7 +769,34 @@ The pipeline provides comprehensive monitoring:
 - `ERROR`: Error conditions and failures
 - `CRITICAL`: Critical system errors
 
+#### 2. Prefect Monitoring
+
+**Flow-Level Metrics:**
+
+- Flow execution time and status
+- Task success/failure rates
+- Resource utilization
+- Retry attempts and patterns
+
+**Task-Level Metrics:**
+
+- Individual task execution times
+- Task state transitions
+- Error details and stack traces
+- Input/output data sizes
+
+#### 3. CLI Progress Indicators
+
+Real-time progress updates with:
+
+- Company processing status
+- Job extraction progress
+- Error summaries
+- Final execution statistics
+
 ### Log Output Examples
+
+#### Application Logs (Loguru)
 
 ```
 2024-12-01 10:30:15 | INFO     | Starting Stage 1: Job Listing Extraction
@@ -562,26 +807,133 @@ The pipeline provides comprehensive monitoring:
 2024-12-01 10:30:22 | WARNING  | Filtered 1 duplicate job for Tech Company A
 ```
 
+#### Prefect Logs
+
+```
+10:30:15.123 | INFO    | Flow run 'stage-1-20241201-103015' - Starting flow execution
+10:30:16.456 | INFO    | Task run 'validate_company_data_task-1' - Task started
+10:30:16.789 | INFO    | Task run 'validate_company_data_task-1' - Task completed successfully
+10:30:17.012 | INFO    | Task run 'process_company_task-1' - Task started
+10:30:23.456 | INFO    | Task run 'process_company_task-1' - Task completed successfully
+```
+
 ### Performance Tuning
 
+#### Speed Optimization
+
 ```python
-# Optimize for speed
 config = PipelineConfig(
     openai=OpenAIConfig(
         model="gpt-4o-mini",  # Faster model
         timeout=15,           # Shorter timeout
         max_retries=2         # Fewer retries
+    ),
+    prefect=PrefectConfig(
+        max_concurrent_companies=5,  # Higher concurrency
+        task_timeout_seconds=180,    # Shorter task timeout
+        default_retries=1            # Fewer retries
     )
 )
+```
 
-# Optimize for accuracy
+#### Accuracy Optimization
+
+```python
 config = PipelineConfig(
     openai=OpenAIConfig(
         model="gpt-4",        # More accurate model
         timeout=60,           # Longer timeout
         max_retries=5         # More retries
+    ),
+    prefect=PrefectConfig(
+        max_concurrent_companies=2,  # Lower concurrency for stability
+        task_timeout_seconds=600,    # Longer task timeout
+        default_retries=3            # More retries
     )
 )
+```
+
+## 🔄 Migration Guide
+
+### From Legacy Scripts to Pipeline
+
+If you're migrating from the original script-based approach:
+
+#### Before (Legacy Scripts)
+
+```bash
+python scripts/job_stage_1.py
+```
+
+#### After (Pipeline CLI)
+
+```bash
+python pipeline/main.py run --stages stage_1
+```
+
+### Benefits of Migration
+
+- **Better Error Handling**: Individual company failures don't crash entire pipeline
+- **Concurrency**: Process multiple companies simultaneously
+- **Monitoring**: Real-time progress and detailed metrics
+- **Retries**: Automatic retry logic for transient failures
+- **Scalability**: Easy to scale up processing
+
+### Backward Compatibility
+
+The pipeline maintains backward compatibility:
+
+```python
+# Legacy approach still works
+from pipeline import JobPipeline, PipelineConfig
+
+config = PipelineConfig.load_from_env()
+pipeline = JobPipeline(config)
+results = await pipeline.run_full_pipeline(...)
+
+# New Prefect approach (recommended)
+from pipeline.flows import stage_1_flow
+
+results = await stage_1_flow(...)
+```
+
+## 🚀 Best Practices
+
+### 1. Configuration Management
+
+- Use environment variables for sensitive data (API keys)
+- Create environment-specific `.env` files
+- Validate configuration before execution
+
+### 2. Error Handling
+
+- Monitor Prefect UI for task failures
+- Set up appropriate retry policies
+- Use error categorization for better debugging
+
+### 3. Performance Optimization
+
+- Start with lower concurrency and increase gradually
+- Monitor API rate limits
+- Use quick mode for testing
+
+### 4. Monitoring
+
+- Use both application logs and Prefect UI
+- Set up log rotation for file logs
+- Monitor execution times and success rates
+
+### 5. Development Workflow
+
+```bash
+# 1. Test with single company first
+python pipeline/main.py quick --companies-file input/test_companies.json
+
+# 2. Estimate full execution
+python pipeline/main.py estimate
+
+# 3. Run full pipeline
+python pipeline/main.py run --max-concurrent 3
 ```
 
 ---
