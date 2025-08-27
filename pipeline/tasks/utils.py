@@ -23,10 +23,6 @@ def prepare_company_data_for_task(company: CompanyData) -> dict[str, Any]:
         "name": company.name,
         "career_url": company.career_url,
         "enabled": company.enabled,
-        "selectors": company.selectors,
-        "parser_type": company.parser_type.value if company.parser_type else "default",
-        "max_retries": company.max_retries,
-        "retry_delay": company.retry_delay,
     }
 
 
