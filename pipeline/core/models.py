@@ -1,4 +1,9 @@
 from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Optional
+
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
@@ -54,15 +59,31 @@ class JobData:
 
 @dataclass
 class ProcessingResult:
-    """Result of processing a company's job listings."""
+    """Result of processing a single company."""
 
+    # Basic result information
     success: bool
     company_name: str
+
+    # Success metrics
     jobs_found: int = 0
     jobs_saved: int = 0
-    output_path: Path | None = None
-    error: str | None = None
     processing_time: float = 0.0
+
+    # File paths
+    output_path: Optional[Path] = None
+
+    # Error information
+    error: Optional[str] = None
+    error_type: Optional[str] = None  # New: for categorizing errors
+
+    # Timing information (enhanced for Prefect)
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+
+    # Additional metadata for Prefect
+    stage: str = "stage_1"
+    retryable: bool = True
 
     @property
     def is_successful(self) -> bool:
@@ -75,3 +96,20 @@ class ProcessingResult:
             return f"✅ {self.company_name}: {self.jobs_found} jobs found, {self.jobs_saved} saved"
         else:
             return f"❌ {self.company_name}: {self.error}"
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            "success": self.success,
+            "company_name": self.company_name,
+            "jobs_found": self.jobs_found,
+            "jobs_saved": self.jobs_saved,
+            "processing_time": self.processing_time,
+            "output_path": str(self.output_path) if self.output_path else None,
+            "error": self.error,
+            "error_type": self.error_type,
+            "start_time": self.start_time.isoformat() if self.start_time else None,
+            "end_time": self.end_time.isoformat() if self.end_time else None,
+            "stage": self.stage,
+            "retryable": self.retryable,
+        }
