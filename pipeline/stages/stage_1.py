@@ -1,18 +1,20 @@
 import hashlib
-from pipeline.core.models import CompanyData, JobData, ProcessingResult
-from typing import Any, TypedDict
-from loguru import logger
-from pipeline.core.config import PipelineConfig
-from pipeline.services.openai_service import OpenAIService
-from pipeline.services.html_service import HTMLExtractor
-from pipeline.services.file_service import FileService
-from datetime import UTC, datetime
 import time
+from datetime import UTC, datetime
+from typing import Any, TypedDict
+
+from loguru import logger
+
+from pipeline.core.config import PipelineConfig
+from pipeline.core.models import CompanyData, JobData, ProcessingResult
+from pipeline.services.file_service import FileService
+from pipeline.services.html_service import HTMLExtractor
+from pipeline.services.openai_service import OpenAIService
 from pipeline.utils.exceptions import (
     CompanyProcessingError,
+    FileOperationError,
     HTMLExtractionError,
     OpenAIProcessingError,
-    FileOperationError,
     ValidationError,
 )
 
@@ -89,49 +91,16 @@ class Stage1Processor:
         )
 
         try:
-            # Validate company data
-            self._validate_company_data(company_data)
-            logger.debug(f"✅ Company data validation passed for {company_name}")
-
-            # Extract HTML content from career page
-            html_content = await self._extract_career_page_content(company_data)
-            logger.debug(f"✅ HTML content extracted for {company_name}")
-
-            # Parse job listings using OpenAI
-            job_listings = await self._parse_job_listings(company_data, html_content)
-            logger.debug(f"✅ Job listings parsed for {company_name}")
-
-            # Process and validate job data
-            jobs = self._process_job_listings(company_data, job_listings)
-            logger.debug(
-                f"✅ Job data processed for {company_name}: {len(jobs)} jobs found"
+            # Process the company
+            jobs, unique_jobs, output_path = await self._execute_company_processing(
+                company_data
             )
 
-            # Filter out duplicate jobs
-            unique_jobs = await self._filter_duplicate_jobs(company_data, jobs)
-            logger.debug(
-                f"✅ Duplicate filtering complete for {company_name}: {len(unique_jobs)} unique jobs"
-            )
-
-            # Save jobs to file
-            output_path = None
-            if self.config.stage_1.save_output and unique_jobs:
-                output_path = await self.file_service.save_jobs(
-                    unique_jobs, company_name
-                )
-                logger.debug(f"✅ Jobs saved for {company_name}: {output_path}")
-
-            # Calculate timing
-            end_datetime = datetime.now(UTC).astimezone()
+            # Build successful result
             processing_time = time.time() - start_time
-
-            # Update result with success information
-            result.success = True
-            result.jobs_found = len(jobs)
-            result.jobs_saved = len(unique_jobs)
-            result.output_path = output_path
-            result.end_time = end_datetime
-            result.processing_time = processing_time
+            result = self._build_success_result(
+                result, jobs, unique_jobs, output_path, processing_time
+            )
 
             logger.success(
                 f"✅ {company_name}: Found {len(jobs)} jobs, saved {len(unique_jobs)} unique jobs "
@@ -140,51 +109,9 @@ class Stage1Processor:
 
             return result
 
-        except ValidationError as e:
-            # Non-retryable error - bad company data
-            result.error = f"Validation error: {e}"
-            result.error_type = "ValidationError"
-            result.retryable = False
-            result.end_time = datetime.now(UTC).astimezone()
-            result.processing_time = time.time() - start_time
-
-            logger.error(f"❌ {company_name}: Validation failed - {e}")
-            return result
-
-        except (HTMLExtractionError, OpenAIProcessingError) as e:
-            # Potentially retryable errors - network/API issues
-            result.error = str(e)
-            result.error_type = type(e).__name__
-            result.retryable = True
-            result.end_time = datetime.now(UTC).astimezone()
-            result.processing_time = time.time() - start_time
-
-            logger.error(f"❌ {company_name}: {type(e).__name__} - {e}")
-            return result
-
-        except FileOperationError as e:
-            # File system errors - usually retryable
-            result.error = str(e)
-            result.error_type = "FileOperationError"
-            result.retryable = True
-            result.end_time = datetime.now(UTC).astimezone()
-            result.processing_time = time.time() - start_time
-
-            logger.error(f"❌ {company_name}: File operation failed - {e}")
-            return result
-
         except Exception as e:
-            # Unexpected errors - mark as non-retryable by default
-            result.error = f"Unexpected error: {e}"
-            result.error_type = "UnexpectedError"
-            result.retryable = False
-            result.end_time = datetime.now(UTC).astimezone()
-            result.processing_time = time.time() - start_time
-
-            logger.error(f"❌ {company_name}: Unexpected error - {e}")
-
-            # Still raise CompanyProcessingError for upstream handling if needed
-            raise CompanyProcessingError(company_name, e, "stage_1") from e
+            # Handle all errors and build error result
+            return self._build_error_result(result, e, start_time, company_name)
 
     # Keep the original process_companies method for backward compatibility
     async def process_companies(
@@ -377,3 +304,108 @@ class Stage1Processor:
                     logger.warning(f"  - {result.company_name}: {result.error}")
 
         logger.info("=" * 60)
+
+    async def _execute_company_processing(
+        self, company_data: CompanyData
+    ) -> tuple[list[JobData], list[JobData], str | None]:
+        """Execute the core company processing steps."""
+        company_name = company_data.name
+
+        # Validate company data
+        self._validate_company_data(company_data)
+        logger.debug(f"✅ Company data validation passed for {company_name}")
+
+        # Extract HTML content from career page
+        html_content = await self._extract_career_page_content(company_data)
+        logger.debug(f"✅ HTML content extracted for {company_name}")
+
+        # Parse job listings using OpenAI
+        job_listings = await self._parse_job_listings(company_data, html_content)
+        logger.debug(f"✅ Job listings parsed for {company_name}")
+
+        # Process and validate job data
+        jobs = self._process_job_listings(company_data, job_listings)
+        logger.debug(
+            f"✅ Job data processed for {company_name}: {len(jobs)} jobs found"
+        )
+
+        # Filter out duplicate jobs
+        unique_jobs = await self._filter_duplicate_jobs(company_data, jobs)
+        logger.debug(
+            f"✅ Duplicate filtering complete for {company_name}: {len(unique_jobs)} unique jobs"
+        )
+
+        # Save jobs to file
+        output_path = None
+        if self.config.stage_1.save_output and unique_jobs:
+            output_path = await self.file_service.save_jobs(unique_jobs, company_name)
+            logger.debug(f"✅ Jobs saved for {company_name}: {output_path}")
+
+        return jobs, unique_jobs, output_path
+
+    def _build_success_result(
+        self,
+        result: ProcessingResult,
+        jobs: list[JobData],
+        unique_jobs: list[JobData],
+        output_path: str | None,
+        processing_time: float,
+    ) -> ProcessingResult:
+        """Build a successful processing result."""
+        end_datetime = datetime.now(UTC).astimezone()
+
+        result.success = True
+        result.jobs_found = len(jobs)
+        result.jobs_saved = len(unique_jobs)
+        result.output_path = output_path
+        result.end_time = end_datetime
+        result.processing_time = processing_time
+
+        return result
+
+    def _build_error_result(
+        self,
+        result: ProcessingResult,
+        error: Exception,
+        start_time: float,
+        company_name: str,
+    ) -> ProcessingResult:
+        """Build an error processing result based on exception type."""
+        end_datetime = datetime.now(UTC).astimezone()
+        processing_time = time.time() - start_time
+
+        result.end_time = end_datetime
+        result.processing_time = processing_time
+
+        if isinstance(error, ValidationError):
+            # Non-retryable error - bad company data
+            result.error = f"Validation error: {error}"
+            result.error_type = "ValidationError"
+            result.retryable = False
+            logger.error(f"❌ {company_name}: Validation failed - {error}")
+
+        elif isinstance(error, HTMLExtractionError | OpenAIProcessingError):
+            # Potentially retryable errors - network/API issues
+            result.error = str(error)
+            result.error_type = type(error).__name__
+            result.retryable = True
+            logger.error(f"❌ {company_name}: {type(error).__name__} - {error}")
+
+        elif isinstance(error, FileOperationError):
+            # File system errors - usually retryable
+            result.error = str(error)
+            result.error_type = "FileOperationError"
+            result.retryable = True
+            logger.error(f"❌ {company_name}: File operation failed - {error}")
+
+        else:
+            # Unexpected errors - mark as non-retryable by default
+            result.error = f"Unexpected error: {error}"
+            result.error_type = "UnexpectedError"
+            result.retryable = False
+            logger.error(f"❌ {company_name}: Unexpected error - {error}")
+
+            # Still raise CompanyProcessingError for upstream handling if needed
+            raise CompanyProcessingError(company_name, error, "stage_1") from error
+
+        return result
