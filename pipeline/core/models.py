@@ -1,11 +1,8 @@
 from dataclasses import dataclass
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Optional
-
-from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 
 class ParserType(Enum):
@@ -71,15 +68,15 @@ class ProcessingResult:
     processing_time: float = 0.0
 
     # File paths
-    output_path: Optional[Path] = None
+    output_path: Path | None = None
 
     # Error information
-    error: Optional[str] = None
-    error_type: Optional[str] = None  # New: for categorizing errors
+    error: str | None = None
+    error_type: str | None = None  # New: for categorizing errors
 
     # Timing information (enhanced for Prefect)
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
 
     # Additional metadata for Prefect
     stage: str = "stage_1"
