@@ -1,6 +1,7 @@
 import hashlib
 import time
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any, TypedDict
 
 from loguru import logger
@@ -43,7 +44,7 @@ class Stage1Processor:
             prompt_template_path: Path to the OpenAI prompt template
         """
         self.config = config
-        self.prompt_template_path = prompt_template_path
+        self.prompt_template_path = Path(prompt_template_path)
 
         # Initialize services
         self.html_extractor = HTMLExtractor(max_retries=3, retry_delay=1.0)
@@ -179,7 +180,9 @@ class Stage1Processor:
                 raise ValueError("Company is disabled")
         except Exception as e:
             raise ValidationError(
-                f"Invalid company data for {company_data.name}: {e}"
+                field="company_data",
+                value=str(company_data.name),
+                message=f"Invalid company data for {company_data.name}: {e}",
             ) from e
 
     async def _extract_career_page_content(self, company_data: CompanyData) -> str:
@@ -192,12 +195,16 @@ class Stage1Processor:
             )
             if not content:
                 raise HTMLExtractionError(
-                    f"No content extracted from {company_data.career_url}"
+                    url=company_data.career_url,
+                    message=f"No content extracted from {company_data.career_url}",
+                    company_name=company_data.name,
                 )
             return content
         except Exception as e:
             raise HTMLExtractionError(
-                f"Failed to extract content from {company_data.career_url}: {e}"
+                url=company_data.career_url,
+                message=f"Failed to extract content from {company_data.career_url}: {e}",
+                company_name=company_data.name,
             ) from e
 
     async def _parse_job_listings(
@@ -207,13 +214,15 @@ class Stage1Processor:
         try:
             result = await self.openai_service.parse_job_listings(
                 html_content=html_content,
-                company_name=company_data.name,
                 prompt_template_path=self.prompt_template_path,
+                career_url=company_data.career_url,
+                company_name=company_data.name,
             )
             return result
         except Exception as e:
             raise OpenAIProcessingError(
-                f"Failed to parse job listings for {company_data.name}: {e}"
+                message=f"Failed to parse job listings for {company_data.name}: {e}",
+                company_name=company_data.name,
             ) from e
 
     def _process_job_listings(
@@ -228,8 +237,9 @@ class Stage1Processor:
                 job = JobData(
                     title=job_info.get("title", ""),
                     url=job_info.get("url", ""),
-                    company_name=company_data.name,
+                    company=company_data.name,
                     signature=self._generate_job_signature(job_info.get("url", "")),
+                    timestamp=datetime.now(UTC).isoformat(),
                 )
                 jobs.append(job)
             except Exception as e:
@@ -307,7 +317,7 @@ class Stage1Processor:
 
     async def _execute_company_processing(
         self, company_data: CompanyData
-    ) -> tuple[list[JobData], list[JobData], str | None]:
+    ) -> tuple[list[JobData], list[JobData], Path | None]:
         """Execute the core company processing steps."""
         company_name = company_data.name
 
@@ -336,9 +346,12 @@ class Stage1Processor:
         )
 
         # Save jobs to file
-        output_path = None
+        output_path: Path | None = None
         if self.config.stage_1.save_output and unique_jobs:
-            output_path = await self.file_service.save_jobs(unique_jobs, company_name)
+            file_path: Path | None = await self.file_service.save_jobs(
+                unique_jobs, company_name
+            )
+            output_path = file_path  # Keep as Path, don't convert to str
             logger.debug(f"✅ Jobs saved for {company_name}: {output_path}")
 
         return jobs, unique_jobs, output_path
@@ -348,7 +361,7 @@ class Stage1Processor:
         result: ProcessingResult,
         jobs: list[JobData],
         unique_jobs: list[JobData],
-        output_path: str | None,
+        output_path: Path | None,
         processing_time: float,
     ) -> ProcessingResult:
         """Build a successful processing result."""
