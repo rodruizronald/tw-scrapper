@@ -3,6 +3,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from loguru import logger
+
 from pipeline.core.config import PipelineConfig
 from pipeline.core.models import CompanyData
 
@@ -34,7 +36,7 @@ def load_companies_from_file(companies_file: Path) -> list[CompanyData]:
                 company = CompanyData(**company_dict)
                 companies.append(company)
             except Exception as e:
-                print(
+                logger.warning(
                     f"⚠️ Skipping invalid company data: {company_dict.get('name', 'unknown')} - {e}"
                 )
 
@@ -98,50 +100,6 @@ def validate_flow_inputs(
 
     if not prompt_path.is_file():
         raise ValueError(f"Prompt template path is not a file: {prompt_template_path}")
-
-
-def estimate_flow_duration(
-    companies: list[CompanyData],
-    max_concurrent: int = 3,
-    avg_processing_time: float = 60.0,
-) -> dict[str, Any]:
-    """
-    Estimate flow execution duration based on company count and concurrency.
-
-    Args:
-        companies: List of companies to process
-        max_concurrent: Maximum concurrent companies
-        avg_processing_time: Average processing time per company in seconds
-
-    Returns:
-        Dictionary with duration estimates
-    """
-    enabled_companies = [c for c in companies if c.enabled]
-    total_companies = len(enabled_companies)
-
-    if total_companies == 0:
-        return {
-            "total_companies": 0,
-            "estimated_duration_seconds": 0,
-            "estimated_duration_minutes": 0,
-            "batches": 0,
-        }
-
-    # Calculate batches and duration
-    batches = (
-        total_companies + max_concurrent - 1
-    ) // max_concurrent  # Ceiling division
-    estimated_seconds = batches * avg_processing_time
-    estimated_minutes = estimated_seconds / 60
-
-    return {
-        "total_companies": total_companies,
-        "max_concurrent": max_concurrent,
-        "estimated_duration_seconds": estimated_seconds,
-        "estimated_duration_minutes": estimated_minutes,
-        "batches": batches,
-        "avg_processing_time": avg_processing_time,
-    }
 
 
 def create_flow_summary_report(results: dict[str, Any]) -> str:

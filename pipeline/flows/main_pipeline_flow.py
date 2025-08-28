@@ -7,9 +7,6 @@ from prefect import flow, get_run_logger
 from pipeline.core.config import PipelineConfig
 from pipeline.core.models import CompanyData
 from pipeline.flows.stage_1_flow import stage_1_flow
-from pipeline.flows.utils import (
-    load_companies_from_file,
-)
 
 
 @flow(
@@ -95,57 +92,6 @@ async def main_pipeline_flow(
         raise
 
 
-@flow(
-    name="Quick Job Extraction Pipeline",
-    description="Simplified pipeline that runs only Stage 1 (job extraction)",
-    version="1.0.0",
-)
-async def quick_pipeline_flow(
-    companies_file: str,
-    prompt_template_path: str,
-    max_concurrent_companies: int = 3,
-) -> dict[str, Any]:
-    """
-    Simplified pipeline flow that runs only Stage 1 for quick job extraction.
-
-    This is useful for:
-    - Quick testing
-    - Regular job monitoring
-    - When you only need job listings without detailed analysis
-
-    Args:
-        companies_file: Path to companies JSON file
-        prompt_template_path: Path to Stage 1 prompt template
-        max_concurrent_companies: Maximum concurrent companies
-
-    Returns:
-        Stage 1 execution results
-    """
-    logger = get_run_logger()
-
-    logger.info("⚡ Starting Quick Job Extraction Pipeline")
-
-    try:
-        # Load configuration and companies
-        config = PipelineConfig.load_from_env()
-        companies = load_companies_from_file(Path(companies_file))
-
-        # Run only Stage 1
-        results = await main_pipeline_flow(
-            companies=companies,
-            config=config,
-            stages_to_run=["stage_1"],
-            max_concurrent_companies=max_concurrent_companies,
-            prompt_templates={"stage_1": prompt_template_path},
-        )
-
-        return results
-
-    except Exception as e:
-        logger.error(f"❌ Quick pipeline failed: {e}")
-        raise
-
-
 def _validate_pipeline_inputs(
     companies: list[CompanyData],
     config: PipelineConfig,
@@ -181,12 +127,6 @@ def _validate_pipeline_inputs(
                     raise ValueError(
                         f"Prompt template not found for {stage}: {template_path}"
                     )
-
-
-def _is_critical_stage_failure(stage: str, error: Exception) -> bool:  # noqa: ARG001
-    """Determine if a stage failure should stop the entire pipeline."""
-    # Stage 1 failures are critical - no point continuing without job listings
-    return stage == "stage_1"
 
 
 def _log_pipeline_summary(results: dict[str, Any], logger) -> None:
@@ -305,21 +245,7 @@ async def _execute_stage_1(
     logger.info("-" * 40)
 
     try:
-        prompt_template_path = (
-            prompt_templates.get(
-                "stage_1",
-                str(
-                    config.project_root
-                    / "input"
-                    / "prompts"
-                    / "job_title_url_parser.md"
-                ),
-            )
-            if prompt_templates
-            else str(
-                config.project_root / "input" / "prompts" / "job_title_url_parser.md"
-            )
-        )
+        prompt_template_path = prompt_templates.get("stage_1")
 
         stage_1_results = await stage_1_flow(
             companies=companies,
@@ -350,11 +276,8 @@ async def _execute_stage_1(
             "error_type": type(e).__name__,
         }
 
-        if _is_critical_stage_failure("stage_1", e):
-            logger.error("🛑 Critical failure in Stage 1 - stopping pipeline")
-            raise
-        else:
-            logger.warning("⚠️ Stage 1 failed but continuing with remaining stages")
+        logger.error("🛑 Critical failure in Stage 1 - stopping pipeline")
+        raise
 
 
 def _execute_unimplemented_stage(
