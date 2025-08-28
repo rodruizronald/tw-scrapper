@@ -148,7 +148,7 @@ def validate_company_data_task(company_data: dict[str, Any]) -> dict[str, Any]:
                 message="Company is disabled",
             )
 
-        if not company.career_url.startswith(("http://", "https://")):
+        if not company.career_url.startswith("https://"):
             raise ValidationError(
                 field="career_url",
                 value=company.career_url,

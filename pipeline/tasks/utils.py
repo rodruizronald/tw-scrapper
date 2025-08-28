@@ -19,11 +19,7 @@ def prepare_company_data_for_task(company: CompanyData) -> dict[str, Any]:
     Returns:
         Dictionary representation of company data
     """
-    return {
-        "name": company.name,
-        "career_url": company.career_url,
-        "enabled": company.enabled,
-    }
+    return company.to_dict()
 
 
 def prepare_config_for_task(config: PipelineConfig) -> dict[str, Any]:
