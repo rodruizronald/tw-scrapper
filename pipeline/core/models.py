@@ -1,16 +1,49 @@
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
 from pathlib import Path
 from typing import Any
 
+from parsers import ParserType
 
-class ParserType(Enum):
-    """HTML parser types supported by the pipeline."""
 
-    DEFAULT = "DEFAULT"
-    GREENHOUSE = "GREENHOUSE"
-    ANGULAR = "ANGULAR"
+@dataclass
+class WebParserSelectors:
+    """HTML selectors for web parsing."""
+
+    job_board: list[str]
+    job_description: list[str]
+
+
+@dataclass
+class WebParserConfig:
+    """Web parser configuration."""
+
+    type: str
+    selectors: dict[str, list[str]]
+
+    def __post_init__(self):
+        """Validate parser configuration."""
+        # Normalize parser type
+        if isinstance(self.type, str):
+            try:
+                ParserType[self.type.upper()]
+            except KeyError as e:
+                raise ValueError(f"Invalid parser type: {self.type}") from e
+
+    @property
+    def parser_type(self) -> ParserType:
+        """Get parser type as enum."""
+        return ParserType[self.type.upper()]
+
+    @property
+    def job_board_selectors(self) -> list[str]:
+        """Get job board selectors."""
+        return self.selectors.get("job_board", [])
+
+    @property
+    def job_description_selectors(self) -> list[str]:
+        """Get job description selectors."""
+        return self.selectors.get("job_description", [])
 
 
 @dataclass
@@ -19,10 +52,7 @@ class CompanyData:
 
     name: str
     career_url: str
-    html_parser: str
-    job_board_selector: list[str]
-    job_eligibility_selector: list[str]
-    job_description_selector: list[str]
+    web_parser: dict[str, Any]
     enabled: bool = True
 
     def __post_init__(self):
@@ -30,12 +60,27 @@ class CompanyData:
         if not self.name or not self.career_url:
             raise ValueError("Company name and career_url are required")
 
-        # Normalize parser type
-        if isinstance(self.html_parser, str):
-            try:
-                ParserType[self.html_parser.upper()]
-            except KeyError as e:
-                raise ValueError(f"Invalid parser type: {self.html_parser}") from e
+        # Convert web_parser dict to WebParserConfig object
+        if isinstance(self.web_parser, dict):
+            self.web_parser = WebParserConfig(
+                type=self.web_parser.get("type", "default"),
+                selectors=self.web_parser.get("selectors", {}),
+            )
+
+    @property
+    def parser_type(self) -> ParserType:
+        """Get parser type."""
+        return self.web_parser.parser_type
+
+    @property
+    def job_board_selectors(self) -> list[str]:
+        """Get job board selectors."""
+        return self.web_parser.job_board_selectors
+
+    @property
+    def job_description_selectors(self) -> list[str]:
+        """Get job description selectors."""
+        return self.web_parser.job_description_selectors
 
 
 @dataclass
@@ -72,13 +117,13 @@ class ProcessingResult:
 
     # Error information
     error: str | None = None
-    error_type: str | None = None  # New: for categorizing errors
+    error_type: str | None = None
 
-    # Timing information (enhanced for Prefect)
+    # Timing information
     start_time: datetime | None = None
     end_time: datetime | None = None
 
-    # Additional metadata for Prefect
+    # Additional metadata
     stage: str = "stage_1"
     retryable: bool = True
 
