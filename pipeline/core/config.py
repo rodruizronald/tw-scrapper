@@ -219,7 +219,7 @@ class PipelineConfig:
 
         # Create OpenAI configuration
         openai_config = OpenAIConfig(
-            model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+            model=os.getenv("OPENAI_MODEL", "gpt-5-mini"),
             max_retries=int(os.getenv("OPENAI_MAX_RETRIES", "3")),
             timeout=int(os.getenv("OPENAI_TIMEOUT", "30")),
             api_key=os.getenv("OPENAI_API_KEY"),
