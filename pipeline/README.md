@@ -304,9 +304,7 @@ The pipeline now includes full Prefect integration for workflow orchestration:
 ### Prefect Flows Available
 
 1. `stage_1_flow`: Optimized flow for Stage 1 job extraction
-2. `stage_1_single_company_flow`: Single company processing (testing)
-3. `main_pipeline_flow`: Multi-stage pipeline orchestration
-4. `quick_pipeline_flow`: Fast extraction with minimal setup
+2. `main_pipeline_flow`: Multi-stage pipeline orchestration
 
 ### Running with Prefect UI
 
