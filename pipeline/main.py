@@ -14,6 +14,7 @@ from loguru import logger
 
 from pipeline.core.config import PipelineConfig
 from pipeline.flows import (
+    create_flow_summary_report,
     load_companies_from_file,
     main_pipeline_flow,
     validate_flow_inputs,
@@ -108,25 +109,24 @@ def run(companies_file, prompt_template, max_concurrent, stages):
                 prompt_templates=prompt_templates,
             )
 
-            # # Display results
-            # logger.info("🎉 Pipeline execution completed!")
+            # Display results
+            logger.info("🎉 Pipeline execution completed!")
 
-            # if "stage_1" in stages_to_run:
-            #     # Show Stage 1 specific summary
-            #     print("\n" + create_flow_summary_report(results))
-            # else:
-            #     # Show general pipeline summary
-            #     print("\n📊 Pipeline Results:")
-            #     print(f"✅ Success: {results.get('pipeline_success', False)}")
-            #     print(
-            #         f"📋 Stages completed: {', '.join(results.get('stages_completed', []))}"
-            #     )
-            #     print(
-            #         f"❌ Stages failed: {', '.join(results.get('stages_failed', []))}"
-            #     )
+            if "stage_1" in stages_to_run:
+                # Show Stage 1 specific summary
+                print("\n" + create_flow_summary_report(results))
+            else:
+                # Show general pipeline summary
+                print("\n📊 Pipeline Results:")
+                print(f"✅ Success: {results.get('pipeline_success', False)}")
+                print(
+                    f"📋 Stages completed: {', '.join(results.get('stages_completed', []))}"
+                )
+                print(
+                    f"❌ Stages failed: {', '.join(results.get('stages_failed', []))}"
+                )
 
-            # return results
-            return None
+            return results
 
         except Exception as e:
             logger.error(f"❌ Pipeline failed: {e}")
