@@ -41,9 +41,9 @@ class WebParserConfig:
         return self.selectors.get("job_board", [])
 
     @property
-    def job_description_selectors(self) -> list[str]:
-        """Get job description selectors."""
-        return self.selectors.get("job_description", [])
+    def job_card_selectors(self) -> list[str]:
+        """Get job card selectors."""
+        return self.selectors.get("job_card", [])
 
 
 @dataclass
@@ -78,9 +78,21 @@ class CompanyData:
         return self.web_parser.job_board_selectors
 
     @property
-    def job_description_selectors(self) -> list[str]:
-        """Get job description selectors."""
-        return self.web_parser.job_description_selectors
+    def job_card_selectors(self) -> list[str]:
+        """Get job card selectors."""
+        return self.web_parser.job_card_selectors
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert CompanyData to dictionary for JSON serialization."""
+        return {
+            "name": self.name,
+            "career_url": self.career_url,
+            "web_parser": {
+                "type": self.web_parser.type,
+                "selectors": self.web_parser.selectors,
+            },
+            "enabled": self.enabled,
+        }
 
 
 @dataclass
