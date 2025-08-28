@@ -190,7 +190,8 @@ class Stage1Processor:
         try:
             content = await self.html_extractor.extract_content(
                 url=company_data.career_url,
-                selectors=company_data.selectors,
+                selectors=company_data.job_board_selectors
+                + company_data.job_card_selectors,
                 parser_type=company_data.parser_type,
             )
             if not content:
