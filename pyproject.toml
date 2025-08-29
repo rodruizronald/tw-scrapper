@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["ruff>=0.12.9", "mypy>=1.17.0"]
+dev = ["ruff>=0.12.9", "mypy>=1.17.0", "pre-commit>=4.3.0"]
 
 [project.scripts]
 tw-scrapper-stage1 = "scripts.job_stage_1:main"
