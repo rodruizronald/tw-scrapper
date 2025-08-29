@@ -52,9 +52,10 @@ class CompanyData:
 
     name: str
     career_url: str
-    web_parser: dict[str, Any]
+    web_parser: dict[str, Any] | WebParserConfig
     enabled: bool = True
 
+    # After __post_init__, web_parser is always WebParserConfig
     def __post_init__(self):
         """Validate and normalize data after initialization."""
         if not self.name or not self.career_url:
@@ -70,20 +71,24 @@ class CompanyData:
     @property
     def parser_type(self) -> ParserType:
         """Get parser type."""
+        assert isinstance(self.web_parser, WebParserConfig)
         return self.web_parser.parser_type
 
     @property
     def job_board_selectors(self) -> list[str]:
         """Get job board selectors."""
+        assert isinstance(self.web_parser, WebParserConfig)
         return self.web_parser.job_board_selectors
 
     @property
     def job_card_selectors(self) -> list[str]:
         """Get job card selectors."""
+        assert isinstance(self.web_parser, WebParserConfig)
         return self.web_parser.job_card_selectors
 
     def to_dict(self) -> dict[str, Any]:
         """Convert CompanyData to dictionary for JSON serialization."""
+        assert isinstance(self.web_parser, WebParserConfig)
         return {
             "name": self.name,
             "career_url": self.career_url,

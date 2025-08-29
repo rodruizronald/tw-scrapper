@@ -19,9 +19,9 @@ from pipeline.flows.stage_1_flow import stage_1_flow
 async def main_pipeline_flow(
     companies: list[CompanyData],
     config: PipelineConfig,
-    stages_to_run: list[str] | None = None,
+    stages_to_run: list[str],
+    prompt_templates: dict[str, str],
     max_concurrent_companies: int = 3,
-    prompt_templates: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """
     Main pipeline flow that orchestrates all stages of job processing.
@@ -43,10 +43,6 @@ async def main_pipeline_flow(
         Complete pipeline execution results
     """
     logger = get_run_logger()
-
-    # Initialize default stages if not provided
-    if stages_to_run is None:
-        stages_to_run = ["stage_1", "stage_2", "stage_3", "stage_4"]
 
     # Initialize pipeline execution tracking
     pipeline_start_time = datetime.now(UTC)
@@ -96,7 +92,7 @@ def _validate_pipeline_inputs(
     companies: list[CompanyData],
     config: PipelineConfig,
     stages_to_run: list[str],
-    prompt_templates: dict[str, str] | None,
+    prompt_templates: dict[str, str],
 ) -> None:
     """Validate all pipeline inputs."""
     # Validate configuration
@@ -191,7 +187,7 @@ async def _execute_stages(
     stage_data: dict[str, Any],
     config: PipelineConfig,
     companies: list[CompanyData],
-    prompt_templates: dict[str, str] | None,
+    prompt_templates: dict[str, str],
     max_concurrent_companies: int,
     logger,
 ) -> None:
@@ -236,7 +232,7 @@ async def _execute_stage_1(
     stage_data: dict[str, Any],
     config: PipelineConfig,
     companies: list[CompanyData],
-    prompt_templates: dict[str, str] | None,
+    prompt_templates: dict[str, str],
     max_concurrent_companies: int,
     logger,
 ) -> None:
@@ -246,6 +242,8 @@ async def _execute_stage_1(
 
     try:
         prompt_template_path = prompt_templates.get("stage_1")
+        if prompt_template_path is None:
+            raise ValueError("Stage 1 prompt template not found in prompt_templates")
 
         stage_1_results = await stage_1_flow(
             companies=companies,

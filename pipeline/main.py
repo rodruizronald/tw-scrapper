@@ -105,8 +105,8 @@ def run(companies_file, prompt_template, max_concurrent, stages):
                 companies=companies,
                 config=config,
                 stages_to_run=stages_to_run,
-                max_concurrent_companies=max_concurrent,
                 prompt_templates=prompt_templates,
+                max_concurrent_companies=max_concurrent,
             )
 
             # Display results
