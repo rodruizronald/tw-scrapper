@@ -1,4 +1,4 @@
-.PHONY: format-check import-check type-check lint check-all format fix-imports fix-lint fix-all install install-dev clean help prefect-server prefect-config prefect-reset
+.PHONY: format-check import-check type-check lint check-all format fix-imports fix-lint fix-all install install-dev clean help prefect-server prefect-config prefect-reset pre-commit-install pre-commit-run pre-commit-update
 
 # Load environment variables from .env file if it exists
 ifneq (,$(wildcard ./.env))
@@ -99,40 +99,53 @@ prefect-reset:
 	@prefect config unset PREFECT_API_URL
 	@echo "✅ Prefect reset to default configuration"
 
+# Pre-commit hooks
+pre-commit-install:
+	@echo "Installing pre-commit hooks..."
+	@pre-commit install
+	@echo "✅ Pre-commit hooks installed successfully"
+
+pre-commit-run:
+	@echo "Running pre-commit on all files..."
+	@pre-commit run --all-files
+	@echo "✅ Pre-commit checks completed successfully"
+
+pre-commit-update:
+	@echo "Updating pre-commit hooks..."
+	@pre-commit autoupdate
+	@echo "✅ Pre-commit hooks updated successfully"
+
 # Show help
 help:
 	@echo "╔══════════════════════════════════════════════════════════╗"
-	@echo "║                   Available Commands                      ║"
+	@echo "║                   Available Commands                     ║"
 	@echo "╚══════════════════════════════════════════════════════════╝"
 	@echo ""
 	@echo "📋 Code Quality Checks:"
-	@echo "  make format-check   - Check code formatting with Ruff"
-	@echo "  make import-check   - Check import sorting with Ruff"
-	@echo "  make lint           - Run linting with Ruff"
-	@echo "  make type-check     - Run type checking with mypy"
-	@echo "  make check-all      - Run ALL quality checks"
+	@echo "  make format-check       - Check code formatting with Ruff"
+	@echo "  make import-check       - Check import sorting with Ruff"
+	@echo "  make lint               - Run linting with Ruff"
+	@echo "  make type-check         - Run type checking with mypy"
+	@echo "  make check-all          - Run ALL quality checks"
 	@echo ""
 	@echo "🔧 Code Formatting & Fixes:"
-	@echo "  make format         - Auto-format code with Ruff"
-	@echo "  make fix-imports    - Fix import sorting"
-	@echo "  make fix-lint       - Fix linting issues"
-	@echo "  make fix-al         - Apply ALL auto-fixes (recommended)"
+	@echo "  make format             - Auto-format code with Ruff"
+	@echo "  make fix-imports        - Fix import sorting"
+	@echo "  make fix-lint           - Fix linting issues"
+	@echo "  make fix-all            - Apply ALL auto-fixes (recommended)"
 	@echo ""
 	@echo "📦 Environment Setup:"
-	@echo "  make install        - Install production dependencies"
-	@echo "  make install-dev    - Install development dependencies"
-	@echo "  make clean          - Clean up cache files"
-	@echo ""
-	@echo "⚡ Quick Commands:"
-	@echo "  make fix            - Fix everything automatically"
-	@echo "  make check-all      - Run all checks"
+	@echo "  make install            - Install production dependencies"
+	@echo "  make install-dev        - Install development dependencies"
+	@echo "  make clean              - Clean up cache files"
 	@echo ""
 	@echo "🔮 Prefect Management:"
-	@echo "  make prefect-server - Start Prefect server locally"
-	@echo "  make prefect-config - Configure Prefect to use local server"
-	@echo "  make prefect-reset  - Reset Prefect to default configuration"
+	@echo "  make prefect-server     - Start Prefect server locally"
+	@echo "  make prefect-config     - Configure Prefect to use local server"
+	@echo "  make prefect-reset      - Reset Prefect to default configuration"
 	@echo ""
-	@echo "💡 Common Workflows:"
-	@echo "  make install-dev && make fix    # Setup and format"
-	@echo "  make check-all                   # Before committing"
-	@echo "  make fix && make check-all       # Full cleanup"
+	@echo "🪝 Pre-commit Hooks:"
+	@echo "  make pre-commit-install - Install pre-commit hooks"
+	@echo "  make pre-commit-run     - Run pre-commit on all files"
+	@echo "  make pre-commit-update  - Update pre-commit hooks"
+	@echo ""
