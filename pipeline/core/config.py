@@ -1,6 +1,9 @@
 import os
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 
 @dataclass
@@ -58,12 +61,41 @@ class LoggingConfig:
 
 
 @dataclass
+class PrefectConfig:
+    """Prefect-specific configuration."""
+
+    max_concurrent_companies: int = 3
+    flow_timeout_seconds: int = 3600  # 1 hour
+    task_timeout_seconds: int = 300  # 5 minutes
+    default_retries: int = 2
+    retry_delay_seconds: int = 30
+    log_level: str = "INFO"
+
+    def __post_init__(self):
+        """Validate Prefect configuration."""
+        if self.max_concurrent_companies < 1:
+            raise ValueError("max_concurrent_companies must be at least 1")
+
+        if self.flow_timeout_seconds < 60:
+            raise ValueError("flow_timeout_seconds must be at least 60 seconds")
+
+        if self.task_timeout_seconds < 30:
+            raise ValueError("task_timeout_seconds must be at least 30 seconds")
+
+
+@dataclass
 class PipelineConfig:
     """Main configuration for the job pipeline."""
 
     stage_1: StageConfig
     openai: OpenAIConfig = field(default_factory=OpenAIConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
+    prefect: PrefectConfig = field(default_factory=PrefectConfig)
+
+    # Project paths (for Prefect integration)
+    project_root: Path = field(default_factory=lambda: Path.cwd())
+    input_dir: Path = field(default_factory=lambda: Path("input"))
+    output_dir: Path = field(default_factory=lambda: Path("data"))
 
     def validate(self) -> None:
         """Validate the entire configuration."""
@@ -77,7 +109,17 @@ class PipelineConfig:
         if not self.openai.api_key:
             raise ValueError("OpenAI API key is required")
 
-        # Additional validations can be added here
+        # Project paths validation
+        if not self.project_root.exists():
+            raise ValueError(
+                f"Project root directory does not exist: {self.project_root}"
+            )
+
+        if not self.input_dir.exists():
+            raise ValueError(f"Input directory does not exist: {self.input_dir}")
+
+        # Create output directory if it doesn't exist
+        self.output_dir.mkdir(parents=True, exist_ok=True)
 
     @classmethod
     def from_dict(cls, config_dict: dict) -> "PipelineConfig":
@@ -85,9 +127,21 @@ class PipelineConfig:
         stage_1_config = StageConfig(**config_dict.get("stage_1", {}))
         openai_config = OpenAIConfig(**config_dict.get("openai", {}))
         logging_config = LoggingConfig(**config_dict.get("logging", {}))
+        prefect_config = PrefectConfig(**config_dict.get("prefect", {}))
+
+        # Handle project paths
+        project_root = Path(config_dict.get("project_root", Path.cwd()))
+        input_dir = Path(config_dict.get("input_dir", "input"))
+        output_dir = Path(config_dict.get("output_dir", "data"))
 
         config = cls(
-            stage_1=stage_1_config, openai=openai_config, logging=logging_config
+            stage_1=stage_1_config,
+            openai=openai_config,
+            logging=logging_config,
+            prefect=prefect_config,
+            project_root=project_root,
+            input_dir=input_dir,
+            output_dir=output_dir,
         )
 
         config.validate()
@@ -104,10 +158,115 @@ class PipelineConfig:
                 "model": self.openai.model,
                 "max_retries": self.openai.max_retries,
                 "timeout": self.openai.timeout,
+                "api_key": self.openai.api_key,  # Include for serialization
             },
             "logging": {
                 "level": self.logging.level,
                 "log_to_file": self.logging.log_to_file,
                 "log_to_console": self.logging.log_to_console,
             },
+            "prefect": {
+                "max_concurrent_companies": self.prefect.max_concurrent_companies,
+                "flow_timeout_seconds": self.prefect.flow_timeout_seconds,
+                "task_timeout_seconds": self.prefect.task_timeout_seconds,
+                "default_retries": self.prefect.default_retries,
+                "retry_delay_seconds": self.prefect.retry_delay_seconds,
+                "log_level": self.prefect.log_level,
+            },
+            "project_root": str(self.project_root),
+            "input_dir": str(self.input_dir),
+            "output_dir": str(self.output_dir),
         }
+
+    @classmethod
+    def load_from_env(cls, env_file: Path | None = None) -> "PipelineConfig":
+        """
+        Load configuration from environment variables.
+
+        This method provides enhanced environment loading for Prefect integration
+        while maintaining backward compatibility with existing usage.
+
+        Args:
+            env_file: Optional path to .env file
+
+        Returns:
+            Configured PipelineConfig instance
+        """
+        if env_file:
+            load_dotenv(env_file)
+        else:
+            # Try to find .env file in current directory or parent directories
+            current_dir = Path.cwd()
+            for parent in [current_dir, *list(current_dir.parents)]:
+                env_path = parent / ".env"
+                if env_path.exists():
+                    load_dotenv(env_path)
+                    break
+
+        # Get project root (directory containing this file's parent's parent)
+        project_root = Path(__file__).parent.parent.parent
+
+        # Create output directory with timestamp for Prefect runs
+        timestamp = datetime.now(UTC).strftime("%Y%m%d")
+        output_dir = project_root / "data" / timestamp
+
+        # Create Stage 1 configuration
+        stage_1_output_dir = output_dir / "pipeline_stage_1"
+        stage_1_config = StageConfig(
+            output_dir=stage_1_output_dir,
+            save_output=os.getenv("STAGE_1_SAVE_OUTPUT", "true").lower() == "true",
+        )
+
+        # Create OpenAI configuration
+        openai_config = OpenAIConfig(
+            model=os.getenv("OPENAI_MODEL", "gpt-5-mini"),
+            max_retries=int(os.getenv("OPENAI_MAX_RETRIES", "3")),
+            timeout=int(os.getenv("OPENAI_TIMEOUT", "30")),
+            api_key=os.getenv("OPENAI_API_KEY"),
+        )
+
+        # Create Logging configuration
+        logging_config = LoggingConfig(
+            level=os.getenv("LOG_LEVEL", "INFO"),
+            log_to_file=os.getenv("LOG_TO_FILE", "true").lower() == "true",
+            log_to_console=os.getenv("LOG_TO_CONSOLE", "true").lower() == "true",
+        )
+
+        # Create Prefect configuration
+        prefect_config = PrefectConfig(
+            max_concurrent_companies=int(os.getenv("PREFECT_MAX_CONCURRENT", "3")),
+            flow_timeout_seconds=int(os.getenv("PREFECT_FLOW_TIMEOUT", "3600")),
+            task_timeout_seconds=int(os.getenv("PREFECT_TASK_TIMEOUT", "300")),
+            default_retries=int(os.getenv("PREFECT_DEFAULT_RETRIES", "2")),
+            retry_delay_seconds=int(os.getenv("PREFECT_RETRY_DELAY", "30")),
+            log_level=os.getenv("PREFECT_LOG_LEVEL", "INFO"),
+        )
+
+        config = cls(
+            stage_1=stage_1_config,
+            openai=openai_config,
+            logging=logging_config,
+            prefect=prefect_config,
+            project_root=project_root,
+            input_dir=project_root / "input",
+            output_dir=output_dir,
+        )
+
+        config.validate()
+        return config
+
+    # Backward compatibility methods
+    @property
+    def stage_1_config(self) -> StageConfig:
+        """Backward compatibility property."""
+        return self.stage_1
+
+    @property
+    def openai_config(self) -> OpenAIConfig:
+        """Backward compatibility property."""
+        return self.openai
+
+    @property
+    def logging_config(self) -> LoggingConfig:
+        """Backward compatibility property."""
+        return self.logging

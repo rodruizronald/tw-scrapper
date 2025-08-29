@@ -9,7 +9,7 @@ This module contains the fundamental building blocks of the job pipeline:
 """
 
 from .config import LoggingConfig, OpenAIConfig, PipelineConfig, StageConfig
-from .models import CompanyData, JobData, ParserType, ProcessingResult
+from .models import CompanyData, JobData, ProcessingResult
 from .pipeline import JobPipeline
 
 __all__ = [
@@ -18,7 +18,6 @@ __all__ = [
     "JobPipeline",
     "LoggingConfig",
     "OpenAIConfig",
-    "ParserType",
     "PipelineConfig",
     "ProcessingResult",
     "StageConfig",
