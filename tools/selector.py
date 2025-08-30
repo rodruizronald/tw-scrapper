@@ -34,9 +34,12 @@ from typing import Any, ClassVar
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from loguru import logger
-from pipeline.services.extraction_service import extract_by_selectors
-
-from parsers import ElementResult, ParserType
+from pipeline.parsers import ElementResult, ParserType
+from pipeline.services.extraction_service import (
+    BrowserConfig,
+    ExtractionConfig,
+    WebExtractionService,
+)
 
 # Configure logger for this tool
 logger.remove()
@@ -61,17 +64,30 @@ class SelectorTester:
         "BOLD": "\033[1m",
     }
 
-    def __init__(self, save_results: bool = False, output_format: str = "console"):
+    def __init__(
+        self,
+        save_results: bool = False,
+        output_format: str = "console",
+        headless: bool = True,
+        browser_config: BrowserConfig | None = None,
+    ):
         """
         Initialize the selector tester.
 
         Args:
             save_results: Whether to save results to file
             output_format: Output format ('console', 'json', 'markdown')
+            headless: Whether to run browser in headless mode
+            browser_config: Optional browser configuration override
         """
         self.save_results = save_results
         self.output_format = output_format
         self.results_dir = Path(__file__).parent / "results"
+
+        # Create browser and extraction configs
+        self.browser_config = browser_config or BrowserConfig(
+            headless=headless, timeout=30000, wait_until="domcontentloaded"
+        )
 
         if save_results:
             self.results_dir.mkdir(exist_ok=True)
@@ -160,6 +176,18 @@ class SelectorTester:
 
         return "\n".join(output)
 
+    def _create_extraction_service(
+        self, parser_type: ParserType
+    ) -> WebExtractionService:
+        """Create extraction service with specified parser type."""
+        config = ExtractionConfig(
+            browser_config=self.browser_config,
+            parser_type=parser_type,
+            retry_on_failure=True,
+            max_retries=2,
+        )
+        return WebExtractionService(config)
+
     async def test_selectors(
         self,
         url: str,
@@ -185,10 +213,26 @@ class SelectorTester:
             print(f"{self._colorize('📊 SELECTORS TO TEST:', 'CYAN')} {len(selectors)}")
             print(f"{'=' * 80}\n")
 
-        # Extract elements
-        results = await extract_by_selectors(
-            url=url, selectors=selectors, parser_type=parser_type
-        )
+        # Create extraction service with specified parser type
+        service = self._create_extraction_service(parser_type)
+
+        try:
+            # Extract elements using the service
+            results = await service.extract_elements(
+                url=url, selectors=selectors, parser_type=parser_type
+            )
+        except Exception as e:
+            logger.error(f"Extraction failed: {e}")
+            # Create error results for all selectors
+            results = [
+                ElementResult(
+                    selector=selector,
+                    found=False,
+                    error_message=f"Service error: {e!s}",
+                    context="error",
+                )
+                for selector in selectors
+            ]
 
         # Format and display results
         if self.output_format == "console":
