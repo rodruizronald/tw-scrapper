@@ -12,7 +12,6 @@ from .extraction_service import (
     ExtractionConfig,
     WebExtractionService,
     extract_by_selectors,
-    extract_from_urls_batch,
 )
 from .file_service import FileService
 from .html_service import HTMLExtractor
@@ -28,5 +27,4 @@ __all__ = [
     "OpenAIService",
     "WebExtractionService",
     "extract_by_selectors",
-    "extract_from_urls_batch",
 ]

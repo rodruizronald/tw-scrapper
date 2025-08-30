@@ -62,7 +62,6 @@ from .services.extraction_service import (
     ExtractionConfig,
     WebExtractionService,
     extract_by_selectors,
-    extract_from_urls_batch,
 )
 from .services.file_service import FileService
 from .services.html_service import HTMLExtractor
@@ -116,7 +115,6 @@ __all__ = [
     "__description__",
     "__version__",
     "extract_by_selectors",
-    "extract_from_urls_batch",
 ]
 
 
