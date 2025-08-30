@@ -2,9 +2,9 @@ import asyncio
 
 from loguru import logger
 
-from parsers import ParserType
+from pipeline.parsers.models import ParserType
+from pipeline.services.extraction_service import extract_by_selectors
 from pipeline.utils.exceptions import HTMLExtractionError
-from services.extraction import extract_by_selectors
 
 
 class HTMLExtractor:

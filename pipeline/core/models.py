@@ -3,7 +3,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from parsers import ParserType
+from pipeline.parsers.models import ParserType
 
 
 @dataclass

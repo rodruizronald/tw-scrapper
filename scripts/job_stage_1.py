@@ -10,9 +10,9 @@ from typing import Any
 import openai
 from dotenv import load_dotenv
 from loguru import logger
+from pipeline.services.extraction_service import extract_by_selectors
 
 from parsers import ParserType
-from services import extract_by_selectors
 
 # Get the root directory and add it to Python path
 root_dir = Path(__file__).parent.parent
