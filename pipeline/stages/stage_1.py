@@ -10,6 +10,7 @@ from pipeline.core.config import PipelineConfig
 from pipeline.core.models import CompanyData, JobData, ProcessingResult
 from pipeline.services.file_service import FileService
 from pipeline.services.html_service import HTMLExtractor
+from pipeline.services.job_extraction_service import JobExtractionService
 from pipeline.services.openai_service import OpenAIService
 from pipeline.utils.exceptions import (
     CompanyProcessingError,
@@ -49,6 +50,7 @@ class Stage1Processor:
         # Initialize services
         self.html_extractor = HTMLExtractor(max_retries=3, retry_delay=1.0)
         self.openai_service = OpenAIService(config.openai)
+        self.job_extraction_service = JobExtractionService(self.openai_service)
         self.file_service = FileService(config.stage_1.output_dir)
 
         # Processing statistics - properly typed
@@ -211,9 +213,9 @@ class Stage1Processor:
     async def _parse_job_listings(
         self, company_data: CompanyData, html_content: str
     ) -> dict[str, Any]:
-        """Parse job listings from HTML content using OpenAI."""
+        """Parse job listings from HTML content using the job extraction service."""
         try:
-            result = await self.openai_service.parse_job_listings(
+            result = await self.job_extraction_service.parse_job_listings(
                 html_content=html_content,
                 prompt_template_path=self.prompt_template_path,
                 career_url=company_data.career_url,
