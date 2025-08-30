@@ -34,9 +34,9 @@ from typing import Any, ClassVar
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from loguru import logger
+from pipeline.services.extraction_service import extract_by_selectors
 
 from parsers import ElementResult, ParserType
-from services import extract_by_selectors
 
 # Configure logger for this tool
 logger.remove()
