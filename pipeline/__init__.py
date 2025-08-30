@@ -55,9 +55,16 @@ from pathlib import Path
 from .core.config import LoggingConfig, OpenAIConfig, PipelineConfig, StageConfig
 from .core.models import CompanyData, JobData, ParserType, ProcessingResult
 from .core.pipeline import JobPipeline
-from .services.file_service import FileService
 
 # Service layer
+from .services.extraction_service import (
+    BrowserConfig,
+    ExtractionConfig,
+    WebExtractionService,
+    extract_by_selectors,
+    extract_from_urls_batch,
+)
+from .services.file_service import FileService
 from .services.html_service import HTMLExtractor
 from .services.openai_service import OpenAIService
 
@@ -82,9 +89,11 @@ __description__ = "AI-powered job listing extraction pipeline"
 
 # Public API
 __all__ = [
+    "BrowserConfig",
     "CompanyData",
     "CompanyProcessingError",
     "ConfigurationError",
+    "ExtractionConfig",
     "FileOperationError",
     "FileService",
     "HTMLExtractionError",
@@ -102,9 +111,12 @@ __all__ = [
     "Stage1Processor",
     "StageConfig",
     "ValidationError",
+    "WebExtractionService",
     "__author__",
     "__description__",
     "__version__",
+    "extract_by_selectors",
+    "extract_from_urls_batch",
 ]
 
 
