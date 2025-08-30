@@ -7,8 +7,26 @@ This module contains service classes that handle specific aspects of the pipelin
 - File operations and data persistence
 """
 
+from .extraction_service import (
+    BrowserConfig,
+    ExtractionConfig,
+    WebExtractionService,
+    extract_by_selectors,
+    extract_from_urls_batch,
+)
 from .file_service import FileService
 from .html_service import HTMLExtractor
+from .job_extraction_service import JobExtractionService
 from .openai_service import OpenAIService
 
-__all__ = ["FileService", "HTMLExtractor", "OpenAIService"]
+__all__ = [
+    "BrowserConfig",
+    "ExtractionConfig",
+    "FileService",
+    "HTMLExtractor",
+    "JobExtractionService",
+    "OpenAIService",
+    "WebExtractionService",
+    "extract_by_selectors",
+    "extract_from_urls_batch",
+]
