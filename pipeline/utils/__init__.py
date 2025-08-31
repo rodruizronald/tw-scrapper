@@ -15,6 +15,7 @@ from .exceptions import (
     OpenAIProcessingError,
     PipelineError,
     ValidationError,
+    WebExtractionError,
 )
 
 __all__ = [
@@ -25,4 +26,5 @@ __all__ = [
     "OpenAIProcessingError",
     "PipelineError",
     "ValidationError",
+    "WebExtractionError",
 ]
