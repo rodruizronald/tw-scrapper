@@ -6,7 +6,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from loguru import logger
 
-from pipeline.services.extraction_service import BrowserConfig, ExtractionConfig
+from pipeline.services.web_extraction_service import BrowserConfig, WebExtractionConfig
 
 
 @dataclass
@@ -116,7 +116,7 @@ class PipelineConfig:
     openai: OpenAIConfig = field(default_factory=OpenAIConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     prefect: PrefectConfig = field(default_factory=PrefectConfig)
-    extraction: ExtractionConfig = field(default_factory=ExtractionConfig)
+    extraction: WebExtractionConfig = field(default_factory=WebExtractionConfig)
 
     # Project paths (for Prefect integration)
     project_root: Path = field(default_factory=lambda: Path.cwd())
@@ -154,7 +154,7 @@ class PipelineConfig:
         openai_config = OpenAIConfig(**config_dict.get("openai", {}))
         logging_config = LoggingConfig(**config_dict.get("logging", {}))
         prefect_config = PrefectConfig(**config_dict.get("prefect", {}))
-        extraction_config = ExtractionConfig(**config_dict.get("extraction", {}))
+        extraction_config = WebExtractionConfig(**config_dict.get("extraction", {}))
 
         # Handle project paths
         project_root = Path(config_dict.get("project_root", Path.cwd()))
@@ -282,7 +282,7 @@ class PipelineConfig:
         )
 
         # Create Extraction configuration
-        extraction_config = ExtractionConfig(
+        extraction_config = WebExtractionConfig(
             browser_config=BrowserConfig(
                 headless=os.getenv("BROWSER_HEADLESS", "true").lower() == "true",
                 timeout=int(os.getenv("BROWSER_TIMEOUT", "30000")),

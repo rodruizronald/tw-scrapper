@@ -10,9 +10,9 @@ import openai
 from dotenv import load_dotenv
 from loguru import logger
 from pipeline.parsers.models import ElementResult, ParserType
-from pipeline.services.extraction_service import (
+from pipeline.services.web_extraction_service import (
     BrowserConfig,
-    ExtractionConfig,
+    WebExtractionConfig,
     WebExtractionService,
 )
 
@@ -77,7 +77,7 @@ async def extract_by_selectors(
     Returns:
         List of ElementResult objects containing extraction results
     """
-    config = ExtractionConfig(
+    config = WebExtractionConfig(
         browser_config=BrowserConfig(headless=headless), parser_type=parser_type
     )
     service = WebExtractionService(config)

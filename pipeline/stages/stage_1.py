@@ -8,10 +8,10 @@ from loguru import logger
 
 from pipeline.core.config import PipelineConfig
 from pipeline.core.models import CompanyData, JobData, ProcessingResult
-from pipeline.services.extraction_service import WebExtractionService
 from pipeline.services.file_service import FileService
 from pipeline.services.job_extraction_service import JobExtractionService
 from pipeline.services.openai_service import OpenAIService
+from pipeline.services.web_extraction_service import WebExtractionService
 from pipeline.utils.exceptions import (
     CompanyProcessingError,
     FileOperationError,

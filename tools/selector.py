@@ -35,9 +35,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from loguru import logger
 from pipeline.parsers import ElementResult, ParserType
-from pipeline.services.extraction_service import (
+from pipeline.services.web_extraction_service import (
     BrowserConfig,
-    ExtractionConfig,
+    WebExtractionConfig,
     WebExtractionService,
 )
 
@@ -180,7 +180,7 @@ class SelectorTester:
         self, parser_type: ParserType
     ) -> WebExtractionService:
         """Create extraction service with specified parser type."""
-        config = ExtractionConfig(
+        config = WebExtractionConfig(
             browser_config=self.browser_config,
             parser_type=parser_type,
             retry_on_failure=True,

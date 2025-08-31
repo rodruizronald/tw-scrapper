@@ -32,7 +32,7 @@ class BrowserConfig:
 
 
 @dataclass
-class ExtractionConfig:
+class WebExtractionConfig:
     """Configuration for extraction operations."""
 
     browser_config: BrowserConfig = field(default_factory=BrowserConfig)
@@ -50,14 +50,14 @@ class WebExtractionService:
     to extract elements from web pages with enhanced error handling and retry logic.
     """
 
-    def __init__(self, config: ExtractionConfig | None = None):
+    def __init__(self, config: WebExtractionConfig | None = None):
         """
         Initialize the extraction service.
 
         Args:
             config: Optional configuration for extraction operations
         """
-        self.config = config or ExtractionConfig()
+        self.config = config or WebExtractionConfig()
         self._browser: Browser | None = None
         self._playwright = None
 

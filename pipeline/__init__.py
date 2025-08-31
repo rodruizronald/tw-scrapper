@@ -17,15 +17,15 @@ Key Features:
 # Core pipeline components
 from .core.config import LoggingConfig, OpenAIConfig, PipelineConfig, StageConfig
 from .core.models import CompanyData, JobData, ParserType, ProcessingResult
-
-# Service layer
-from .services.extraction_service import (
-    BrowserConfig,
-    ExtractionConfig,
-    WebExtractionService,
-)
 from .services.file_service import FileService
 from .services.openai_service import OpenAIService
+
+# Service layer
+from .services.web_extraction_service import (
+    BrowserConfig,
+    WebExtractionConfig,
+    WebExtractionService,
+)
 
 # Stage processors
 from .stages.stage_1 import Stage1Processor
@@ -51,7 +51,6 @@ __all__ = [
     "CompanyData",
     "CompanyProcessingError",
     "ConfigurationError",
-    "ExtractionConfig",
     "FileOperationError",
     "FileService",
     "JobData",
@@ -66,6 +65,7 @@ __all__ = [
     "Stage1Processor",
     "StageConfig",
     "ValidationError",
+    "WebExtractionConfig",
     "WebExtractionService",
     "__author__",
     "__description__",
