@@ -9,9 +9,12 @@ from typing import Any
 import openai
 from dotenv import load_dotenv
 from loguru import logger
-from pipeline.services.extraction_service import extract_by_selectors
-
-from parsers import ParserType
+from pipeline.parsers.models import ElementResult, ParserType
+from pipeline.services.web_extraction_service import (
+    BrowserConfig,
+    WebExtractionConfig,
+    WebExtractionService,
+)
 
 # Get the root directory and add it to Python path
 root_dir = Path(__file__).parent.parent
@@ -51,6 +54,34 @@ logger.add(
 
 # Initialize OpenAI client
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
+
+
+async def extract_by_selectors(
+    url: str,
+    selectors: list[str],
+    parser_type: ParserType = ParserType.DEFAULT,
+    headless: bool = True,
+) -> list[ElementResult]:
+    """
+    Convenience function for simple element extraction.
+
+    This function provides a simple interface for one-off extractions
+    without needing to instantiate the service class.
+
+    Args:
+        url: The URL to extract elements from
+        selectors: List of CSS selectors to extract
+        parser_type: Parser type to use
+        headless: Whether to run browser in headless mode
+
+    Returns:
+        List of ElementResult objects containing extraction results
+    """
+    config = WebExtractionConfig(
+        browser_config=BrowserConfig(headless=headless), parser_type=parser_type
+    )
+    service = WebExtractionService(config)
+    return await service.extract_elements(url, selectors, parser_type)
 
 
 async def extract_html_content(

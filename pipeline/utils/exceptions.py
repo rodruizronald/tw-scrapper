@@ -28,15 +28,6 @@ class ConfigurationError(PipelineError):
         super().__init__(message)
 
 
-class HTMLExtractionError(PipelineError):
-    """Error extracting HTML content from a webpage."""
-
-    def __init__(self, url: str, message: str, company_name: str | None = None):
-        self.url = url
-        full_message = f"Failed to extract HTML from '{url}': {message}"
-        super().__init__(full_message, company_name)
-
-
 class OpenAIProcessingError(PipelineError):
     """Error processing content with OpenAI API."""
 
@@ -78,3 +69,32 @@ class ValidationError(PipelineError):
             f"Validation failed for field '{field}' with value '{value}': {message}"
         )
         super().__init__(full_message)
+
+
+class WebExtractionError(PipelineError):
+    """Error during web extraction operations."""
+
+    def __init__(
+        self,
+        url: str,
+        original_error: Exception,
+        company_name: str | None = None,
+        retry_attempt: int | None = None,
+    ):
+        self.url = url
+        self.original_error = original_error
+        self.company_name = company_name
+        self.retry_attempt = retry_attempt
+
+        # Build descriptive error message
+        message = f"Web extraction failed for URL: {url}"
+
+        if company_name:
+            message += f" (Company: {company_name})"
+
+        if retry_attempt is not None:
+            message += f" (Retry attempt: {retry_attempt})"
+
+        message += f" - {original_error!s}"
+
+        super().__init__(message, company_name)

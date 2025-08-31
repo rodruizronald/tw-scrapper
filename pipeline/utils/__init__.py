@@ -11,18 +11,18 @@ from .exceptions import (
     CompanyProcessingError,
     ConfigurationError,
     FileOperationError,
-    HTMLExtractionError,
     OpenAIProcessingError,
     PipelineError,
     ValidationError,
+    WebExtractionError,
 )
 
 __all__ = [
     "CompanyProcessingError",
     "ConfigurationError",
     "FileOperationError",
-    "HTMLExtractionError",
     "OpenAIProcessingError",
     "PipelineError",
     "ValidationError",
+    "WebExtractionError",
 ]

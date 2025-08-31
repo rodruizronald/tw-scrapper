@@ -4,6 +4,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
+from loguru import logger
+
+from pipeline.services.web_extraction_service import BrowserConfig, WebExtractionConfig
 
 
 @dataclass
@@ -59,6 +62,28 @@ class LoggingConfig:
             )
         self.level = self.level.upper()
 
+    def add_stage_logging(self, output_dir: Path) -> None:
+        """Add logging for a specific stage without removing existing loggers."""
+        if self.log_to_file and output_dir:
+            log_file = output_dir / "stage.log"
+            logger.add(
+                sink=str(log_file),
+                level=self.level,
+                rotation="10 MB",
+                retention="7 days",
+                format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
+            )
+
+    def setup_console_logging(self) -> None:
+        """Setup only console logging (call once at startup)."""
+        logger.remove()
+        if self.log_to_console:
+            logger.add(
+                sink=lambda msg: print(msg, end=""),
+                level=self.level,
+                format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+            )
+
 
 @dataclass
 class PrefectConfig:
@@ -91,6 +116,7 @@ class PipelineConfig:
     openai: OpenAIConfig = field(default_factory=OpenAIConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     prefect: PrefectConfig = field(default_factory=PrefectConfig)
+    extraction: WebExtractionConfig = field(default_factory=WebExtractionConfig)
 
     # Project paths (for Prefect integration)
     project_root: Path = field(default_factory=lambda: Path.cwd())
@@ -128,6 +154,7 @@ class PipelineConfig:
         openai_config = OpenAIConfig(**config_dict.get("openai", {}))
         logging_config = LoggingConfig(**config_dict.get("logging", {}))
         prefect_config = PrefectConfig(**config_dict.get("prefect", {}))
+        extraction_config = WebExtractionConfig(**config_dict.get("extraction", {}))
 
         # Handle project paths
         project_root = Path(config_dict.get("project_root", Path.cwd()))
@@ -139,6 +166,7 @@ class PipelineConfig:
             openai=openai_config,
             logging=logging_config,
             prefect=prefect_config,
+            extraction=extraction_config,
             project_root=project_root,
             input_dir=input_dir,
             output_dir=output_dir,
@@ -172,6 +200,17 @@ class PipelineConfig:
                 "default_retries": self.prefect.default_retries,
                 "retry_delay_seconds": self.prefect.retry_delay_seconds,
                 "log_level": self.prefect.log_level,
+            },
+            "extraction": {
+                "browser_config": {
+                    "headless": self.extraction.browser_config.headless,
+                    "timeout": self.extraction.browser_config.timeout,
+                    "wait_until": self.extraction.browser_config.wait_until,
+                    "user_agent": self.extraction.browser_config.user_agent,
+                },
+                "retry_on_failure": self.extraction.retry_on_failure,
+                "max_retries": self.extraction.max_retries,
+                "retry_delay": self.extraction.retry_delay,
             },
             "project_root": str(self.project_root),
             "input_dir": str(self.input_dir),
@@ -242,11 +281,28 @@ class PipelineConfig:
             log_level=os.getenv("PREFECT_LOG_LEVEL", "INFO"),
         )
 
+        # Create Extraction configuration
+        extraction_config = WebExtractionConfig(
+            browser_config=BrowserConfig(
+                headless=os.getenv("BROWSER_HEADLESS", "true").lower() == "true",
+                timeout=int(os.getenv("BROWSER_TIMEOUT", "30000")),
+                wait_until=os.getenv("BROWSER_WAIT_UNTIL", "domcontentloaded"),
+                user_agent=os.getenv("BROWSER_USER_AGENT", None),
+            ),
+            retry_on_failure=os.getenv(
+                "WEB_EXTRACTION_RETRY_ON_FAILURE", "false"
+            ).lower()
+            == "true",
+            max_retries=int(os.getenv("WEB_EXTRACTION_MAX_RETRIES", "3")),
+            retry_delay=float(os.getenv("WEB_EXTRACTION_RETRY_DELAY", "1.0")),
+        )
+
         config = cls(
             stage_1=stage_1_config,
             openai=openai_config,
             logging=logging_config,
             prefect=prefect_config,
+            extraction=extraction_config,
             project_root=project_root,
             input_dir=project_root / "input",
             output_dir=output_dir,
@@ -254,6 +310,13 @@ class PipelineConfig:
 
         config.validate()
         return config
+
+    def setup_logging(self) -> None:
+        """Setup complete logging configuration for the pipeline."""
+        self.logging.setup_console_logging()
+
+        if self.stage_1 is not None:
+            self.logging.add_stage_logging(self.stage_1.output_dir)
 
     # Backward compatibility methods
     @property

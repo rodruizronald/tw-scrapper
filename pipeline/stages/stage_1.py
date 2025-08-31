@@ -9,15 +9,15 @@ from loguru import logger
 from pipeline.core.config import PipelineConfig
 from pipeline.core.models import CompanyData, JobData, ProcessingResult
 from pipeline.services.file_service import FileService
-from pipeline.services.html_service import HTMLExtractor
 from pipeline.services.job_extraction_service import JobExtractionService
 from pipeline.services.openai_service import OpenAIService
+from pipeline.services.web_extraction_service import WebExtractionService
 from pipeline.utils.exceptions import (
     CompanyProcessingError,
     FileOperationError,
-    HTMLExtractionError,
     OpenAIProcessingError,
     ValidationError,
+    WebExtractionError,
 )
 
 
@@ -48,7 +48,7 @@ class Stage1Processor:
         self.prompt_template_path = Path(prompt_template_path)
 
         # Initialize services
-        self.html_extractor = HTMLExtractor(max_retries=3, retry_delay=1.0)
+        self.web_extraction_service = WebExtractionService(config.extraction)
         self.openai_service = OpenAIService(config.openai)
         self.job_extraction_service = JobExtractionService(self.openai_service)
         self.file_service = FileService(config.stage_1.output_dir)
@@ -116,60 +116,6 @@ class Stage1Processor:
             # Handle all errors and build error result
             return self._build_error_result(result, e, start_time, company_name)
 
-    # Keep the original process_companies method for backward compatibility
-    async def process_companies(
-        self, companies: list[CompanyData]
-    ) -> list[ProcessingResult]:
-        """
-        Process multiple companies sequentially.
-
-        This method is kept for backward compatibility with existing code.
-        For Prefect flows, use process_single_company() instead.
-
-        Args:
-            companies: List of company data to process
-
-        Returns:
-            List of processing results
-        """
-        self.stats["processing_start_time"] = datetime.now(UTC).astimezone()
-
-        logger.info(f"🚀 Starting Stage 1 processing for {len(companies)} companies")
-
-        # Filter enabled companies
-        enabled_companies = [c for c in companies if c.enabled]
-        disabled_count = len(companies) - len(enabled_companies)
-
-        if disabled_count > 0:
-            logger.info(f"⏭️  Skipping {disabled_count} disabled companies")
-
-        # Process companies sequentially (for backward compatibility)
-        results = []
-        for company in enabled_companies:
-            self.stats["companies_processed"] += 1
-            result = await self.process_single_company(company)
-            results.append(result)
-
-            # Update stats
-            if result.success:
-                self.stats["companies_successful"] += 1
-                self.stats["total_jobs_found"] += result.jobs_found
-                self.stats["total_jobs_saved"] += result.jobs_saved
-            else:
-                self.stats["companies_failed"] += 1
-
-        self.stats["processing_end_time"] = datetime.now(UTC).astimezone()
-
-        # Create processing summary
-        if self.config.stage_1.save_output:
-            summary_path = self.file_service.create_processing_summary(results)
-            logger.info(f"📊 Processing summary saved to: {summary_path}")
-
-        # Log final statistics
-        self._log_final_statistics(results)
-
-        return results
-
     # All existing private methods remain unchanged
     def _validate_company_data(self, company_data: CompanyData) -> None:
         """Validate company data before processing."""
@@ -190,23 +136,26 @@ class Stage1Processor:
     async def _extract_career_page_content(self, company_data: CompanyData) -> str:
         """Extract HTML content from company career page."""
         try:
-            content = await self.html_extractor.extract_content(
+            content = await self.web_extraction_service.extract_html_content(
                 url=company_data.career_url,
                 selectors=company_data.job_board_selectors
                 + company_data.job_card_selectors,
                 parser_type=company_data.parser_type,
+                company_name=company_data.name,
             )
             if not content:
-                raise HTMLExtractionError(
+                raise WebExtractionError(
                     url=company_data.career_url,
-                    message=f"No content extracted from {company_data.career_url}",
+                    original_error=Exception(
+                        f"No content extracted from {company_data.career_url}"
+                    ),
                     company_name=company_data.name,
                 )
             return content
         except Exception as e:
-            raise HTMLExtractionError(
+            raise WebExtractionError(
                 url=company_data.career_url,
-                message=f"Failed to extract content from {company_data.career_url}: {e}",
+                original_error=e,
                 company_name=company_data.name,
             ) from e
 
@@ -400,7 +349,7 @@ class Stage1Processor:
             result.retryable = False
             logger.error(f"❌ {company_name}: Validation failed - {error}")
 
-        elif isinstance(error, HTMLExtractionError | OpenAIProcessingError):
+        elif isinstance(error, WebExtractionError | OpenAIProcessingError):
             # Potentially retryable errors - network/API issues
             result.error = str(error)
             result.error_type = type(error).__name__
