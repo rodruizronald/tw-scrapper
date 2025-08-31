@@ -10,12 +10,10 @@ This module contains the fundamental building blocks of the job pipeline:
 
 from .config import LoggingConfig, OpenAIConfig, PipelineConfig, StageConfig
 from .models import CompanyData, JobData, ProcessingResult
-from .pipeline import JobPipeline
 
 __all__ = [
     "CompanyData",
     "JobData",
-    "JobPipeline",
     "LoggingConfig",
     "OpenAIConfig",
     "PipelineConfig",

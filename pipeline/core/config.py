@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
+from loguru import logger
 
 
 @dataclass
@@ -58,6 +59,28 @@ class LoggingConfig:
                 f"Invalid log level: {self.level}. Must be one of {valid_levels}"
             )
         self.level = self.level.upper()
+
+    def add_stage_logging(self, output_dir: Path) -> None:
+        """Add logging for a specific stage without removing existing loggers."""
+        if self.log_to_file and output_dir:
+            log_file = output_dir / "stage.log"
+            logger.add(
+                sink=str(log_file),
+                level=self.level,
+                rotation="10 MB",
+                retention="7 days",
+                format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
+            )
+
+    def setup_console_logging(self) -> None:
+        """Setup only console logging (call once at startup)."""
+        logger.remove()
+        if self.log_to_console:
+            logger.add(
+                sink=lambda msg: print(msg, end=""),
+                level=self.level,
+                format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+            )
 
 
 @dataclass
@@ -254,6 +277,13 @@ class PipelineConfig:
 
         config.validate()
         return config
+
+    def setup_logging(self) -> None:
+        """Setup complete logging configuration for the pipeline."""
+        self.logging.setup_console_logging()
+
+        if self.stage_1 is not None:
+            self.logging.add_stage_logging(self.stage_1.output_dir)
 
     # Backward compatibility methods
     @property
