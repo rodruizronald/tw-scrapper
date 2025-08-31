@@ -8,9 +8,9 @@ from pipeline.core.models import CompanyData, ProcessingResult
 from pipeline.stages.stage_1 import Stage1Processor
 from pipeline.utils.exceptions import (
     FileOperationError,
-    HTMLExtractionError,
     OpenAIProcessingError,
     ValidationError,
+    WebExtractionError,
 )
 
 
@@ -97,7 +97,7 @@ async def process_company_task(
         # Return the failed result instead of raising (so flow continues)
         return failed_result.to_dict()
 
-    except (HTMLExtractionError, OpenAIProcessingError, FileOperationError) as e:
+    except (WebExtractionError, OpenAIProcessingError, FileOperationError) as e:
         # Retryable errors - let Prefect handle retries
         logger.warning(
             f"⚠️ Retryable error for {company_data.get('name', 'unknown')}: {e}"

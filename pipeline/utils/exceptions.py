@@ -28,15 +28,6 @@ class ConfigurationError(PipelineError):
         super().__init__(message)
 
 
-class HTMLExtractionError(PipelineError):
-    """Error extracting HTML content from a webpage."""
-
-    def __init__(self, url: str, message: str, company_name: str | None = None):
-        self.url = url
-        full_message = f"Failed to extract HTML from '{url}': {message}"
-        super().__init__(full_message, company_name)
-
-
 class OpenAIProcessingError(PipelineError):
     """Error processing content with OpenAI API."""
 

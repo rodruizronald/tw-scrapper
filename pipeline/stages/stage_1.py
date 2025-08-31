@@ -15,9 +15,9 @@ from pipeline.services.openai_service import OpenAIService
 from pipeline.utils.exceptions import (
     CompanyProcessingError,
     FileOperationError,
-    HTMLExtractionError,
     OpenAIProcessingError,
     ValidationError,
+    WebExtractionError,
 )
 
 
@@ -141,18 +141,21 @@ class Stage1Processor:
                 selectors=company_data.job_board_selectors
                 + company_data.job_card_selectors,
                 parser_type=company_data.parser_type,
+                company_name=company_data.name,
             )
             if not content:
-                raise HTMLExtractionError(
+                raise WebExtractionError(
                     url=company_data.career_url,
-                    message=f"No content extracted from {company_data.career_url}",
+                    original_error=Exception(
+                        f"No content extracted from {company_data.career_url}"
+                    ),
                     company_name=company_data.name,
                 )
             return content
         except Exception as e:
-            raise HTMLExtractionError(
+            raise WebExtractionError(
                 url=company_data.career_url,
-                message=f"Failed to extract content from {company_data.career_url}: {e}",
+                original_error=e,
                 company_name=company_data.name,
             ) from e
 
@@ -346,7 +349,7 @@ class Stage1Processor:
             result.retryable = False
             logger.error(f"❌ {company_name}: Validation failed - {error}")
 
-        elif isinstance(error, HTMLExtractionError | OpenAIProcessingError):
+        elif isinstance(error, WebExtractionError | OpenAIProcessingError):
             # Potentially retryable errors - network/API issues
             result.error = str(error)
             result.error_type = type(error).__name__
