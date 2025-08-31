@@ -17,10 +17,16 @@ dependencies = [
     "loguru~=0.7.0",
     "prefect~=3.4.14",
     "click~=8.2.0",
+    "PyYAML~=6.0.0",
 ]
 
 [project.optional-dependencies]
-dev = ["ruff>=0.12.9", "mypy>=1.17.0", "pre-commit>=4.3.0"]
+dev = [
+    "ruff>=0.12.9",
+    "mypy>=1.17.0",
+    "pre-commit>=4.3.0",
+    "types-PyYAML~=6.0.12",
+]
 
 [project.scripts]
 tw-scrapper-stage1 = "scripts.job_stage_1:main"
