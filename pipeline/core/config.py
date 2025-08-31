@@ -116,7 +116,7 @@ class PipelineConfig:
     openai: OpenAIConfig = field(default_factory=OpenAIConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     prefect: PrefectConfig = field(default_factory=PrefectConfig)
-    extraction: ExtractionConfig = field(default_factory=ExtractionConfig)  # Add this
+    extraction: ExtractionConfig = field(default_factory=ExtractionConfig)
 
     # Project paths (for Prefect integration)
     project_root: Path = field(default_factory=lambda: Path.cwd())
