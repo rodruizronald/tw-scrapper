@@ -144,29 +144,23 @@ class WebExtractionService:
                     )
                     logger.info("Initial page load complete")
 
-                    # Create and run parser
-                    parser = ParserFactory.create_parser(parser_type, page, selectors)
-                    results = await parser.parse()
-
-                except PlaywrightTimeoutError:
-                    logger.warning(
-                        f"Page load timeout for {url} - proceeding with partial content"
-                    )
-                    # Try to parse what we have
-                    try:
-                        parser = ParserFactory.create_parser(
-                            parser_type, page, selectors
-                        )
-                        results = await parser.parse()
-                    except Exception as parse_error:
-                        logger.error(f"Failed to parse after timeout: {parse_error}")
-                        raise WebExtractionError(
-                            url, parse_error, company_name
-                        ) from parse_error
+                except PlaywrightTimeoutError as e:
+                    logger.error(f"Page load timeout for {url}")
+                    raise WebExtractionError(url, e, company_name) from e
 
                 except Exception as e:
                     logger.error(f"Failed to navigate to {url}: {e}")
                     raise WebExtractionError(url, e, company_name) from e
+
+                # Create and run parser (only once, after navigation attempt)
+                try:
+                    parser = ParserFactory.create_parser(parser_type, page, selectors)
+                    results = await parser.parse()
+                except Exception as parse_error:
+                    logger.error(f"Failed to parse content from {url}: {parse_error}")
+                    raise WebExtractionError(
+                        url, parse_error, company_name
+                    ) from parse_error
 
         except WebExtractionError:
             # Re-raise WebExtractionError as-is
@@ -289,40 +283,3 @@ class WebExtractionService:
             company_name,
             retry_attempt=self.config.max_retries + 1,
         )
-
-    async def validate_url_accessibility(
-        self, url: str, company_name: str | None = None
-    ) -> bool:
-        """
-        Validate that a URL is accessible before attempting extraction.
-
-        Args:
-            url: URL to validate
-            company_name: Company name for logging context
-
-        Returns:
-            True if URL is accessible, False otherwise
-        """
-        company_context = f"[{company_name}] " if company_name else ""
-
-        try:
-            # Simple validation using a basic selector
-            results = await self.extract_elements(
-                url=url,
-                selectors=["html"],
-                parser_type=ParserType.DEFAULT,
-                company_name=company_name,
-            )
-
-            is_accessible = any(result.found for result in results)
-
-            if is_accessible:
-                logger.debug(f"{company_context}URL is accessible: {url}")
-            else:
-                logger.warning(f"{company_context}URL is not accessible: {url}")
-
-            return is_accessible
-
-        except Exception as e:
-            logger.error(f"{company_context}Error validating URL accessibility: {e}")
-            return False
