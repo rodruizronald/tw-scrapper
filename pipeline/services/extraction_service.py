@@ -38,6 +38,7 @@ class ExtractionConfig:
     parser_type: ParserType = ParserType.DEFAULT
     retry_on_failure: bool = False
     max_retries: int = 3
+    retry_delay: float = 1.0
 
 
 class WebExtractionService:
@@ -201,7 +202,7 @@ class WebExtractionService:
 
                 if attempt < max_retries - 1:
                     # Wait before retry (exponential backoff)
-                    await asyncio.sleep(2**attempt)
+                    await asyncio.sleep(self.config.retry_delay * (2**attempt))
 
         # All retries failed
         logger.error(f"All {max_retries} attempts failed")

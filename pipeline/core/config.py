@@ -6,6 +6,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from loguru import logger
 
+from pipeline.services.extraction_service import BrowserConfig, ExtractionConfig
+
 
 @dataclass
 class StageConfig:
@@ -114,6 +116,7 @@ class PipelineConfig:
     openai: OpenAIConfig = field(default_factory=OpenAIConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     prefect: PrefectConfig = field(default_factory=PrefectConfig)
+    extraction: ExtractionConfig = field(default_factory=ExtractionConfig)  # Add this
 
     # Project paths (for Prefect integration)
     project_root: Path = field(default_factory=lambda: Path.cwd())
@@ -151,6 +154,7 @@ class PipelineConfig:
         openai_config = OpenAIConfig(**config_dict.get("openai", {}))
         logging_config = LoggingConfig(**config_dict.get("logging", {}))
         prefect_config = PrefectConfig(**config_dict.get("prefect", {}))
+        extraction_config = ExtractionConfig(**config_dict.get("extraction", {}))
 
         # Handle project paths
         project_root = Path(config_dict.get("project_root", Path.cwd()))
@@ -162,6 +166,7 @@ class PipelineConfig:
             openai=openai_config,
             logging=logging_config,
             prefect=prefect_config,
+            extraction=extraction_config,
             project_root=project_root,
             input_dir=input_dir,
             output_dir=output_dir,
@@ -195,6 +200,17 @@ class PipelineConfig:
                 "default_retries": self.prefect.default_retries,
                 "retry_delay_seconds": self.prefect.retry_delay_seconds,
                 "log_level": self.prefect.log_level,
+            },
+            "extraction": {
+                "browser_config": {
+                    "headless": self.extraction.browser_config.headless,
+                    "timeout": self.extraction.browser_config.timeout,
+                    "wait_until": self.extraction.browser_config.wait_until,
+                    "user_agent": self.extraction.browser_config.user_agent,
+                },
+                "retry_on_failure": self.extraction.retry_on_failure,
+                "max_retries": self.extraction.max_retries,
+                "retry_delay": self.extraction.retry_delay,
             },
             "project_root": str(self.project_root),
             "input_dir": str(self.input_dir),
@@ -265,11 +281,28 @@ class PipelineConfig:
             log_level=os.getenv("PREFECT_LOG_LEVEL", "INFO"),
         )
 
+        # Create Extraction configuration
+        extraction_config = ExtractionConfig(
+            browser_config=BrowserConfig(
+                headless=os.getenv("BROWSER_HEADLESS", "true").lower() == "true",
+                timeout=int(os.getenv("BROWSER_TIMEOUT", "30000")),
+                wait_until=os.getenv("BROWSER_WAIT_UNTIL", "domcontentloaded"),
+                user_agent=os.getenv("BROWSER_USER_AGENT", None),
+            ),
+            retry_on_failure=os.getenv(
+                "WEB_EXTRACTION_RETRY_ON_FAILURE", "false"
+            ).lower()
+            == "true",
+            max_retries=int(os.getenv("WEB_EXTRACTION_MAX_RETRIES", "3")),
+            retry_delay=float(os.getenv("WEB_EXTRACTION_RETRY_DELAY", "1.0")),
+        )
+
         config = cls(
             stage_1=stage_1_config,
             openai=openai_config,
             logging=logging_config,
             prefect=prefect_config,
+            extraction=extraction_config,
             project_root=project_root,
             input_dir=project_root / "input",
             output_dir=output_dir,
