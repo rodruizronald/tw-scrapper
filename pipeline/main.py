@@ -46,7 +46,7 @@ def cli(ctx, log_level):
 @click.option(
     "--companies-file",
     "-c",
-    default="input/companies.json",
+    default="input/companies.yaml",
     help="Path to companies JSON file",
 )
 @click.option(
