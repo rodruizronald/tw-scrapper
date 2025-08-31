@@ -116,60 +116,6 @@ class Stage1Processor:
             # Handle all errors and build error result
             return self._build_error_result(result, e, start_time, company_name)
 
-    # Keep the original process_companies method for backward compatibility
-    async def process_companies(
-        self, companies: list[CompanyData]
-    ) -> list[ProcessingResult]:
-        """
-        Process multiple companies sequentially.
-
-        This method is kept for backward compatibility with existing code.
-        For Prefect flows, use process_single_company() instead.
-
-        Args:
-            companies: List of company data to process
-
-        Returns:
-            List of processing results
-        """
-        self.stats["processing_start_time"] = datetime.now(UTC).astimezone()
-
-        logger.info(f"🚀 Starting Stage 1 processing for {len(companies)} companies")
-
-        # Filter enabled companies
-        enabled_companies = [c for c in companies if c.enabled]
-        disabled_count = len(companies) - len(enabled_companies)
-
-        if disabled_count > 0:
-            logger.info(f"⏭️  Skipping {disabled_count} disabled companies")
-
-        # Process companies sequentially (for backward compatibility)
-        results = []
-        for company in enabled_companies:
-            self.stats["companies_processed"] += 1
-            result = await self.process_single_company(company)
-            results.append(result)
-
-            # Update stats
-            if result.success:
-                self.stats["companies_successful"] += 1
-                self.stats["total_jobs_found"] += result.jobs_found
-                self.stats["total_jobs_saved"] += result.jobs_saved
-            else:
-                self.stats["companies_failed"] += 1
-
-        self.stats["processing_end_time"] = datetime.now(UTC).astimezone()
-
-        # Create processing summary
-        if self.config.stage_1.save_output:
-            summary_path = self.file_service.create_processing_summary(results)
-            logger.info(f"📊 Processing summary saved to: {summary_path}")
-
-        # Log final statistics
-        self._log_final_statistics(results)
-
-        return results
-
     # All existing private methods remain unchanged
     def _validate_company_data(self, company_data: CompanyData) -> None:
         """Validate company data before processing."""
