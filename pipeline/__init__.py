@@ -23,10 +23,8 @@ from .services.extraction_service import (
     BrowserConfig,
     ExtractionConfig,
     WebExtractionService,
-    extract_by_selectors,
 )
 from .services.file_service import FileService
-from .services.html_service import HTMLExtractor
 from .services.openai_service import OpenAIService
 
 # Stage processors
@@ -58,7 +56,6 @@ __all__ = [
     "FileOperationError",
     "FileService",
     "HTMLExtractionError",
-    "HTMLExtractor",
     "JobData",
     "LoggingConfig",
     "OpenAIConfig",
@@ -75,5 +72,4 @@ __all__ = [
     "__author__",
     "__description__",
     "__version__",
-    "extract_by_selectors",
 ]

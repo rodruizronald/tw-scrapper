@@ -16,6 +16,7 @@ from playwright.async_api import Browser, async_playwright
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from pipeline.parsers import ElementResult, ParserFactory, ParserType
+from pipeline.utils.exceptions import WebExtractionError
 
 
 @dataclass
@@ -46,7 +47,7 @@ class WebExtractionService:
     Service for extracting elements from web pages.
 
     This service manages browser lifecycle and coordinates with parsers
-    to extract elements from web pages.
+    to extract elements from web pages with enhanced error handling and retry logic.
     """
 
     def __init__(self, config: ExtractionConfig | None = None):
@@ -108,6 +109,7 @@ class WebExtractionService:
         url: str,
         selectors: list[str],
         parser_type: ParserType | None = None,
+        company_name: str | None = None,
     ) -> list[ElementResult]:
         """
         Extract elements from a web page using specified selectors.
@@ -116,140 +118,211 @@ class WebExtractionService:
             url: The URL to extract elements from
             selectors: List of CSS selectors to extract
             parser_type: Optional parser type override (uses config default if not specified)
+            company_name: Optional company name for error context
 
         Returns:
             List of ElementResult objects containing extraction results
+
+        Raises:
+            WebExtractionError: If extraction fails and retry is not enabled
         """
         parser_type = parser_type or self.config.parser_type
         results = []
 
-        async with (
-            self._browser_context() as browser,
-            self._page_context(browser) as page,
-        ):
-            try:
-                # Navigate to URL
-                logger.info(f"Navigating to {url}")
-                await page.goto(
-                    url,
-                    wait_until=self.config.browser_config.wait_until,
-                    timeout=self.config.browser_config.timeout,
-                )
-                logger.info("Initial page load complete")
-
-                # Create and run parser
-                parser = ParserFactory.create_parser(parser_type, page, selectors)
-                results = await parser.parse()
-
-            except PlaywrightTimeoutError:
-                logger.warning(
-                    f"Page load timeout for {url} - proceeding with partial content"
-                )
-                # Try to parse what we have
+        try:
+            async with (
+                self._browser_context() as browser,
+                self._page_context(browser) as page,
+            ):
                 try:
+                    # Navigate to URL
+                    logger.info(f"Navigating to {url}")
+                    await page.goto(
+                        url,
+                        wait_until=self.config.browser_config.wait_until,
+                        timeout=self.config.browser_config.timeout,
+                    )
+                    logger.info("Initial page load complete")
+
+                    # Create and run parser
                     parser = ParserFactory.create_parser(parser_type, page, selectors)
                     results = await parser.parse()
-                except Exception as parse_error:
-                    logger.error(f"Failed to parse after timeout: {parse_error}")
-                    results = self._create_error_results(
-                        selectors,
-                        f"Page timeout and parse failed: {parse_error!s}",
-                    )
 
-            except Exception as e:
-                logger.error(f"Failed to navigate to {url}: {e}")
-                results = self._create_error_results(
-                    selectors, f"Navigation failed: {e!s}"
-                )
+                except PlaywrightTimeoutError:
+                    logger.warning(
+                        f"Page load timeout for {url} - proceeding with partial content"
+                    )
+                    # Try to parse what we have
+                    try:
+                        parser = ParserFactory.create_parser(
+                            parser_type, page, selectors
+                        )
+                        results = await parser.parse()
+                    except Exception as parse_error:
+                        logger.error(f"Failed to parse after timeout: {parse_error}")
+                        raise WebExtractionError(
+                            url, parse_error, company_name
+                        ) from parse_error
+
+                except Exception as e:
+                    logger.error(f"Failed to navigate to {url}: {e}")
+                    raise WebExtractionError(url, e, company_name) from e
+
+        except WebExtractionError:
+            # Re-raise WebExtractionError as-is
+            raise
+        except Exception as e:
+            # Wrap any other unexpected errors
+            logger.error(f"Unexpected error during extraction from {url}: {e}")
+            raise WebExtractionError(url, e, company_name) from e
 
         return results
 
-    async def extract_with_retry(
+    async def extract_html_content(
         self,
         url: str,
         selectors: list[str],
         parser_type: ParserType | None = None,
-        max_retries: int | None = None,
-    ) -> list[ElementResult]:
+        company_name: str | None = None,
+    ) -> str:
         """
-        Extract elements with retry logic on failure.
+        Extract HTML content from specified selectors on a webpage.
 
         Args:
-            url: The URL to extract elements from
-            selectors: List of CSS selectors to extract
-            parser_type: Optional parser type override
-            max_retries: Optional max retries override
+            url: The URL to extract content from
+            selectors: List of CSS selectors to extract content from
+            parser_type: Parser type to use for extraction
+            company_name: Company name for logging context
 
         Returns:
-            List of ElementResult objects containing extraction results
+            Concatenated HTML content from all selectors
+
+        Raises:
+            WebExtractionError: If extraction fails after all retries
         """
-        max_retries = max_retries or self.config.max_retries
-        last_error = None
+        company_context = f"[{company_name}] " if company_name else ""
+        parser_type = parser_type or self.config.parser_type
 
-        for attempt in range(max_retries):
+        for attempt in range(self.config.max_retries + 1):
             try:
-                results = await self.extract_elements(url, selectors, parser_type)
+                logger.info(
+                    f"{company_context}Extracting HTML content from {url} (attempt {attempt + 1})"
+                )
 
-                # Check if we got any successful results
-                if any(r.found for r in results):
-                    return results
+                # Use existing extract_elements method
+                results = await self.extract_elements(
+                    url=url,
+                    selectors=selectors,
+                    parser_type=parser_type,
+                    company_name=company_name,
+                )
 
-                logger.warning(f"Attempt {attempt + 1} found no elements, retrying...")
+                # Collect HTML content from all successful results
+                html_contents = []
+                successful_selectors = []
 
+                for result in results:
+                    if result.found and result.html_content:
+                        html_contents.append(result.html_content)
+                        successful_selectors.append(result.selector)
+                        logger.debug(
+                            f"{company_context}Extracted content from selector: {result.selector}"
+                        )
+                    else:
+                        logger.warning(
+                            f"{company_context}No content found for selector: {result.selector}"
+                        )
+
+                # Check if we got any content
+                if not html_contents:
+                    error_msg = (
+                        f"No HTML content extracted from any selectors: {selectors}"
+                    )
+                    logger.warning(f"{company_context}{error_msg}")
+
+                    if attempt < self.config.max_retries:
+                        logger.info(
+                            f"{company_context}Retrying in {self.config.retry_delay} seconds..."
+                        )
+                        await asyncio.sleep(self.config.retry_delay)
+                        continue
+                    else:
+                        raise WebExtractionError(
+                            url,
+                            Exception(error_msg),
+                            company_name,
+                            retry_attempt=attempt + 1,
+                        )
+
+                # Concatenate all HTML content with newlines
+                concatenated_html = "\n".join(html_contents)
+
+                logger.success(
+                    f"{company_context}Successfully extracted HTML content from "
+                    f"{len(successful_selectors)} selectors: {successful_selectors}"
+                )
+
+                return concatenated_html
+
+            except WebExtractionError:
+                # Re-raise our custom exceptions
+                raise
             except Exception as e:
-                last_error = e
-                logger.warning(f"Attempt {attempt + 1} failed: {e}")
+                error_msg = f"Unexpected error during HTML extraction: {e!s}"
+                logger.error(f"{company_context}{error_msg}")
 
-                if attempt < max_retries - 1:
-                    # Wait before retry (exponential backoff)
-                    await asyncio.sleep(self.config.retry_delay * (2**attempt))
+                if attempt < self.config.max_retries:
+                    logger.info(
+                        f"{company_context}Retrying in {self.config.retry_delay} seconds..."
+                    )
+                    await asyncio.sleep(self.config.retry_delay)
+                    continue
+                else:
+                    raise WebExtractionError(
+                        url, e, company_name, retry_attempt=attempt + 1
+                    ) from e
 
-        # All retries failed
-        logger.error(f"All {max_retries} attempts failed")
-        return self._create_error_results(
-            selectors, f"All retries failed. Last error: {last_error!s}"
+        # This should never be reached, but just in case
+        raise WebExtractionError(
+            url,
+            Exception("Maximum retries exceeded"),
+            company_name,
+            retry_attempt=self.config.max_retries + 1,
         )
 
-    @staticmethod
-    def _create_error_results(
-        selectors: list[str], error_message: str
-    ) -> list[ElementResult]:
-        """Create error results for all selectors."""
-        return [
-            ElementResult(
-                selector=selector,
-                found=False,
-                error_message=error_message,
-                context="error",
+    async def validate_url_accessibility(
+        self, url: str, company_name: str | None = None
+    ) -> bool:
+        """
+        Validate that a URL is accessible before attempting extraction.
+
+        Args:
+            url: URL to validate
+            company_name: Company name for logging context
+
+        Returns:
+            True if URL is accessible, False otherwise
+        """
+        company_context = f"[{company_name}] " if company_name else ""
+
+        try:
+            # Simple validation using a basic selector
+            results = await self.extract_elements(
+                url=url,
+                selectors=["html"],
+                parser_type=ParserType.DEFAULT,
+                company_name=company_name,
             )
-            for selector in selectors
-        ]
 
+            is_accessible = any(result.found for result in results)
 
-# Convenience functions for simple use cases
-async def extract_by_selectors(
-    url: str,
-    selectors: list[str],
-    parser_type: ParserType = ParserType.DEFAULT,
-    headless: bool = True,
-) -> list[ElementResult]:
-    """
-    Convenience function for simple element extraction.
+            if is_accessible:
+                logger.debug(f"{company_context}URL is accessible: {url}")
+            else:
+                logger.warning(f"{company_context}URL is not accessible: {url}")
 
-    This function provides a simple interface for one-off extractions
-    without needing to instantiate the service class.
+            return is_accessible
 
-    Args:
-        url: The URL to extract elements from
-        selectors: List of CSS selectors to extract
-        parser_type: Parser type to use
-        headless: Whether to run browser in headless mode
-
-    Returns:
-        List of ElementResult objects containing extraction results
-    """
-    config = ExtractionConfig(
-        browser_config=BrowserConfig(headless=headless), parser_type=parser_type
-    )
-    service = WebExtractionService(config)
-    return await service.extract_elements(url, selectors, parser_type)
+        except Exception as e:
+            logger.error(f"{company_context}Error validating URL accessibility: {e}")
+            return False

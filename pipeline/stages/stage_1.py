@@ -8,8 +8,8 @@ from loguru import logger
 
 from pipeline.core.config import PipelineConfig
 from pipeline.core.models import CompanyData, JobData, ProcessingResult
+from pipeline.services.extraction_service import WebExtractionService
 from pipeline.services.file_service import FileService
-from pipeline.services.html_service import HTMLExtractor
 from pipeline.services.job_extraction_service import JobExtractionService
 from pipeline.services.openai_service import OpenAIService
 from pipeline.utils.exceptions import (
@@ -48,7 +48,7 @@ class Stage1Processor:
         self.prompt_template_path = Path(prompt_template_path)
 
         # Initialize services
-        self.html_extractor = HTMLExtractor(max_retries=3, retry_delay=1.0)
+        self.web_extraction_service = WebExtractionService(config.extraction)
         self.openai_service = OpenAIService(config.openai)
         self.job_extraction_service = JobExtractionService(self.openai_service)
         self.file_service = FileService(config.stage_1.output_dir)
@@ -136,7 +136,7 @@ class Stage1Processor:
     async def _extract_career_page_content(self, company_data: CompanyData) -> str:
         """Extract HTML content from company career page."""
         try:
-            content = await self.html_extractor.extract_content(
+            content = await self.web_extraction_service.extract_html_content(
                 url=company_data.career_url,
                 selectors=company_data.job_board_selectors
                 + company_data.job_card_selectors,
