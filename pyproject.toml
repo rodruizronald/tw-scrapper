@@ -28,21 +28,15 @@ dev = [
     "types-PyYAML~=6.0.12",
 ]
 
-[project.scripts]
-tw-scrapper-stage1 = "scripts.job_stage_1:main"
-tw-scrapper-stage2 = "scripts.job_stage_2:main"
-tw-scrapper-stage3 = "scripts.job_stage_3:main"
-tw-scrapper-stage4 = "scripts.job_stage_4:main"
-
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["scripts*", "parsers*", "services*", "web_parser*", "tools*"]
+include = ["parsers*", "services*", "web_parser*", "tools*"]
 
 # ===== RUFF (Linting & Formatting) =====
 [tool.ruff]
 line-length = 88
 target-version = "py312"
-src = ["scripts", "parsers", "services", "web_parser", "tools"]
+src = ["parsers", "services", "web_parser", "tools"]
 
 # Exclude common directories
 exclude = [
