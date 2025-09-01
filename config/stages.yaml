@@ -1,0 +1,85 @@
+stages:
+  stage_1:
+    name: "Job Listing Extraction"
+    description: "Extract job titles and URLs from company career pages using web scraping and AI parsing"
+    enabled: true
+
+    # Stage-specific OpenAI configuration
+    openai:
+      model: "gpt-4o-mini" # Can override pipeline default
+      system_message: |
+        You are an AI assistant specialized in extracting job listings from HTML content.
+        Your task is to parse career page HTML and extract structured job information.
+
+        Focus on finding:
+        - Job titles
+        - Job URLs/links
+        - Location information (if available)
+        - Job type (full-time, part-time, contract, etc.)
+
+        Return results in valid JSON format only.
+
+      response_format:
+        type: "json_object"
+        schema:
+          type: "object"
+          properties:
+            jobs:
+              type: "array"
+              items:
+                type: "object"
+                properties:
+                  title:
+                    type: "string"
+                    description: "Job title"
+                  url:
+                    type: "string"
+                    description: "Full URL to job posting"
+                  location:
+                    type: "string"
+                    description: "Job location if available"
+                  job_type:
+                    type: "string"
+                    description: "Employment type if available"
+                required: ["title", "url"]
+
+    # Input/Output configuration
+    input:
+      companies_source: "companies.yaml"
+      prompt_template: "prompts/job_title_url_parser.md"
+
+    output:
+      filename_pattern: "jobs_stage_1.json"
+      include_metadata: true
+      save_individual_companies: true
+      save_combined_results: true
+
+    # Processing configuration
+    processing:
+      max_concurrent: 3
+      timeout: 300
+      retry_policy:
+        max_retries: 2
+        retry_delay: 30
+        retry_on_timeout: true
+        retry_on_openai_error: true
+
+    # Web extraction settings
+    web_extraction:
+      retry_on_failure: false
+      max_retries: 3
+      retry_delay: 1.0
+      parser_type: "default" # Can be overridden per company
+
+    # Validation rules
+    validation:
+      required_fields: ["title", "url"]
+      min_jobs_per_company: 0 # Allow companies with no jobs
+      max_jobs_per_company: 100
+      url_validation: true
+      title_min_length: 3
+
+    # Success criteria
+    success_criteria:
+      min_success_rate: 0.7 # 70% of companies must succeed
+      max_failure_rate: 0.3
