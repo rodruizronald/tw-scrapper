@@ -3,68 +3,22 @@ pipeline:
   version: "1.0.0"
   description: "AI-powered job listing extraction and analysis from company career pages"
 
-  # Global defaults that stages can override
-  defaults:
-    openai:
-      model: "gpt-4o-mini"
-      temperature: 0.1
-      max_tokens: 4000
-      timeout: 30
-      max_retries: 3
-
-    retry_policy:
-      max_retries: 3
-      retry_delay: 1.0
-      backoff_multiplier: 2.0
-      retry_on_failure: true
-
-    file_handling:
-      encoding: "utf-8"
-      backup_enabled: true
-      compression: false
-      save_output: true
-
-    browser:
-      headless: true
-      timeout: 30000
-      wait_until: "domcontentloaded"
-      user_agent: ""
-
   # Directory structure and file paths
   paths:
-    input_dir: "input"
     output_dir: "data"
-    prompts_dir: "input/prompts"
-    companies_file: "input/companies.yaml"
-    logs_dir: "logs"
     config_dir: "config"
+    prompts_dir: "prompts"
+    companies_file: "config/companies.yaml"
 
   output_structure:
     timestamp_format: "%Y%m%d"
     stage_dir_pattern: "pipeline_stage_{stage}"
-    backup_dir: "backups"
     file_patterns:
       stage_output: "jobs_stage_{stage}.json"
-      combined_output: "all_jobs_stage_{stage}.json"
-      historical: "historical_jobs_{date}.json"
 
-  # Global validation and processing rules
-  validation:
-    required_company_fields: ["name", "career_url", "enabled", "web_parser"]
-    required_web_parser_fields: ["type", "selectors"]
-    job_signature_algorithm: "sha256"
-    duplicate_detection: true
-
+  # Max number of tasks (companies) per stage in the pipeline
   processing:
-    concurrent_limit: 5
-    rate_limiting:
-      requests_per_minute: 60
-      delay_between_companies: 1.0
-
-    filtering:
-      skip_disabled_companies: true
-      skip_duplicate_jobs: true
-      min_job_title_length: 3
+    max_concurrent: 3
 
   # Integration configurations
   integrations:
@@ -75,20 +29,22 @@ pipeline:
       default_retries: 2
       retry_delay: 30
 
-    playwright:
-      browser_type: "chromium"
-      wait_strategies: ["domcontentloaded", "networkidle"]
-      navigation_timeout: 30000
+    playwright_browser:
+      headless: true
+      timeout: 30000
+      wait_until: "domcontentloaded"
+      user_agent: ""
 
     openai:
+      model: "gpt-5-mini"
+      timeout: 30
+      max_retries: 3
       request_timeout: 30
-      max_concurrent_requests: 10
-      rate_limit_buffer: 0.1
 
   # Logging configuration
   logging:
     level: "INFO"
-    format: "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}"
-    rotation: "1 day"
+    format_console: "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
+    format_file: "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}"
+    rotation: "10 MB"
     retention: "7 days"
-    compression: "gz"
