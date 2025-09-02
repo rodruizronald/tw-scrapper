@@ -115,17 +115,16 @@ async def _save_results_if_configured(
     """Save results to file if configured and update results with file path."""
     logger = get_run_logger()
 
-    if config.stage_1.save_output:
-        try:
-            results_path = save_task_results(
-                aggregated_results,
-                config.stage_1.output_dir,
-                "stage_1_flow_results.json",
-            )
-            logger.info(f"💾 Results saved to: {results_path}")
-            aggregated_results["results_file_path"] = str(results_path)
-        except Exception as e:
-            logger.warning(f"⚠️ Failed to save results file: {e}")
+    try:
+        results_path = save_task_results(
+            aggregated_results,
+            config.stage_1_output_dir,
+            "stage_1_flow_results.json",
+        )
+        logger.info(f"💾 Results saved to: {results_path}")
+        aggregated_results["results_file_path"] = str(results_path)
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to save results file: {e}")
 
     return aggregated_results
 

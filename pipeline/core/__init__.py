@@ -8,15 +8,24 @@ This module contains the fundamental building blocks of the job pipeline:
 - Type definitions
 """
 
-from .config import LoggingConfig, OpenAIConfig, PipelineConfig, StageConfig
+from .config import (
+    BrowserConfig,
+    LoguruConfig,
+    OpenAIConfig,
+    PipelineConfig,
+    StageConfig,
+    WebExtractionConfig,
+)
 from .models import CompanyData, JobData, ProcessingResult
 
 __all__ = [
+    "BrowserConfig",
     "CompanyData",
     "JobData",
-    "LoggingConfig",
+    "LoguruConfig",
     "OpenAIConfig",
     "PipelineConfig",
     "ProcessingResult",
     "StageConfig",
+    "WebExtractionConfig",
 ]

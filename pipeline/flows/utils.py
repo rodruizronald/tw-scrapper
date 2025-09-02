@@ -89,10 +89,10 @@ def validate_flow_inputs(
         raise ValueError("No enabled companies found")
 
     # Validate config
-    if not config.openai.api_key:
+    if not config.integrations.openai.api_key:
         raise ValueError("OpenAI API key not configured")
 
-    if not config.stage_1.output_dir:
+    if not config.stages.stage_1.output_dir:
         raise ValueError("Output directory not configured")
 
     # Validate prompt template

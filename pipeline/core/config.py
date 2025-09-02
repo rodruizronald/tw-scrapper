@@ -2,36 +2,72 @@ import os
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
+import yaml
 from dotenv import load_dotenv
 from loguru import logger
 
-from pipeline.services.web_extraction_service import BrowserConfig, WebExtractionConfig
+from pipeline.parsers.models import ParserType
 
 
 @dataclass
-class StageConfig:
-    """Configuration for Stage processing."""
+class PathsConfig:
+    """Configuration for file paths."""
 
-    output_dir: Path
-    save_output: bool = True
+    output_dir: str
+    prompts_dir: str
+    companies_file: str
+
+
+@dataclass
+class BrowserConfig:
+    """Configuration for browser instances."""
+
+    headless: bool
+    timeout: int
+    wait_until: str
+    user_agent: str | None = None
+    viewport: dict[str, int] | None = None
+    extra_headers: dict[str, str] | None = None
 
     def __post_init__(self):
-        """Validate configuration after initialization."""
-        if isinstance(self.output_dir, str):
-            self.output_dir = Path(self.output_dir)
+        """Validate browser wait_until and timeout configuration."""
+        valid_wait_until = ["load", "domcontentloaded", "networkidle", "commit"]
+        if self.wait_until not in valid_wait_until:
+            raise ValueError(
+                f"Invalid wait_until: {self.wait_until}. Must be one of {valid_wait_until}"
+            )
 
-        # Create output directory if it doesn't exist
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        if self.timeout <= 0:
+            raise ValueError("timeout must be positive")
+
+
+@dataclass
+class WebExtractionConfig:
+    """Configuration for extraction operations."""
+
+    browser_config: BrowserConfig
+    max_retries: int
+    retry_delay: float
+    parser_type: ParserType = ParserType.DEFAULT
+
+    def __post_init__(self):
+        """Validate that max_retries and retry_delay."""
+        if self.max_retries < 0:
+            raise ValueError("max_retries must be non-negative")
+
+        if self.retry_delay <= 0:
+            raise ValueError("retry_delay must be positive")
 
 
 @dataclass
 class OpenAIConfig:
     """Configuration for OpenAI API integration."""
 
-    model: str = "gpt-4o-mini"
-    max_retries: int = 3
-    timeout: int = 30
+    model: str
+    max_retries: int
+    timeout: int
     api_key: str | None = None
 
     def __post_init__(self):
@@ -46,12 +82,47 @@ class OpenAIConfig:
 
 
 @dataclass
-class LoggingConfig:
+class OpenAIServiceConfig:
+    """Configuration for OpenAI service."""
+
+    system_message: str
+    prompt_template: str
+    prompt_variables: list[str]
+    response_format: dict[str, Any]
+
+    def __post_init__(self):
+        """Validate OpenAI service configuration."""
+        if not self.system_message or not self.system_message.strip():
+            raise ValueError("system_message cannot be empty")
+
+        if not self.prompt_template or not self.prompt_template.strip():
+            raise ValueError("prompt_template cannot be empty")
+
+        if not isinstance(self.prompt_variables, list):
+            raise ValueError("prompt_variables must be a list")
+
+        if not self.prompt_variables:
+            raise ValueError("prompt_variables cannot be empty")
+
+        if not isinstance(self.response_format, dict):
+            raise ValueError("response_format must be a dictionary")
+
+        if not self.response_format:
+            raise ValueError("response_format cannot be empty")
+
+
+@dataclass
+class LoguruConfig:
     """Configuration for logging."""
 
-    level: str = "INFO"
-    log_to_file: bool = True
-    log_to_console: bool = True
+    level: str
+    log_file: str
+    log_to_file: bool
+    log_to_console: bool
+    format_console: str
+    format_file: str
+    rotation: str
+    retention: str
 
     def __post_init__(self):
         """Validate logging level."""
@@ -65,13 +136,12 @@ class LoggingConfig:
     def add_stage_logging(self, output_dir: Path) -> None:
         """Add logging for a specific stage without removing existing loggers."""
         if self.log_to_file and output_dir:
-            log_file = output_dir / "stage.log"
             logger.add(
-                sink=str(log_file),
+                sink=str(output_dir / self.log_file),
                 level=self.level,
-                rotation="10 MB",
-                retention="7 days",
-                format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
+                rotation=self.rotation,
+                retention=self.retention,
+                format=self.format_file,
             )
 
     def setup_console_logging(self) -> None:
@@ -81,149 +151,234 @@ class LoggingConfig:
             logger.add(
                 sink=lambda msg: print(msg, end=""),
                 level=self.level,
-                format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+                format=self.format_console,
             )
 
 
 @dataclass
-class PrefectConfig:
-    """Prefect-specific configuration."""
+class IntegrationsConfig:
+    """Integrations configuration for different services."""
 
-    max_concurrent_companies: int = 3
-    flow_timeout_seconds: int = 3600  # 1 hour
-    task_timeout_seconds: int = 300  # 5 minutes
-    default_retries: int = 2
-    retry_delay_seconds: int = 30
-    log_level: str = "INFO"
+    openai: OpenAIConfig
+    web_extraction: WebExtractionConfig
+    loguru: LoguruConfig
 
-    def __post_init__(self):
-        """Validate Prefect configuration."""
-        if self.max_concurrent_companies < 1:
-            raise ValueError("max_concurrent_companies must be at least 1")
 
-        if self.flow_timeout_seconds < 60:
-            raise ValueError("flow_timeout_seconds must be at least 60 seconds")
+@dataclass
+class StageConfig:
+    """Configuration for Stage processing."""
 
-        if self.task_timeout_seconds < 30:
-            raise ValueError("task_timeout_seconds must be at least 30 seconds")
+    name: str
+    description: str
+    enabled: bool
+    output_dir: str
+    output_file: str
+    openai_service: OpenAIServiceConfig
+
+
+@dataclass
+class StagesConfig:
+    """Configuration for all stages."""
+
+    stage_1: StageConfig
 
 
 @dataclass
 class PipelineConfig:
     """Main configuration for the job pipeline."""
 
-    stage_1: StageConfig
-    openai: OpenAIConfig = field(default_factory=OpenAIConfig)
-    logging: LoggingConfig = field(default_factory=LoggingConfig)
-    prefect: PrefectConfig = field(default_factory=PrefectConfig)
-    extraction: WebExtractionConfig = field(default_factory=WebExtractionConfig)
-
-    # Project paths (for Prefect integration)
+    name: str
+    version: str
+    description: str
+    paths: PathsConfig
+    integrations: IntegrationsConfig
+    stages: StagesConfig
     project_root: Path = field(default_factory=lambda: Path.cwd())
-    input_dir: Path = field(default_factory=lambda: Path("input"))
-    output_dir: Path = field(default_factory=lambda: Path("data"))
 
-    def validate(self) -> None:
-        """Validate the entire configuration."""
-        # Stage 1 validation
-        if not self.stage_1.output_dir.exists():
-            raise ValueError(
-                f"Output directory does not exist: {self.stage_1.output_dir}"
-            )
+    @property
+    def openai(self) -> OpenAIConfig:
+        """Get OpenAI configuration."""
+        return self.integrations.openai
 
-        # OpenAI validation
-        if not self.openai.api_key:
-            raise ValueError("OpenAI API key is required")
+    @property
+    def web_extraction(self) -> WebExtractionConfig:
+        """Get web extraction configuration."""
+        return self.integrations.web_extraction
 
-        # Project paths validation
-        if not self.project_root.exists():
-            raise ValueError(
-                f"Project root directory does not exist: {self.project_root}"
-            )
+    @property
+    def loguru(self) -> LoguruConfig:
+        """Get Loguru logging configuration."""
+        return self.integrations.loguru
 
-        if not self.input_dir.exists():
-            raise ValueError(f"Input directory does not exist: {self.input_dir}")
+    @property
+    def stage_1(self) -> StageConfig:
+        """Get Stage 1 configuration."""
+        return self.stages.stage_1
 
-        # Create output directory if it doesn't exist
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+    @property
+    def stage_1_output_dir(self) -> Path:
+        """Get Stage 1 output directory with timestamp."""
+        return self.get_stage_output_dir(self.stages.stage_1.output_dir)
+
+    def get_stage_output_dir(self, stage_output_dir: str) -> Path:
+        """
+        Get the full output directory path for a stage with timestamp.
+
+        Args:
+            stage_output_dir: The stage's output directory name (e.g., "pipeline_stage_1")
+
+        Returns:
+            Full path to the stage output directory with timestamp
+        """
+        timestamp = datetime.now(UTC).strftime("%Y%m%d")
+        data_output_dir = self.project_root / self.paths.output_dir / timestamp
+        return data_output_dir / stage_output_dir
+
+    def create_output_dirs(self) -> None:
+        """Create output directories with timestamp for Prefect runs."""
+        stage_1_output_dir = self.get_stage_output_dir(self.stages.stage_1.output_dir)
+        stage_1_output_dir.mkdir(parents=True, exist_ok=True)
 
     @classmethod
-    def from_dict(cls, config_dict: dict) -> "PipelineConfig":
-        """Create configuration from dictionary."""
-        stage_1_config = StageConfig(**config_dict.get("stage_1", {}))
-        openai_config = OpenAIConfig(**config_dict.get("openai", {}))
-        logging_config = LoggingConfig(**config_dict.get("logging", {}))
-        prefect_config = PrefectConfig(**config_dict.get("prefect", {}))
-        extraction_config = WebExtractionConfig(**config_dict.get("extraction", {}))
+    def from_dict(cls, config_dict: dict[str, Any]) -> "PipelineConfig":
+        """Create configuration from dictionary with proper type conversion."""
+        # Convert paths
+        paths_data = config_dict.get("paths", {})
+        paths = PathsConfig(**paths_data)
 
-        # Handle project paths
-        project_root = Path(config_dict.get("project_root", Path.cwd()))
-        input_dir = Path(config_dict.get("input_dir", "input"))
-        output_dir = Path(config_dict.get("output_dir", "data"))
+        # Convert integrations
+        integrations_data = config_dict.get("integrations", {})
 
-        config = cls(
-            stage_1=stage_1_config,
-            openai=openai_config,
-            logging=logging_config,
-            prefect=prefect_config,
-            extraction=extraction_config,
-            project_root=project_root,
-            input_dir=input_dir,
-            output_dir=output_dir,
+        # Handle OpenAI config
+        openai_data = integrations_data.get("openai", {})
+        openai_config = OpenAIConfig(**openai_data)
+
+        # Handle web extraction config with nested browser config
+        web_extraction_data = integrations_data.get("web_extraction", {})
+        browser_config_data = web_extraction_data.get("browser_config", {})
+        browser_config = BrowserConfig(**browser_config_data)
+
+        # Convert parser_type string to enum if needed
+        parser_type_value = web_extraction_data.get("parser_type", "default")
+        if isinstance(parser_type_value, str):
+            parser_type = ParserType(parser_type_value)
+        else:
+            parser_type = parser_type_value
+
+        web_extraction_config = WebExtractionConfig(
+            browser_config=browser_config,
+            max_retries=web_extraction_data.get("max_retries", 3),
+            retry_delay=web_extraction_data.get("retry_delay", 1.0),
+            parser_type=parser_type,
         )
 
-        config.validate()
-        return config
+        # Handle loguru config
+        loguru_data = integrations_data.get("loguru", {})
+        loguru_config = LoguruConfig(**loguru_data)
 
-    def to_dict(self) -> dict:
+        integrations = IntegrationsConfig(
+            openai=openai_config,
+            web_extraction=web_extraction_config,
+            loguru=loguru_config,
+        )
+
+        # Convert stages
+        stages_data = config_dict.get("stages", {})
+        stage_1_data = stages_data.get("stage_1", {})
+
+        # Handle nested openai_service
+        openai_service_data = stage_1_data.get("openai_service", {})
+        openai_service = OpenAIServiceConfig(**openai_service_data)
+
+        stage_1_config = StageConfig(
+            name=stage_1_data.get("name", ""),
+            description=stage_1_data.get("description", ""),
+            enabled=stage_1_data.get("enabled", True),
+            output_dir=stage_1_data.get("output_dir", ""),
+            output_file=stage_1_data.get("output_file", ""),
+            openai_service=openai_service,
+        )
+
+        stages = StagesConfig(stage_1=stage_1_config)
+
+        # Get project root
+        project_root_str = config_dict.get("project_root")
+        project_root = Path(project_root_str) if project_root_str else Path.cwd()
+
+        return cls(
+            name=config_dict["name"],
+            version=config_dict["version"],
+            description=config_dict["description"],
+            paths=paths,
+            integrations=integrations,
+            stages=stages,
+            project_root=project_root,
+        )
+
+    def to_dict(self) -> dict[str, Any]:
         """Convert configuration to dictionary."""
         return {
-            "stage_1": {
-                "output_dir": str(self.stage_1.output_dir),
-                "save_output": self.stage_1.save_output,
+            "name": self.name,
+            "version": self.version,
+            "description": self.description,
+            "paths": {
+                "output_dir": self.paths.output_dir,
+                "prompts_dir": self.paths.prompts_dir,
+                "companies_file": self.paths.companies_file,
             },
-            "openai": {
-                "model": self.openai.model,
-                "max_retries": self.openai.max_retries,
-                "timeout": self.openai.timeout,
-                "api_key": self.openai.api_key,  # Include for serialization
-            },
-            "logging": {
-                "level": self.logging.level,
-                "log_to_file": self.logging.log_to_file,
-                "log_to_console": self.logging.log_to_console,
-            },
-            "prefect": {
-                "max_concurrent_companies": self.prefect.max_concurrent_companies,
-                "flow_timeout_seconds": self.prefect.flow_timeout_seconds,
-                "task_timeout_seconds": self.prefect.task_timeout_seconds,
-                "default_retries": self.prefect.default_retries,
-                "retry_delay_seconds": self.prefect.retry_delay_seconds,
-                "log_level": self.prefect.log_level,
-            },
-            "extraction": {
-                "browser_config": {
-                    "headless": self.extraction.browser_config.headless,
-                    "timeout": self.extraction.browser_config.timeout,
-                    "wait_until": self.extraction.browser_config.wait_until,
-                    "user_agent": self.extraction.browser_config.user_agent,
+            "integrations": {
+                "openai": {
+                    "model": self.integrations.openai.model,
+                    "max_retries": self.integrations.openai.max_retries,
+                    "timeout": self.integrations.openai.timeout,
+                    "api_key": self.integrations.openai.api_key,
                 },
-                "retry_on_failure": self.extraction.retry_on_failure,
-                "max_retries": self.extraction.max_retries,
-                "retry_delay": self.extraction.retry_delay,
+                "web_extraction": {
+                    "browser_config": {
+                        "headless": self.integrations.web_extraction.browser_config.headless,
+                        "viewport": self.integrations.web_extraction.browser_config.viewport,
+                        "user_agent": self.integrations.web_extraction.browser_config.user_agent,
+                        "timeout": self.integrations.web_extraction.browser_config.timeout,
+                        "wait_until": self.integrations.web_extraction.browser_config.wait_until,
+                        "extra_headers": self.integrations.web_extraction.browser_config.extra_headers,
+                    },
+                    "parser_type": self.integrations.web_extraction.parser_type.value,
+                    "max_retries": self.integrations.web_extraction.max_retries,
+                    "retry_delay": self.integrations.web_extraction.retry_delay,
+                },
+                "loguru": {
+                    "level": self.integrations.loguru.level,
+                    "log_file": self.integrations.loguru.log_file,
+                    "log_to_file": self.integrations.loguru.log_to_file,
+                    "log_to_console": self.integrations.loguru.log_to_console,
+                    "format_console": self.integrations.loguru.format_console,
+                    "format_file": self.integrations.loguru.format_file,
+                    "rotation": self.integrations.loguru.rotation,
+                    "retention": self.integrations.loguru.retention,
+                },
+            },
+            "stages": {
+                "stage_1": {
+                    "name": self.stages.stage_1.name,
+                    "description": self.stages.stage_1.description,
+                    "enabled": self.stages.stage_1.enabled,
+                    "output_dir": self.stages.stage_1.output_dir,
+                    "output_file": self.stages.stage_1.output_file,
+                    "openai_service": {
+                        "system_message": self.stages.stage_1.openai_service.system_message,
+                        "prompt_template": self.stages.stage_1.openai_service.prompt_template,
+                        "prompt_variables": self.stages.stage_1.openai_service.prompt_variables,
+                        "response_format": self.stages.stage_1.openai_service.response_format,
+                    },
+                },
             },
             "project_root": str(self.project_root),
-            "input_dir": str(self.input_dir),
-            "output_dir": str(self.output_dir),
         }
 
     @classmethod
-    def load_from_env(cls, env_file: Path | None = None) -> "PipelineConfig":
+    def load(cls, env_file: Path | None = None) -> "PipelineConfig":
         """
-        Load configuration from environment variables.
-
-        This method provides enhanced environment loading for Prefect integration
-        while maintaining backward compatibility with existing usage.
+        Load configuration from environment variables and YAML file.
 
         Args:
             env_file: Optional path to .env file
@@ -245,91 +400,33 @@ class PipelineConfig:
         # Get project root (directory containing this file's parent's parent)
         project_root = Path(__file__).parent.parent.parent
 
-        # Create output directory with timestamp for Prefect runs
-        timestamp = datetime.now(UTC).strftime("%Y%m%d")
-        output_dir = project_root / "data" / timestamp
+        # Load pipeline.yaml configuration
+        pipeline_config_file = os.getenv("PIPELINE_CONFIG_FILE", "pipeline.yaml")
+        pipeline_config_path = project_root / pipeline_config_file
 
-        # Create Stage 1 configuration
-        stage_1_output_dir = output_dir / "pipeline_stage_1"
-        stage_1_config = StageConfig(
-            output_dir=stage_1_output_dir,
-            save_output=os.getenv("STAGE_1_SAVE_OUTPUT", "true").lower() == "true",
-        )
+        if not pipeline_config_path.exists():
+            raise FileNotFoundError(
+                f"Configuration file not found: {pipeline_config_path}"
+            )
 
-        # Create OpenAI configuration
-        openai_config = OpenAIConfig(
-            model=os.getenv("OPENAI_MODEL", "gpt-5-mini"),
-            max_retries=int(os.getenv("OPENAI_MAX_RETRIES", "3")),
-            timeout=int(os.getenv("OPENAI_TIMEOUT", "30")),
-            api_key=os.getenv("OPENAI_API_KEY"),
-        )
+        with open(pipeline_config_path, encoding="utf-8") as f:
+            full_config = yaml.safe_load(f)
+            pipeline_dict = full_config.get("pipeline", {})
 
-        # Create Logging configuration
-        logging_config = LoggingConfig(
-            level=os.getenv("LOG_LEVEL", "INFO"),
-            log_to_file=os.getenv("LOG_TO_FILE", "true").lower() == "true",
-            log_to_console=os.getenv("LOG_TO_CONSOLE", "true").lower() == "true",
-        )
+            # Add project_root to the config dict
+            pipeline_dict["project_root"] = str(project_root)
 
-        # Create Prefect configuration
-        prefect_config = PrefectConfig(
-            max_concurrent_companies=int(os.getenv("PREFECT_MAX_CONCURRENT", "3")),
-            flow_timeout_seconds=int(os.getenv("PREFECT_FLOW_TIMEOUT", "3600")),
-            task_timeout_seconds=int(os.getenv("PREFECT_TASK_TIMEOUT", "300")),
-            default_retries=int(os.getenv("PREFECT_DEFAULT_RETRIES", "2")),
-            retry_delay_seconds=int(os.getenv("PREFECT_RETRY_DELAY", "30")),
-            log_level=os.getenv("PREFECT_LOG_LEVEL", "INFO"),
-        )
+            config = cls.from_dict(pipeline_dict)
 
-        # Create Extraction configuration
-        extraction_config = WebExtractionConfig(
-            browser_config=BrowserConfig(
-                headless=os.getenv("BROWSER_HEADLESS", "true").lower() == "true",
-                timeout=int(os.getenv("BROWSER_TIMEOUT", "30000")),
-                wait_until=os.getenv("BROWSER_WAIT_UNTIL", "domcontentloaded"),
-                user_agent=os.getenv("BROWSER_USER_AGENT", None),
-            ),
-            retry_on_failure=os.getenv(
-                "WEB_EXTRACTION_RETRY_ON_FAILURE", "false"
-            ).lower()
-            == "true",
-            max_retries=int(os.getenv("WEB_EXTRACTION_MAX_RETRIES", "3")),
-            retry_delay=float(os.getenv("WEB_EXTRACTION_RETRY_DELAY", "1.0")),
-        )
+        # Create output directory if it doesn't exist
+        config.create_output_dirs()
 
-        config = cls(
-            stage_1=stage_1_config,
-            openai=openai_config,
-            logging=logging_config,
-            prefect=prefect_config,
-            extraction=extraction_config,
-            project_root=project_root,
-            input_dir=project_root / "input",
-            output_dir=output_dir,
-        )
-
-        config.validate()
         return config
 
     def setup_logging(self) -> None:
         """Setup complete logging configuration for the pipeline."""
-        self.logging.setup_console_logging()
+        self.integrations.loguru.setup_console_logging()
 
-        if self.stage_1 is not None:
-            self.logging.add_stage_logging(self.stage_1.output_dir)
-
-    # Backward compatibility methods
-    @property
-    def stage_1_config(self) -> StageConfig:
-        """Backward compatibility property."""
-        return self.stage_1
-
-    @property
-    def openai_config(self) -> OpenAIConfig:
-        """Backward compatibility property."""
-        return self.openai
-
-    @property
-    def logging_config(self) -> LoggingConfig:
-        """Backward compatibility property."""
-        return self.logging
+        # Use the new method to get the stage output directory
+        stage_1_output_dir = self.get_stage_output_dir(self.stages.stage_1.output_dir)
+        self.integrations.loguru.add_stage_logging(stage_1_output_dir)

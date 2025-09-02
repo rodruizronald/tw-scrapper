@@ -58,7 +58,7 @@ async def main_pipeline_flow(
     try:
         # Validate pipeline inputs
         logger.info("🔍 Validating pipeline inputs...")
-        _validate_pipeline_inputs(companies, config, stages_to_run, prompt_templates)
+        _validate_pipeline_inputs(companies, stages_to_run, prompt_templates)
         logger.info("✅ Pipeline input validation passed")
 
         # Initialize stage data - this will be passed between stages
@@ -90,14 +90,10 @@ async def main_pipeline_flow(
 
 def _validate_pipeline_inputs(
     companies: list[CompanyData],
-    config: PipelineConfig,
     stages_to_run: list[str],
     prompt_templates: dict[str, str],
 ) -> None:
     """Validate all pipeline inputs."""
-    # Validate configuration
-    config.validate()
-
     # Validate basic inputs
     if not companies:
         raise ValueError("No companies provided")

@@ -34,10 +34,9 @@ from typing import Any, ClassVar
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from loguru import logger
+from pipeline.core.config import BrowserConfig, WebExtractionConfig
 from pipeline.parsers import ElementResult, ParserType
 from pipeline.services.web_extraction_service import (
-    BrowserConfig,
-    WebExtractionConfig,
     WebExtractionService,
 )
 
@@ -183,8 +182,8 @@ class SelectorTester:
         config = WebExtractionConfig(
             browser_config=self.browser_config,
             parser_type=parser_type,
-            retry_on_failure=True,
             max_retries=2,
+            retry_delay=1.0,
         )
         return WebExtractionService(config)
 
