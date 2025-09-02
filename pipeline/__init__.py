@@ -15,17 +15,20 @@ Key Features:
 """
 
 # Core pipeline components
-from .core.config import LoggingConfig, OpenAIConfig, PipelineConfig, StageConfig
+from .core.config import (
+    BrowserConfig,
+    LoguruConfig,
+    OpenAIConfig,
+    PipelineConfig,
+    StageConfig,
+    WebExtractionConfig,
+)
 from .core.models import CompanyData, JobData, ParserType, ProcessingResult
 from .services.file_service import FileService
 from .services.openai_service import OpenAIService
 
 # Service layer
-from .services.web_extraction_service import (
-    BrowserConfig,
-    WebExtractionConfig,
-    WebExtractionService,
-)
+from .services.web_extraction_service import WebExtractionService
 
 # Stage processors
 from .stages.stage_1 import Stage1Processor
@@ -54,7 +57,7 @@ __all__ = [
     "FileOperationError",
     "FileService",
     "JobData",
-    "LoggingConfig",
+    "LoguruConfig",
     "OpenAIConfig",
     "OpenAIProcessingError",
     "OpenAIService",

@@ -64,7 +64,7 @@ The JSON structure should be:
       "url": "https://company.com/careers/positions/software-engineer-12345"
     },
     {
-      "title": "Marketing Specialist", 
+      "title": "Marketing Specialist",
       "url": "https://company.com/jobs/marketing-specialist-67890"
     },
     {

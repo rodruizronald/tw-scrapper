@@ -8,38 +8,15 @@ and error handling, delegating the actual parsing to the parsers module.
 
 import asyncio
 from contextlib import asynccontextmanager
-from dataclasses import dataclass, field
 from typing import Any
 
 from loguru import logger
 from playwright.async_api import Browser, async_playwright
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
+from pipeline.core.config import WebExtractionConfig
 from pipeline.parsers import ElementResult, ParserFactory, ParserType
 from pipeline.utils.exceptions import WebExtractionError
-
-
-@dataclass
-class BrowserConfig:
-    """Configuration for browser instances."""
-
-    headless: bool = True
-    viewport: dict[str, int] | None = None
-    user_agent: str | None = None
-    timeout: int = 30000
-    wait_until: str = "domcontentloaded"
-    extra_headers: dict[str, str] | None = None
-
-
-@dataclass
-class WebExtractionConfig:
-    """Configuration for extraction operations."""
-
-    browser_config: BrowserConfig = field(default_factory=BrowserConfig)
-    parser_type: ParserType = ParserType.DEFAULT
-    retry_on_failure: bool = False
-    max_retries: int = 3
-    retry_delay: float = 1.0
 
 
 class WebExtractionService:
@@ -50,14 +27,14 @@ class WebExtractionService:
     to extract elements from web pages with enhanced error handling and retry logic.
     """
 
-    def __init__(self, config: WebExtractionConfig | None = None):
+    def __init__(self, config: WebExtractionConfig):
         """
         Initialize the extraction service.
 
         Args:
-            config: Optional configuration for extraction operations
+            config: Configuration for extraction operations
         """
-        self.config = config or WebExtractionConfig()
+        self.config = config
         self._browser: Browser | None = None
         self._playwright = None
 

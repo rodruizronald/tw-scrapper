@@ -1,8 +1,8 @@
-import json
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import yaml
 from loguru import logger
 
 from pipeline.core.config import PipelineConfig
@@ -11,10 +11,10 @@ from pipeline.core.models import CompanyData
 
 def load_companies_from_file(companies_file: Path) -> list[CompanyData]:
     """
-    Load companies from JSON file.
+    Load companies from YAML file.
 
     Args:
-        companies_file: Path to companies JSON file
+        companies_file: Path to companies YAML file
 
     Returns:
         List of CompanyData objects
@@ -28,9 +28,11 @@ def load_companies_from_file(companies_file: Path) -> list[CompanyData]:
 
     try:
         with open(companies_file, encoding="utf-8") as f:
-            companies_data = json.load(f)
+            data = yaml.safe_load(f)
 
+        companies_data = data.get("companies", [])
         companies = []
+
         for company_dict in companies_data:
             try:
                 company = CompanyData(**company_dict)
@@ -42,8 +44,8 @@ def load_companies_from_file(companies_file: Path) -> list[CompanyData]:
 
         return companies
 
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON in companies file: {e}") from e
+    except yaml.YAMLError as e:
+        raise ValueError(f"Invalid YAML in companies file: {e}") from e
     except Exception as e:
         raise ValueError(f"Error loading companies file: {e}") from e
 
@@ -87,10 +89,10 @@ def validate_flow_inputs(
         raise ValueError("No enabled companies found")
 
     # Validate config
-    if not config.openai.api_key:
+    if not config.integrations.openai.api_key:
         raise ValueError("OpenAI API key not configured")
 
-    if not config.stage_1.output_dir:
+    if not config.stages.stage_1.output_dir:
         raise ValueError("Output directory not configured")
 
     # Validate prompt template

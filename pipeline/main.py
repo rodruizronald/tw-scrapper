@@ -9,14 +9,13 @@ import asyncio
 import sys
 from pathlib import Path
 
-import click
 from loguru import logger
 
 from pipeline.core.config import PipelineConfig
-from pipeline.flows import (
+from pipeline.flows.main_pipeline_flow import main_pipeline_flow
+from pipeline.flows.utils import (
     create_flow_summary_report,
     load_companies_from_file,
-    main_pipeline_flow,
     validate_flow_inputs,
 )
 
@@ -25,55 +24,19 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 
-@click.group()
-@click.option(
-    "--log-level", default="INFO", help="Log level (DEBUG, INFO, WARNING, ERROR)"
-)
-@click.pass_context
-def cli(ctx, log_level):
-    """Job Processing Pipeline with Prefect orchestration."""
-
-    # Configure logging
-    logger.remove()
-    logger.add(sys.stderr, level=log_level)
-
-    # Store log level in context
-    ctx.ensure_object(dict)
-    ctx.obj["log_level"] = log_level
-
-
-@cli.command()
-@click.option(
-    "--companies-file",
-    "-c",
-    default="input/companies.json",
-    help="Path to companies JSON file",
-)
-@click.option(
-    "--prompt-template",
-    "-p",
-    default="input/prompts/job_title_url_parser.md",
-    help="Path to prompt template file",
-)
-@click.option(
-    "--max-concurrent", "-m", default=3, help="Maximum concurrent companies to process"
-)
-@click.option(
-    "--stages",
-    default="stage_1",
-    help="Comma-separated list of stages to run (e.g., stage_1,stage_2)",
-)
-def run(companies_file, prompt_template, max_concurrent, stages):
+def run():
     """Run the complete job processing pipeline."""
 
     async def _run_pipeline():
         try:
+            stages = ["stage_1"]
+
             # Load configuration
-            config = PipelineConfig.load_from_env()
+            config = PipelineConfig.load()
             logger.info("✅ Configuration loaded")
 
             # Load companies
-            companies_path = Path(companies_file)
+            companies_path = Path("companies_file")
             if not companies_path.is_absolute():
                 companies_path = config.project_root / companies_path
 
@@ -85,7 +48,7 @@ def run(companies_file, prompt_template, max_concurrent, stages):
             logger.info(f"🎯 Stages to run: {', '.join(stages_to_run)}")
 
             # Validate inputs
-            prompt_template_path = Path(prompt_template)
+            prompt_template_path = Path("prompt_template")
             if not prompt_template_path.is_absolute():
                 prompt_template_path = config.project_root / prompt_template_path
 
@@ -106,7 +69,7 @@ def run(companies_file, prompt_template, max_concurrent, stages):
                 config=config,
                 stages_to_run=stages_to_run,
                 prompt_templates=prompt_templates,
-                max_concurrent_companies=max_concurrent,
+                max_concurrent_companies=3,
             )
 
             # Display results
@@ -137,4 +100,4 @@ def run(companies_file, prompt_template, max_concurrent, stages):
 
 
 if __name__ == "__main__":
-    cli()
+    run()

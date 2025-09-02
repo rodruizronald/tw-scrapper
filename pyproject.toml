@@ -17,26 +17,26 @@ dependencies = [
     "loguru~=0.7.0",
     "prefect~=3.4.14",
     "click~=8.2.0",
+    "PyYAML~=6.0.0",
 ]
 
 [project.optional-dependencies]
-dev = ["ruff>=0.12.9", "mypy>=1.17.0", "pre-commit>=4.3.0"]
-
-[project.scripts]
-tw-scrapper-stage1 = "scripts.job_stage_1:main"
-tw-scrapper-stage2 = "scripts.job_stage_2:main"
-tw-scrapper-stage3 = "scripts.job_stage_3:main"
-tw-scrapper-stage4 = "scripts.job_stage_4:main"
+dev = [
+    "ruff>=0.12.9",
+    "mypy>=1.17.0",
+    "pre-commit>=4.3.0",
+    "types-PyYAML~=6.0.12",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["scripts*", "parsers*", "services*", "web_parser*", "tools*"]
+include = ["parsers*", "services*", "web_parser*", "tools*"]
 
 # ===== RUFF (Linting & Formatting) =====
 [tool.ruff]
 line-length = 88
 target-version = "py312"
-src = ["scripts", "parsers", "services", "web_parser", "tools"]
+src = ["parsers", "services", "web_parser", "tools"]
 
 # Exclude common directories
 exclude = [

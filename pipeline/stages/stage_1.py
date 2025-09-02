@@ -48,10 +48,10 @@ class Stage1Processor:
         self.prompt_template_path = Path(prompt_template_path)
 
         # Initialize services
-        self.web_extraction_service = WebExtractionService(config.extraction)
+        self.web_extraction_service = WebExtractionService(config.web_extraction)
         self.openai_service = OpenAIService(config.openai)
         self.job_extraction_service = JobExtractionService(self.openai_service)
-        self.file_service = FileService(config.stage_1.output_dir)
+        self.file_service = FileService(config.stage_1_output_dir)
 
         # Processing statistics - properly typed
         self.stats: ProcessingStats = {
@@ -230,10 +230,9 @@ class Stage1Processor:
             )
 
         # Save current signatures for future duplicate detection
-        if self.config.stage_1.save_output:
-            await self.file_service.save_historical_signatures(
-                current_signatures, company_data.name
-            )
+        await self.file_service.save_historical_signatures(
+            current_signatures, company_data.name
+        )
 
         return unique_jobs
 
@@ -299,7 +298,7 @@ class Stage1Processor:
 
         # Save jobs to file
         output_path: Path | None = None
-        if self.config.stage_1.save_output and unique_jobs:
+        if unique_jobs:
             file_path: Path | None = await self.file_service.save_jobs(
                 unique_jobs, company_name
             )
