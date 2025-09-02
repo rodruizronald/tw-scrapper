@@ -1,0 +1,71 @@
+pipeline:
+  name: "Job Link Extraction Pipeline"
+  version: "1.0.0"
+  description: "AI-powered job listing extraction and analysis from company career pages"
+
+  # Directory structure and file paths
+  paths:
+    output_dir: "data"
+    prompts_dir: "prompts"
+    companies_file: "companies.yaml"
+
+  # Integration configurations
+  integrations:
+    openai:
+      model: "gpt-5-mini"
+      max_retries: 3
+      timeout: 30
+
+    # Playwright integration for web scraping
+    web_extraction:
+      browser_config:
+        headless: true
+        timeout: 30000
+        wait_until: domcontentloaded
+      max_retries: 3
+      retry_delay: 1.0
+
+    loguru:
+      level: "INFO"
+      log_file: "pipeline.log"
+      log_to_file: true
+      log_to_console: true
+      format_file: "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}"
+      format_console: "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
+      rotation: "10 MB"
+      retention: "7 days"
+
+  # Stages
+  stages:
+    stage_1:
+      name: "Job Listing Extraction"
+      description: "Extract job titles and URLs from company career pages using web scraping and AI parsing"
+      enabled: true
+      output_dir: "pipeline_stage_1"
+      output_file: "stage_1.json"
+      openai_service:
+        system_message: "You are an AI assistant specialized in extracting job listings from HTML content."
+        prompt_template: "stage_1_jobs.md"
+        prompt_variables:
+          - html_content
+          - company_name
+        response_format:
+          type: "json_object"
+          schema:
+            type: "object"
+            properties:
+              jobs:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    title:
+                      type: "string"
+                      description: "Job title"
+                    url:
+                      type: "string"
+                      description: "Full URL to job posting"
+                    signature:
+                      type: "string"
+                      description: "SHA256 hash signature for duplicate detection"
+                  required: ["title", "url", "signature"]
