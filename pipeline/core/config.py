@@ -9,6 +9,105 @@ from loguru import logger
 
 from pipeline.parsers.models import ParserType
 
+##
+## Stages Configuration
+##
+
+
+@dataclass
+class OpenAIServiceConfig:
+    """Configuration for OpenAI service."""
+
+    system_message: str
+    prompt_template: str
+    prompt_variables: list[str]
+    response_format: dict[str, Any]
+
+    def __post_init__(self):
+        """Validate OpenAI service configuration."""
+        if not self.system_message or not self.system_message.strip():
+            raise ValueError("system_message cannot be empty")
+
+        if not self.prompt_template or not self.prompt_template.strip():
+            raise ValueError("prompt_template cannot be empty")
+
+        if not isinstance(self.prompt_variables, list):
+            raise ValueError("prompt_variables must be a list")
+
+        if not self.prompt_variables:
+            raise ValueError("prompt_variables cannot be empty")
+
+        if not isinstance(self.response_format, dict):
+            raise ValueError("response_format must be a dictionary")
+
+        if not self.response_format:
+            raise ValueError("response_format cannot be empty")
+
+
+@dataclass
+class StageConfig:
+    """Configuration for Stage processing."""
+
+    name: str
+    tag: str
+    description: str
+    enabled: bool
+    openai_service: OpenAIServiceConfig
+
+    @property
+    def system_message(self) -> str:
+        """Get OpenAI service system message."""
+        return self.openai_service.system_message
+
+    @property
+    def prompt_template(self) -> str:
+        """Get OpenAI service prompt template."""
+        return self.openai_service.prompt_template
+
+    @property
+    def prompt_variables(self) -> list[str]:
+        """Get OpenAI service prompt variables."""
+        return self.openai_service.prompt_variables
+
+    @property
+    def response_format(self) -> dict[str, Any]:
+        """Get OpenAI service response format."""
+        return self.openai_service.response_format
+
+
+@dataclass
+class StagesConfig:
+    """Configuration for all stages."""
+
+    stage_1: StageConfig
+
+    def get_enabled_stage_tags(self) -> list[str]:
+        """
+        Get a list of all enabled stages from the configuration.
+
+        Returns:
+            List of enabled stage tags (e.g., ["stage_1", "stage_2"])
+        """
+        enabled_stages = []
+
+        if self.stage_1.enabled:
+            enabled_stages.append(self.stage_1.tag)
+
+        return enabled_stages
+
+
+##
+## System Paths Configuration
+##
+
+
+@dataclass
+class StageOutputPatterns:
+    """Configuration for stage output patterns."""
+
+    output_dir: str
+    output_file: str
+
 
 @dataclass
 class PathsConfig:
@@ -17,14 +116,67 @@ class PathsConfig:
     output_dir: Path
     prompts_dir: Path
     companies_file: Path
+    stage_output_patterns: StageOutputPatterns
     project_root: Path = field(default_factory=lambda: Path.cwd())
 
-    def initialize_paths(self, project_root: Path) -> None:
+    def initialize_paths(self, stages: StagesConfig, timestamp: str) -> None:
         """Convert relative paths to absolute paths using project_root."""
-        self.project_root = project_root
         self.output_dir = self.project_root / self.output_dir
         self.prompts_dir = self.project_root / self.prompts_dir
         self.companies_file = self.project_root / self.companies_file
+
+        # Initialize stage directories
+        for stage_tag in stages.get_enabled_stage_tags():
+            # Replace {stage_tag} in the pattern
+            stage_dir_name = self.stage_output_patterns.output_dir.format(
+                stage_tag=stage_tag
+            )
+            stage_output_dir = (
+                self.project_root / self.output_dir / timestamp / stage_dir_name
+            )
+            stage_output_dir.mkdir(parents=True, exist_ok=True)
+
+    def get_stage_output_file(self, stage_tag: str, timestamp: str) -> Path:
+        """
+        Get the full path to a stage's output file.
+
+        Args:
+            stage_tag: The stage tag (e.g., "stage_1")
+            timestamp: The timestamp string (e.g., "20241201")
+
+        Returns:
+            Full path to the stage's output file
+        """
+        stage_dir_name = self.stage_output_patterns.output_dir.format(
+            stage_tag=stage_tag
+        )
+        stage_output_dir = self.output_dir / timestamp / stage_dir_name
+
+        stage_output_file = self.stage_output_patterns.output_file.format(
+            stage_tag=stage_tag
+        )
+        return stage_output_dir / stage_output_file
+
+    def get_stage_output_dir(self, stage_tag: str, timestamp: str) -> Path:
+        """
+        Get the full path to a stage's output file.
+
+        Args:
+            stage_tag: The stage tag (e.g., "stage_1")
+            timestamp: The timestamp string (e.g., "20241201")
+
+        Returns:
+            Full path to the stage's output file
+        """
+        stage_dir_name = self.stage_output_patterns.output_dir.format(
+            stage_tag=stage_tag
+        )
+        return self.output_dir / timestamp / stage_dir_name
+
+
+##
+## Intergrations Configuration
+##
 
 
 @dataclass
@@ -89,47 +241,11 @@ class OpenAIConfig:
 
 
 @dataclass
-class OpenAIServiceConfig:
-    """Configuration for OpenAI service."""
-
-    system_message: str
-    prompt_template: str
-    prompt_variables: list[str]
-    response_format: dict[str, Any]
-
-    def __post_init__(self):
-        """Validate OpenAI service configuration."""
-        if not self.system_message or not self.system_message.strip():
-            raise ValueError("system_message cannot be empty")
-
-        if not self.prompt_template or not self.prompt_template.strip():
-            raise ValueError("prompt_template cannot be empty")
-
-        if not isinstance(self.prompt_variables, list):
-            raise ValueError("prompt_variables must be a list")
-
-        if not self.prompt_variables:
-            raise ValueError("prompt_variables cannot be empty")
-
-        if not isinstance(self.response_format, dict):
-            raise ValueError("response_format must be a dictionary")
-
-        if not self.response_format:
-            raise ValueError("response_format cannot be empty")
-
-
-@dataclass
 class LoguruConfig:
     """Configuration for logging."""
 
     level: str
-    log_file: str
-    log_to_file: bool
-    log_to_console: bool
     format_console: str
-    format_file: str
-    rotation: str
-    retention: str
 
     def __post_init__(self):
         """Validate logging level."""
@@ -139,17 +255,6 @@ class LoguruConfig:
                 f"Invalid log level: {self.level}. Must be one of {valid_levels}"
             )
         self.level = self.level.upper()
-
-    def add_stage_logging(self, output_dir: Path) -> None:
-        """Add logging for a specific stage without removing existing loggers."""
-        if self.log_to_file and output_dir:
-            logger.add(
-                sink=str(output_dir / self.log_file),
-                level=self.level,
-                rotation=self.rotation,
-                retention=self.retention,
-                format=self.format_file,
-            )
 
     def setup_console_logging(self) -> None:
         """Setup only console logging (call once at startup)."""
@@ -170,42 +275,9 @@ class IntegrationsConfig:
     loguru: LoguruConfig
 
 
-@dataclass
-class StageConfig:
-    """Configuration for Stage processing."""
-
-    name: str
-    tag: str
-    description: str
-    enabled: bool
-    openai_service: OpenAIServiceConfig
-
-    @property
-    def system_message(self) -> str:
-        """Get OpenAI service system message."""
-        return self.openai_service.system_message
-
-    @property
-    def prompt_template(self) -> str:
-        """Get OpenAI service prompt template."""
-        return self.openai_service.prompt_template
-
-    @property
-    def prompt_variables(self) -> list[str]:
-        """Get OpenAI service prompt variables."""
-        return self.openai_service.prompt_variables
-
-    @property
-    def response_format(self) -> dict[str, Any]:
-        """Get OpenAI service response format."""
-        return self.openai_service.response_format
-
-
-@dataclass
-class StagesConfig:
-    """Configuration for all stages."""
-
-    stage_1: StageConfig
+##
+## Pipeline Configuration
+##
 
 
 @dataclass
@@ -236,26 +308,32 @@ class PipelineConfig:
         """
         return self.paths.prompts_dir / prompt_filename
 
-    def get_enabled_stages(self) -> list[str]:
-        """
-        Get a list of all enabled stages from the configuration.
+    def setup_logging(self) -> None:
+        """Setup complete logging configuration for the pipeline."""
+        self.loguru.setup_console_logging()
 
-        Returns:
-            List of enabled stage names (e.g., ["stage_1", "stage_2"])
-        """
-        enabled_stages = []
+    def get_stage_1_output_file(self, timestamp: str) -> Path:
+        """Get Stage 1 output file path."""
+        return self.paths.get_stage_output_file(self.stage_1.tag, timestamp)
 
-        if self.stage_1.enabled:
-            enabled_stages.append(self.stage_1.tag)
-
-        return enabled_stages
+    def get_stage_1_output_dir(self, timestamp: str) -> Path:
+        """Get Stage 1 output dir path."""
+        return self.paths.get_stage_output_dir(self.stage_1.tag, timestamp)
 
     @classmethod
     def from_dict(cls, config_dict: dict[str, Any]) -> "PipelineConfig":
         """Create configuration from dictionary with proper type conversion."""
         # Convert paths
         paths_data = config_dict.get("paths", {})
-        paths = PathsConfig(**paths_data)
+        stage_output_patterns_data = paths_data.get("stage_output_patterns", {})
+        stage_output_patterns = StageOutputPatterns(**stage_output_patterns_data)
+
+        paths = PathsConfig(
+            output_dir=Path(paths_data.get("output_dir", "data")),
+            prompts_dir=Path(paths_data.get("prompts_dir", "prompts")),
+            companies_file=Path(paths_data.get("companies_file", "companies.yaml")),
+            stage_output_patterns=stage_output_patterns,
+        )
 
         # Convert integrations
         integrations_data = config_dict.get("integrations", {})
@@ -331,6 +409,10 @@ class PipelineConfig:
                 "prompts_dir": str(self.paths.prompts_dir),
                 "companies_file": str(self.paths.companies_file),
                 "project_root": str(self.paths.project_root),
+                "stage_output_patterns": {
+                    "output_dir": self.paths.stage_output_patterns.output_dir,
+                    "output_file": self.paths.stage_output_patterns.output_file,
+                },
             },
             "integrations": {
                 "openai": {
@@ -354,11 +436,7 @@ class PipelineConfig:
                 },
                 "loguru": {
                     "level": self.loguru.level,
-                    "log_to_file": self.loguru.log_to_file,
                     "format_console": self.loguru.format_console,
-                    "format_file": self.loguru.format_file,
-                    "rotation": self.loguru.rotation,
-                    "retention": self.loguru.retention,
                 },
             },
             "stages": {
@@ -376,6 +454,12 @@ class PipelineConfig:
                 },
             },
         }
+
+    def initialize_paths(self, timestamp: str) -> None:
+        """Initialize all paths using the project root and stages configuration."""
+
+        # Initialize paths with stages configuration
+        self.paths.initialize_paths(self.stages, timestamp)
 
     @classmethod
     def load(cls, env_file: Path | None = None) -> "PipelineConfig":
@@ -416,15 +500,8 @@ class PipelineConfig:
             pipeline_dict = full_config.get("pipeline", {})
             config = cls.from_dict(pipeline_dict)
 
-        # Convert relative paths to absolute paths using project_root
-        config.paths.initialize_paths(project_root)
-
+        config.paths.project_root = project_root
         return config
-
-    def setup_logging(self) -> None:
-        """Setup complete logging configuration for the pipeline."""
-        self.loguru.setup_console_logging()
-        self.loguru.add_stage_logging(Path())
 
     @property
     def openai(self) -> OpenAIConfig:
@@ -445,8 +522,3 @@ class PipelineConfig:
     def stage_1(self) -> StageConfig:
         """Get Stage 1 configuration."""
         return self.stages.stage_1
-
-    @property
-    def stage_1_output_path(self) -> Path:
-        """Get Stage 1 configuration."""
-        return Path()

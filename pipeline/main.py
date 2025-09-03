@@ -6,6 +6,7 @@ for running the job processing pipeline with Prefect orchestration.
 """
 
 import asyncio
+from datetime import UTC, datetime
 
 from loguru import logger
 
@@ -21,16 +22,23 @@ def run():
 
     async def _run_pipeline():
         try:
+            # Create timestamp
+            timestamp = datetime.now(UTC).strftime("%Y%m%d")
+
             # Load configuration
             config = PipelineConfig.load()
+            config.setup_logging()
             logger.info("✅ Configuration loaded")
+
+            # Initialize paths
+            config.initialize_paths(timestamp)
 
             # Load companies
             companies = load_companies_from_file(config.companies_file_path)
             logger.info(f"✅ Loaded {len(companies)} companies")
 
             # Parse stages
-            stages_to_run = config.get_enabled_stages()
+            stages_to_run = config.stages.get_enabled_stages()
             logger.info(f"🎯 Stages to run: {', '.join(stages_to_run)}")
 
             validate_flow_inputs(companies, config)
