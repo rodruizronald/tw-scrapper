@@ -184,7 +184,7 @@ class BrowserConfig:
     """Configuration for browser instances."""
 
     headless: bool
-    timeout: int
+    timeout: int  # ms
     wait_until: str
     user_agent: str | None = None
     viewport: dict[str, int] | None = None
@@ -208,7 +208,7 @@ class WebExtractionConfig:
 
     browser_config: BrowserConfig
     max_retries: int
-    retry_delay: float
+    retry_delay: float  # seconds
     parser_type: ParserType = ParserType.DEFAULT
 
     def __post_init__(self):
@@ -226,7 +226,7 @@ class OpenAIConfig:
 
     model: str
     max_retries: int
-    timeout: int
+    timeout: int  # seconds
     api_key: str | None = None
 
     def __post_init__(self):

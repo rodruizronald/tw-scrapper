@@ -8,7 +8,6 @@ pipeline:
     output_dir: "data"
     prompts_dir: "prompts"
     companies_file: "companies.yaml"
-    project_root: ""
 
     # Output patterns for stages
     stage_output_patterns:
@@ -20,16 +19,16 @@ pipeline:
     openai:
       model: "gpt-5-mini"
       max_retries: 3
-      timeout: 30
+      timeout: 30 # seconds
 
     # Playwright integration for web scraping
     web_extraction:
       browser_config:
         headless: true
-        timeout: 30000
+        timeout: 30000 # milliseconds
         wait_until: domcontentloaded
       max_retries: 3
-      retry_delay: 1.0
+      retry_delay: 1.0 # seconds
 
     loguru:
       level: "INFO"
