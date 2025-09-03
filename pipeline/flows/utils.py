@@ -67,7 +67,6 @@ def create_flow_run_name(prefix: str = "stage-1") -> str:
 def validate_flow_inputs(
     companies: list[CompanyData],
     config: PipelineConfig,
-    prompt_template_path: str,
 ) -> None:
     """
     Validate inputs before starting flow execution.
@@ -88,20 +87,17 @@ def validate_flow_inputs(
     if enabled_count == 0:
         raise ValueError("No enabled companies found")
 
-    # Validate config
-    if not config.integrations.openai.api_key:
-        raise ValueError("OpenAI API key not configured")
-
-    if not config.stages.stage_1.output_dir:
-        raise ValueError("Output directory not configured")
-
     # Validate prompt template
-    prompt_path = Path(prompt_template_path)
+    prompt_path = config.get_prompt_path(config.stage_1.prompt_template)
     if not prompt_path.exists():
-        raise ValueError(f"Prompt template file not found: {prompt_template_path}")
+        raise ValueError(
+            f"Prompt template file not found: {config.stage_1.prompt_template}"
+        )
 
     if not prompt_path.is_file():
-        raise ValueError(f"Prompt template path is not a file: {prompt_template_path}")
+        raise ValueError(
+            f"Prompt template path is not a file: {config.stage_1.prompt_template}"
+        )
 
 
 def create_flow_summary_report(results: dict[str, Any]) -> str:

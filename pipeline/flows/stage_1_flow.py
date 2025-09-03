@@ -118,7 +118,7 @@ async def _save_results_if_configured(
     try:
         results_path = save_task_results(
             aggregated_results,
-            config.stage_1_output_dir,
+            config.stage_1_output_path,
             "stage_1_flow_results.json",
         )
         logger.info(f"💾 Results saved to: {results_path}")

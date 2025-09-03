@@ -9,6 +9,12 @@ pipeline:
     prompts_dir: "prompts"
     companies_file: "companies.yaml"
 
+    # Output patterns for stages
+    stage_output_patterns:
+      output_dir: "pipeline_{stage_tag}"
+      output_file: "{stage_tag}_results.json"
+      log_file: "{stage_tag}_pipeline.log"
+
   # Integration configurations
   integrations:
     openai:
@@ -27,9 +33,7 @@ pipeline:
 
     loguru:
       level: "INFO"
-      log_file: "pipeline.log"
       log_to_file: true
-      log_to_console: true
       format_file: "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}"
       format_console: "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
       rotation: "10 MB"
@@ -39,10 +43,9 @@ pipeline:
   stages:
     stage_1:
       name: "Job Listing Extraction"
+      tag: "stage_1"
       description: "Extract job titles and URLs from company career pages using web scraping and AI parsing"
       enabled: true
-      output_dir: "pipeline_stage_1"
-      output_file: "stage_1.json"
       openai_service:
         system_message: "You are an AI assistant specialized in extracting job listings from HTML content."
         prompt_template: "stage_1_jobs.md"

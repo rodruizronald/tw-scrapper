@@ -51,7 +51,7 @@ class Stage1Processor:
         self.web_extraction_service = WebExtractionService(config.web_extraction)
         self.openai_service = OpenAIService(config.openai)
         self.job_extraction_service = JobExtractionService(self.openai_service)
-        self.file_service = FileService(config.stage_1_output_dir)
+        self.file_service = FileService(config.stage_1_output_path)
 
         # Processing statistics - properly typed
         self.stats: ProcessingStats = {
