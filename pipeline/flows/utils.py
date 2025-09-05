@@ -1,6 +1,4 @@
-from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
 
 import yaml
 from loguru import logger
@@ -50,20 +48,6 @@ def load_companies_from_file(companies_file: Path) -> list[CompanyData]:
         raise ValueError(f"Error loading companies file: {e}") from e
 
 
-def create_flow_run_name(prefix: str = "stage-1") -> str:
-    """
-    Create a unique flow run name with timestamp.
-
-    Args:
-        prefix: Prefix for the flow run name
-
-    Returns:
-        Formatted flow run name
-    """
-    timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
-    return f"{prefix}-{timestamp}"
-
-
 def validate_flow_inputs(
     companies: list[CompanyData],
     config: PipelineConfig,
@@ -98,65 +82,3 @@ def validate_flow_inputs(
         raise ValueError(
             f"Prompt template path is not a file: {config.stage_1.prompt_template}"
         )
-
-
-def create_flow_summary_report(results: dict[str, Any]) -> str:
-    """
-    Create a human-readable summary report from flow results.
-
-    Args:
-        results: Flow execution results
-
-    Returns:
-        Formatted summary report string
-    """
-    report_lines = [
-        "=" * 60,
-        "🚀 STAGE 1 FLOW EXECUTION SUMMARY",
-        "=" * 60,
-        f"📊 Total Companies: {results.get('total_companies', 0)}",
-        f"✅ Successful: {results.get('successful_companies', 0)}",
-        f"❌ Failed: {results.get('failed_companies', 0)}",
-        f"📈 Success Rate: {results.get('success_rate', 0):.1%}",
-        "",
-        f"📋 Jobs Found: {results.get('total_jobs_found', 0)}",
-        f"💾 Jobs Saved: {results.get('total_jobs_saved', 0)}",
-        f"⏱️ Total Processing Time: {results.get('total_processing_time', 0):.2f}s",
-        f"⚡ Average Processing Time: {results.get('average_processing_time', 0):.2f}s",
-        "",
-    ]
-
-    # Add failure details if any
-    if results.get("failed_companies", 0) > 0:
-        report_lines.extend(
-            [
-                "❌ FAILURE DETAILS:",
-                f"🔄 Retryable Failures: {results.get('retryable_failures', 0)}",
-                f"🚫 Non-retryable Failures: {results.get('non_retryable_failures', 0)}",
-                "",
-            ]
-        )
-
-        # Add individual failure details
-        detailed_results = results.get("detailed_results", [])
-        failed_results = [r for r in detailed_results if not r.get("success", False)]
-
-        if failed_results:
-            report_lines.append("Failed Companies:")
-            for result in failed_results[:10]:  # Limit to first 10 failures
-                company_name = result.get("company_name", "unknown")
-                error = result.get("error", "unknown error")
-                retryable = result.get("retryable", True)
-                retry_indicator = "🔄" if retryable else "🚫"
-                report_lines.append(f"  {retry_indicator} {company_name}: {error}")
-
-            if len(failed_results) > 10:
-                report_lines.append(
-                    f"  ... and {len(failed_results) - 10} more failures"
-                )
-
-            report_lines.append("")
-
-    report_lines.append("=" * 60)
-
-    return "\n".join(report_lines)

@@ -2,15 +2,14 @@ import hashlib
 import time
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any
 
 from loguru import logger
 
 from pipeline.core.config import PipelineConfig
 from pipeline.core.models import CompanyData, JobData, ProcessingResult
 from pipeline.services.file_service import FileService
-from pipeline.services.job_extraction_service import JobExtractionService
-from pipeline.services.openai_service import OpenAIService
+from pipeline.services.openai_service import OpenAIRequest, OpenAIService
 from pipeline.services.web_extraction_service import WebExtractionService
 from pipeline.utils.exceptions import (
     CompanyProcessingError,
@@ -21,22 +20,10 @@ from pipeline.utils.exceptions import (
 )
 
 
-class ProcessingStats(TypedDict):
-    """Type definition for processing statistics."""
-
-    companies_processed: int
-    companies_successful: int
-    companies_failed: int
-    total_jobs_found: int
-    total_jobs_saved: int
-    processing_start_time: datetime | None
-    processing_end_time: datetime | None
-
-
 class Stage1Processor:
     """Stage 1: Extract job listings from company career pages."""
 
-    def __init__(self, config: PipelineConfig, prompt_template_path: str):
+    def __init__(self, config: PipelineConfig):
         """
         Initialize Stage 1 processor.
 
@@ -45,24 +32,11 @@ class Stage1Processor:
             prompt_template_path: Path to the OpenAI prompt template
         """
         self.config = config
-        self.prompt_template_path = Path(prompt_template_path)
 
         # Initialize services
-        self.web_extraction_service = WebExtractionService(config.web_extraction)
         self.openai_service = OpenAIService(config.openai)
-        self.job_extraction_service = JobExtractionService(self.openai_service)
         self.file_service = FileService(config.get_stage_1_output_dir(""))
-
-        # Processing statistics - properly typed
-        self.stats: ProcessingStats = {
-            "companies_processed": 0,
-            "companies_successful": 0,
-            "companies_failed": 0,
-            "total_jobs_found": 0,
-            "total_jobs_saved": 0,
-            "processing_start_time": None,
-            "processing_end_time": None,
-        }
+        self.web_extraction_service = WebExtractionService(config.web_extraction)
 
     async def process_single_company(
         self, company_data: CompanyData
@@ -90,7 +64,7 @@ class Stage1Processor:
             success=False,
             company_name=company_name,
             start_time=start_datetime,
-            stage="stage_1",
+            stage=self.config.stage_1.tag,
         )
 
         try:
@@ -138,8 +112,7 @@ class Stage1Processor:
         try:
             content = await self.web_extraction_service.extract_html_content(
                 url=company_data.career_url,
-                selectors=company_data.job_board_selectors
-                + company_data.job_card_selectors,
+                selectors=company_data.job_board_selectors,
                 parser_type=company_data.parser_type,
                 company_name=company_data.name,
             )
@@ -164,13 +137,19 @@ class Stage1Processor:
     ) -> dict[str, Any]:
         """Parse job listings from HTML content using the job extraction service."""
         try:
-            result = await self.job_extraction_service.parse_job_listings(
-                html_content=html_content,
-                prompt_template_path=self.prompt_template_path,
-                career_url=company_data.career_url,
-                company_name=company_data.name,
+            prompt_template = self.config.stage_1.prompt_template
+            request = OpenAIRequest(
+                system_message=self.config.stage_1.system_message,
+                template_path=self.config.get_prompt_path(prompt_template),
+                template_variables={
+                    "html_content": html_content,
+                    "career_url": company_data.career_url,
+                },
+                response_format=self.config.stage_1.response_format,
+                context_name=company_data.name,
             )
-            return result
+
+            return await self.openai_service.process_with_template(request)
         except Exception as e:
             raise OpenAIProcessingError(
                 message=f"Failed to parse job listings for {company_data.name}: {e}",
@@ -235,36 +214,6 @@ class Stage1Processor:
         )
 
         return unique_jobs
-
-    def _log_final_statistics(self, results: list[ProcessingResult]) -> None:
-        """Log final processing statistics."""
-        successful = len([r for r in results if r.success])
-        failed = len([r for r in results if not r.success])
-        total_time = 0.0
-
-        # Calculate total time if both timestamps are set
-        start_time = self.stats.get("processing_start_time")
-        end_time = self.stats.get("processing_end_time")
-
-        if isinstance(start_time, datetime) and isinstance(end_time, datetime):
-            total_time = (end_time - start_time).total_seconds()
-
-        logger.info("=" * 60)
-        logger.info("📊 STAGE 1 PROCESSING SUMMARY")
-        logger.info("=" * 60)
-        logger.info(f"✅ Successful companies: {successful}")
-        logger.info(f"❌ Failed companies: {failed}")
-        logger.info(f"📋 Total jobs found: {self.stats['total_jobs_found']}")
-        logger.info(f"💾 Total jobs saved: {self.stats['total_jobs_saved']}")
-        logger.info(f"⏱️  Total processing time: {total_time:.2f}s")
-
-        if failed > 0:
-            logger.warning("Failed companies:")
-            for result in results:
-                if not result.success:
-                    logger.warning(f"  - {result.company_name}: {result.error}")
-
-        logger.info("=" * 60)
 
     async def _execute_company_processing(
         self, company_data: CompanyData

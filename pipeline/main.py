@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 from loguru import logger
 
 from pipeline.core.config import PipelineConfig
+from pipeline.flows import main_pipeline_flow
 from pipeline.flows.utils import (
     load_companies_from_file,
     validate_flow_inputs,
@@ -32,13 +33,14 @@ def run():
 
             # Initialize paths
             config.initialize_paths(timestamp)
+            logger.info("✅ Paths initialized")
 
             # Load companies
             companies = load_companies_from_file(config.companies_file_path)
             logger.info(f"✅ Loaded {len(companies)} companies")
 
             # Parse stages
-            stages_to_run = config.stages.get_enabled_stages()
+            stages_to_run = config.stages.get_enabled_stage_tags()
             logger.info(f"🎯 Stages to run: {', '.join(stages_to_run)}")
 
             validate_flow_inputs(companies, config)
@@ -47,7 +49,13 @@ def run():
             # Run pipeline
             logger.info("🚀 Starting pipeline execution...")
 
-            return None
+            await main_pipeline_flow(
+                companies=companies,
+                config=config,
+            )
+
+            # Display results
+            logger.info("🎉 Pipeline execution completed!")
 
         except Exception as e:
             logger.error(f"❌ Pipeline failed: {e}")
