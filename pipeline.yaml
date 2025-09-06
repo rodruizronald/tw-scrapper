@@ -9,40 +9,38 @@ pipeline:
     prompts_dir: "prompts"
     companies_file: "companies.yaml"
 
+    # Output patterns for stages
+    stage_output_patterns:
+      output_dir: "pipeline_{stage_tag}"
+      output_file: "{stage_tag}_results.json"
+
   # Integration configurations
   integrations:
     openai:
       model: "gpt-5-mini"
       max_retries: 3
-      timeout: 30
+      timeout: 30 # seconds
 
     # Playwright integration for web scraping
     web_extraction:
       browser_config:
         headless: true
-        timeout: 30000
+        timeout: 30000 # milliseconds
         wait_until: domcontentloaded
       max_retries: 3
-      retry_delay: 1.0
+      retry_delay: 1.0 # seconds
 
     loguru:
       level: "INFO"
-      log_file: "pipeline.log"
-      log_to_file: true
-      log_to_console: true
-      format_file: "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}"
       format_console: "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
-      rotation: "10 MB"
-      retention: "7 days"
 
   # Stages
   stages:
     stage_1:
       name: "Job Listing Extraction"
+      tag: "stage_1"
       description: "Extract job titles and URLs from company career pages using web scraping and AI parsing"
       enabled: true
-      output_dir: "pipeline_stage_1"
-      output_file: "stage_1.json"
       openai_service:
         system_message: "You are an AI assistant specialized in extracting job listings from HTML content."
         prompt_template: "stage_1_jobs.md"
@@ -50,7 +48,8 @@ pipeline:
           - html_content
           - company_name
         response_format:
-          type: "json_object"
+          name: "JobListings"
+          strict: true
           schema:
             type: "object"
             properties:
@@ -65,7 +64,6 @@ pipeline:
                     url:
                       type: "string"
                       description: "Full URL to job posting"
-                    signature:
-                      type: "string"
-                      description: "SHA256 hash signature for duplicate detection"
-                  required: ["title", "url", "signature"]
+                  required: ["title", "url"]
+            required: ["jobs"]
+            additionalProperties: false

@@ -1,15 +1,18 @@
 import asyncio
 import json
-from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 import openai
 from loguru import logger
+from openai.types.shared_params import ResponseFormatJSONSchema
 
 from pipeline.core.config import OpenAIConfig
 from pipeline.utils.exceptions import FileOperationError, OpenAIProcessingError
+
+if TYPE_CHECKING:
+    from openai.types.shared_params.response_format_json_schema_param import JSONSchema
 
 
 @dataclass
@@ -19,8 +22,8 @@ class OpenAIRequest:
     system_message: str
     template_path: Path
     template_variables: dict[str, str]
+    response_format: dict[str, Any]
     context_name: str | None = None
-    response_validator: Callable[[dict[str, Any]], bool] | None = None
 
 
 class OpenAIService:
@@ -70,25 +73,22 @@ class OpenAIService:
         for attempt in range(self.config.max_retries + 1):
             try:
                 result = await self._attempt_openai_request(
-                    filled_prompt, request.system_message, attempt, context
+                    filled_prompt,
+                    request.system_message,
+                    request.response_format,
+                    attempt,
+                    context,
                 )
 
                 if result is not None:
-                    # Optional response validation
-                    if request.response_validator and not request.response_validator(
-                        result
-                    ):
-                        logger.warning(
-                            f"{context}Response validation failed, retrying..."
-                        )
-                        if attempt < self.config.max_retries:
-                            continue
-                        else:
-                            raise OpenAIProcessingError(
-                                "Response validation failed after all retries",
-                                request.context_name,
-                            )
+                    logger.success(
+                        f"{context}OpenAI request completed successfully on attempt {attempt + 1}"
+                    )
                     return result
+
+                logger.warning(
+                    f"{context}OpenAI request returned no result on attempt {attempt + 1}, retrying..."
+                )
 
             except (
                 openai.RateLimitError,
@@ -113,10 +113,15 @@ class OpenAIService:
         self,
         filled_prompt: str,
         system_message: str,
+        response_format: dict[str, Any],
         attempt: int,
         context: str,
     ) -> dict[str, Any] | None:
-        """Attempt a single OpenAI request."""
+        """Attempt a single OpenAI request.
+
+        Note: response_format should be a dict with 'name', 'schema', and optionally 'strict' keys
+        as per OpenAI's Structured Outputs format.
+        """
         logger.info(f"{context}Sending content to OpenAI (attempt {attempt + 1})...")
 
         # Add rate limiting delay
@@ -124,6 +129,15 @@ class OpenAIService:
             delay = self._rate_limit_delay * (2 ** (attempt - 1))  # Exponential backoff
             logger.info(f"{context}Waiting {delay}s before retry...")
             await asyncio.sleep(delay)
+
+        # Cast the response_format dict to JSONSchema type for type checking
+        # The response_format should already contain 'name', 'schema', and optionally 'strict'
+        json_schema = cast("JSONSchema", response_format)
+
+        # Create the proper ResponseFormatJSONSchema object
+        response_format_obj = ResponseFormatJSONSchema(
+            type="json_schema", json_schema=json_schema
+        )
 
         response = self.client.chat.completions.create(
             model=self.config.model,
@@ -134,7 +148,7 @@ class OpenAIService:
                 },
                 {"role": "user", "content": filled_prompt},
             ],
-            response_format={"type": "json_object"},
+            response_format=response_format_obj,
             timeout=self.config.timeout,
         )
 

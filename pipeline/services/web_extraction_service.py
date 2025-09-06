@@ -35,8 +35,6 @@ class WebExtractionService:
             config: Configuration for extraction operations
         """
         self.config = config
-        self._browser: Browser | None = None
-        self._playwright = None
 
     @asynccontextmanager
     async def _browser_context(self):

@@ -1,6 +1,5 @@
 import os
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -10,75 +9,9 @@ from loguru import logger
 
 from pipeline.parsers.models import ParserType
 
-
-@dataclass
-class PathsConfig:
-    """Configuration for file paths."""
-
-    output_dir: str
-    prompts_dir: str
-    companies_file: str
-
-
-@dataclass
-class BrowserConfig:
-    """Configuration for browser instances."""
-
-    headless: bool
-    timeout: int
-    wait_until: str
-    user_agent: str | None = None
-    viewport: dict[str, int] | None = None
-    extra_headers: dict[str, str] | None = None
-
-    def __post_init__(self):
-        """Validate browser wait_until and timeout configuration."""
-        valid_wait_until = ["load", "domcontentloaded", "networkidle", "commit"]
-        if self.wait_until not in valid_wait_until:
-            raise ValueError(
-                f"Invalid wait_until: {self.wait_until}. Must be one of {valid_wait_until}"
-            )
-
-        if self.timeout <= 0:
-            raise ValueError("timeout must be positive")
-
-
-@dataclass
-class WebExtractionConfig:
-    """Configuration for extraction operations."""
-
-    browser_config: BrowserConfig
-    max_retries: int
-    retry_delay: float
-    parser_type: ParserType = ParserType.DEFAULT
-
-    def __post_init__(self):
-        """Validate that max_retries and retry_delay."""
-        if self.max_retries < 0:
-            raise ValueError("max_retries must be non-negative")
-
-        if self.retry_delay <= 0:
-            raise ValueError("retry_delay must be positive")
-
-
-@dataclass
-class OpenAIConfig:
-    """Configuration for OpenAI API integration."""
-
-    model: str
-    max_retries: int
-    timeout: int
-    api_key: str | None = None
-
-    def __post_init__(self):
-        """Load API key from environment if not provided."""
-        if self.api_key is None:
-            self.api_key = os.environ.get("OPENAI_API_KEY")
-
-        if not self.api_key:
-            raise ValueError(
-                "OpenAI API key is required. Set OPENAI_API_KEY environment variable or provide api_key in config."
-            )
+##
+## Stages Configuration
+##
 
 
 @dataclass
@@ -112,17 +45,207 @@ class OpenAIServiceConfig:
 
 
 @dataclass
+class StageConfig:
+    """Configuration for Stage processing."""
+
+    name: str
+    tag: str
+    description: str
+    enabled: bool
+    openai_service: OpenAIServiceConfig
+
+    @property
+    def system_message(self) -> str:
+        """Get OpenAI service system message."""
+        return self.openai_service.system_message
+
+    @property
+    def prompt_template(self) -> str:
+        """Get OpenAI service prompt template."""
+        return self.openai_service.prompt_template
+
+    @property
+    def prompt_variables(self) -> list[str]:
+        """Get OpenAI service prompt variables."""
+        return self.openai_service.prompt_variables
+
+    @property
+    def response_format(self) -> dict[str, Any]:
+        """Get OpenAI service response format."""
+        return self.openai_service.response_format
+
+
+@dataclass
+class StagesConfig:
+    """Configuration for all stages."""
+
+    stage_1: StageConfig
+
+    def get_enabled_stage_tags(self) -> list[str]:
+        """
+        Get a list of all enabled stages from the configuration.
+
+        Returns:
+            List of enabled stage tags (e.g., ["stage_1", "stage_2"])
+        """
+        enabled_stages = []
+
+        if self.stage_1.enabled:
+            enabled_stages.append(self.stage_1.tag)
+
+        return enabled_stages
+
+
+##
+## System Paths Configuration
+##
+
+
+@dataclass
+class StageOutputPatterns:
+    """Configuration for stage output patterns."""
+
+    output_dir: str
+    output_file: str
+
+
+@dataclass
+class PathsConfig:
+    """Configuration for file paths."""
+
+    output_dir: Path
+    prompts_dir: Path
+    companies_file: Path
+    stage_output_patterns: StageOutputPatterns
+    project_root: Path = field(default_factory=lambda: Path.cwd())
+
+    def initialize_paths(self, stages: StagesConfig, timestamp: str) -> None:
+        """Convert relative paths to absolute paths using project_root."""
+        self.output_dir = self.project_root / self.output_dir
+        self.prompts_dir = self.project_root / self.prompts_dir
+        self.companies_file = self.project_root / self.companies_file
+
+        # Initialize stage directories
+        for stage_tag in stages.get_enabled_stage_tags():
+            # Replace {stage_tag} in the pattern
+            stage_dir_name = self.stage_output_patterns.output_dir.format(
+                stage_tag=stage_tag
+            )
+            stage_output_dir = (
+                self.project_root / self.output_dir / timestamp / stage_dir_name
+            )
+            stage_output_dir.mkdir(parents=True, exist_ok=True)
+
+    def get_stage_output_file(self, stage_tag: str, timestamp: str) -> Path:
+        """
+        Get the full path to a stage's output file.
+
+        Args:
+            stage_tag: The stage tag (e.g., "stage_1")
+            timestamp: The timestamp string (e.g., "20241201")
+
+        Returns:
+            Full path to the stage's output file
+        """
+        stage_dir_name = self.stage_output_patterns.output_dir.format(
+            stage_tag=stage_tag
+        )
+        stage_output_dir = self.output_dir / timestamp / stage_dir_name
+
+        stage_output_file = self.stage_output_patterns.output_file.format(
+            stage_tag=stage_tag
+        )
+        return stage_output_dir / stage_output_file
+
+    def get_stage_output_dir(self, stage_tag: str, timestamp: str) -> Path:
+        """
+        Get the full path to a stage's output file.
+
+        Args:
+            stage_tag: The stage tag (e.g., "stage_1")
+            timestamp: The timestamp string (e.g., "20241201")
+
+        Returns:
+            Full path to the stage's output file
+        """
+        stage_dir_name = self.stage_output_patterns.output_dir.format(
+            stage_tag=stage_tag
+        )
+        return self.output_dir / timestamp / stage_dir_name
+
+
+##
+## Intergrations Configuration
+##
+
+
+@dataclass
+class BrowserConfig:
+    """Configuration for browser instances."""
+
+    headless: bool
+    timeout: int  # ms
+    wait_until: str
+    user_agent: str | None = None
+    viewport: dict[str, int] | None = None
+    extra_headers: dict[str, str] | None = None
+
+    def __post_init__(self):
+        """Validate browser wait_until and timeout configuration."""
+        valid_wait_until = ["load", "domcontentloaded", "networkidle", "commit"]
+        if self.wait_until not in valid_wait_until:
+            raise ValueError(
+                f"Invalid wait_until: {self.wait_until}. Must be one of {valid_wait_until}"
+            )
+
+        if self.timeout <= 0:
+            raise ValueError("timeout must be positive")
+
+
+@dataclass
+class WebExtractionConfig:
+    """Configuration for extraction operations."""
+
+    browser_config: BrowserConfig
+    max_retries: int
+    retry_delay: float  # seconds
+    parser_type: ParserType = ParserType.DEFAULT
+
+    def __post_init__(self):
+        """Validate that max_retries and retry_delay."""
+        if self.max_retries < 0:
+            raise ValueError("max_retries must be non-negative")
+
+        if self.retry_delay <= 0:
+            raise ValueError("retry_delay must be positive")
+
+
+@dataclass
+class OpenAIConfig:
+    """Configuration for OpenAI API integration."""
+
+    model: str
+    max_retries: int
+    timeout: int  # seconds
+    api_key: str | None = None
+
+    def __post_init__(self):
+        """Load API key from environment if not provided."""
+        if self.api_key is None:
+            self.api_key = os.environ.get("OPENAI_API_KEY")
+
+        if not self.api_key:
+            raise ValueError(
+                "OpenAI API key is required. Set OPENAI_API_KEY environment variable or provide api_key in config."
+            )
+
+
+@dataclass
 class LoguruConfig:
     """Configuration for logging."""
 
     level: str
-    log_file: str
-    log_to_file: bool
-    log_to_console: bool
     format_console: str
-    format_file: str
-    rotation: str
-    retention: str
 
     def __post_init__(self):
         """Validate logging level."""
@@ -133,26 +256,14 @@ class LoguruConfig:
             )
         self.level = self.level.upper()
 
-    def add_stage_logging(self, output_dir: Path) -> None:
-        """Add logging for a specific stage without removing existing loggers."""
-        if self.log_to_file and output_dir:
-            logger.add(
-                sink=str(output_dir / self.log_file),
-                level=self.level,
-                rotation=self.rotation,
-                retention=self.retention,
-                format=self.format_file,
-            )
-
     def setup_console_logging(self) -> None:
         """Setup only console logging (call once at startup)."""
         logger.remove()
-        if self.log_to_console:
-            logger.add(
-                sink=lambda msg: print(msg, end=""),
-                level=self.level,
-                format=self.format_console,
-            )
+        logger.add(
+            sink=lambda msg: print(msg, end=""),
+            level=self.level,
+            format=self.format_console,
+        )
 
 
 @dataclass
@@ -164,23 +275,9 @@ class IntegrationsConfig:
     loguru: LoguruConfig
 
 
-@dataclass
-class StageConfig:
-    """Configuration for Stage processing."""
-
-    name: str
-    description: str
-    enabled: bool
-    output_dir: str
-    output_file: str
-    openai_service: OpenAIServiceConfig
-
-
-@dataclass
-class StagesConfig:
-    """Configuration for all stages."""
-
-    stage_1: StageConfig
+##
+## Pipeline Configuration
+##
 
 
 @dataclass
@@ -193,58 +290,50 @@ class PipelineConfig:
     paths: PathsConfig
     integrations: IntegrationsConfig
     stages: StagesConfig
-    project_root: Path = field(default_factory=lambda: Path.cwd())
 
     @property
-    def openai(self) -> OpenAIConfig:
-        """Get OpenAI configuration."""
-        return self.integrations.openai
+    def companies_file_path(self) -> Path:
+        """Get the full path to the companies file."""
+        return self.paths.companies_file
 
-    @property
-    def web_extraction(self) -> WebExtractionConfig:
-        """Get web extraction configuration."""
-        return self.integrations.web_extraction
-
-    @property
-    def loguru(self) -> LoguruConfig:
-        """Get Loguru logging configuration."""
-        return self.integrations.loguru
-
-    @property
-    def stage_1(self) -> StageConfig:
-        """Get Stage 1 configuration."""
-        return self.stages.stage_1
-
-    @property
-    def stage_1_output_dir(self) -> Path:
-        """Get Stage 1 output directory with timestamp."""
-        return self.get_stage_output_dir(self.stages.stage_1.output_dir)
-
-    def get_stage_output_dir(self, stage_output_dir: str) -> Path:
+    def get_prompt_path(self, prompt_filename: str) -> Path:
         """
-        Get the full output directory path for a stage with timestamp.
+        Get the full path to a prompt template file.
 
         Args:
-            stage_output_dir: The stage's output directory name (e.g., "pipeline_stage_1")
+            prompt_filename: Name of the prompt file (e.g., "job_extraction.md")
 
         Returns:
-            Full path to the stage output directory with timestamp
+            Full path to the prompt template file
         """
-        timestamp = datetime.now(UTC).strftime("%Y%m%d")
-        data_output_dir = self.project_root / self.paths.output_dir / timestamp
-        return data_output_dir / stage_output_dir
+        return self.paths.prompts_dir / prompt_filename
 
-    def create_output_dirs(self) -> None:
-        """Create output directories with timestamp for Prefect runs."""
-        stage_1_output_dir = self.get_stage_output_dir(self.stages.stage_1.output_dir)
-        stage_1_output_dir.mkdir(parents=True, exist_ok=True)
+    def setup_logging(self) -> None:
+        """Setup complete logging configuration for the pipeline."""
+        self.loguru.setup_console_logging()
+
+    def get_stage_1_output_file(self, timestamp: str) -> Path:
+        """Get Stage 1 output file path."""
+        return self.paths.get_stage_output_file(self.stage_1.tag, timestamp)
+
+    def get_stage_1_output_dir(self, timestamp: str) -> Path:
+        """Get Stage 1 output dir path."""
+        return self.paths.get_stage_output_dir(self.stage_1.tag, timestamp)
 
     @classmethod
     def from_dict(cls, config_dict: dict[str, Any]) -> "PipelineConfig":
         """Create configuration from dictionary with proper type conversion."""
         # Convert paths
         paths_data = config_dict.get("paths", {})
-        paths = PathsConfig(**paths_data)
+        stage_output_patterns_data = paths_data.get("stage_output_patterns", {})
+        stage_output_patterns = StageOutputPatterns(**stage_output_patterns_data)
+
+        paths = PathsConfig(
+            output_dir=Path(paths_data.get("output_dir", "data")),
+            prompts_dir=Path(paths_data.get("prompts_dir", "prompts")),
+            companies_file=Path(paths_data.get("companies_file", "companies.yaml")),
+            stage_output_patterns=stage_output_patterns,
+        )
 
         # Convert integrations
         integrations_data = config_dict.get("integrations", {})
@@ -292,18 +381,13 @@ class PipelineConfig:
 
         stage_1_config = StageConfig(
             name=stage_1_data.get("name", ""),
+            tag=stage_1_data.get("tag", ""),
             description=stage_1_data.get("description", ""),
             enabled=stage_1_data.get("enabled", True),
-            output_dir=stage_1_data.get("output_dir", ""),
-            output_file=stage_1_data.get("output_file", ""),
             openai_service=openai_service,
         )
 
         stages = StagesConfig(stage_1=stage_1_config)
-
-        # Get project root
-        project_root_str = config_dict.get("project_root")
-        project_root = Path(project_root_str) if project_root_str else Path.cwd()
 
         return cls(
             name=config_dict["name"],
@@ -312,7 +396,6 @@ class PipelineConfig:
             paths=paths,
             integrations=integrations,
             stages=stages,
-            project_root=project_root,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -322,58 +405,61 @@ class PipelineConfig:
             "version": self.version,
             "description": self.description,
             "paths": {
-                "output_dir": self.paths.output_dir,
-                "prompts_dir": self.paths.prompts_dir,
-                "companies_file": self.paths.companies_file,
+                "output_dir": str(self.paths.output_dir),
+                "prompts_dir": str(self.paths.prompts_dir),
+                "companies_file": str(self.paths.companies_file),
+                "project_root": str(self.paths.project_root),
+                "stage_output_patterns": {
+                    "output_dir": self.paths.stage_output_patterns.output_dir,
+                    "output_file": self.paths.stage_output_patterns.output_file,
+                },
             },
             "integrations": {
                 "openai": {
-                    "model": self.integrations.openai.model,
-                    "max_retries": self.integrations.openai.max_retries,
-                    "timeout": self.integrations.openai.timeout,
-                    "api_key": self.integrations.openai.api_key,
+                    "model": self.openai.model,
+                    "max_retries": self.openai.max_retries,
+                    "timeout": self.openai.timeout,
+                    "api_key": self.openai.api_key,
                 },
                 "web_extraction": {
                     "browser_config": {
-                        "headless": self.integrations.web_extraction.browser_config.headless,
-                        "viewport": self.integrations.web_extraction.browser_config.viewport,
-                        "user_agent": self.integrations.web_extraction.browser_config.user_agent,
-                        "timeout": self.integrations.web_extraction.browser_config.timeout,
-                        "wait_until": self.integrations.web_extraction.browser_config.wait_until,
-                        "extra_headers": self.integrations.web_extraction.browser_config.extra_headers,
+                        "headless": self.web_extraction.browser_config.headless,
+                        "viewport": self.web_extraction.browser_config.viewport,
+                        "user_agent": self.web_extraction.browser_config.user_agent,
+                        "timeout": self.web_extraction.browser_config.timeout,
+                        "wait_until": self.web_extraction.browser_config.wait_until,
+                        "extra_headers": self.web_extraction.browser_config.extra_headers,
                     },
-                    "parser_type": self.integrations.web_extraction.parser_type.value,
-                    "max_retries": self.integrations.web_extraction.max_retries,
-                    "retry_delay": self.integrations.web_extraction.retry_delay,
+                    "parser_type": self.web_extraction.parser_type.value,
+                    "max_retries": self.web_extraction.max_retries,
+                    "retry_delay": self.web_extraction.retry_delay,
                 },
                 "loguru": {
-                    "level": self.integrations.loguru.level,
-                    "log_file": self.integrations.loguru.log_file,
-                    "log_to_file": self.integrations.loguru.log_to_file,
-                    "log_to_console": self.integrations.loguru.log_to_console,
-                    "format_console": self.integrations.loguru.format_console,
-                    "format_file": self.integrations.loguru.format_file,
-                    "rotation": self.integrations.loguru.rotation,
-                    "retention": self.integrations.loguru.retention,
+                    "level": self.loguru.level,
+                    "format_console": self.loguru.format_console,
                 },
             },
             "stages": {
                 "stage_1": {
-                    "name": self.stages.stage_1.name,
-                    "description": self.stages.stage_1.description,
-                    "enabled": self.stages.stage_1.enabled,
-                    "output_dir": self.stages.stage_1.output_dir,
-                    "output_file": self.stages.stage_1.output_file,
+                    "name": self.stage_1.name,
+                    "tag": self.stage_1.tag,
+                    "description": self.stage_1.description,
+                    "enabled": self.stage_1.enabled,
                     "openai_service": {
-                        "system_message": self.stages.stage_1.openai_service.system_message,
-                        "prompt_template": self.stages.stage_1.openai_service.prompt_template,
-                        "prompt_variables": self.stages.stage_1.openai_service.prompt_variables,
-                        "response_format": self.stages.stage_1.openai_service.response_format,
+                        "system_message": self.stage_1.openai_service.system_message,
+                        "prompt_template": self.stage_1.openai_service.prompt_template,
+                        "prompt_variables": self.stage_1.openai_service.prompt_variables,
+                        "response_format": self.stage_1.openai_service.response_format,
                     },
                 },
             },
-            "project_root": str(self.project_root),
         }
+
+    def initialize_paths(self, timestamp: str) -> None:
+        """Initialize all paths using the project root and stages configuration."""
+
+        # Initialize paths with stages configuration
+        self.paths.initialize_paths(self.stages, timestamp)
 
     @classmethod
     def load(cls, env_file: Path | None = None) -> "PipelineConfig":
@@ -412,21 +498,27 @@ class PipelineConfig:
         with open(pipeline_config_path, encoding="utf-8") as f:
             full_config = yaml.safe_load(f)
             pipeline_dict = full_config.get("pipeline", {})
-
-            # Add project_root to the config dict
-            pipeline_dict["project_root"] = str(project_root)
-
             config = cls.from_dict(pipeline_dict)
 
-        # Create output directory if it doesn't exist
-        config.create_output_dirs()
-
+        config.paths.project_root = project_root
         return config
 
-    def setup_logging(self) -> None:
-        """Setup complete logging configuration for the pipeline."""
-        self.integrations.loguru.setup_console_logging()
+    @property
+    def openai(self) -> OpenAIConfig:
+        """Get OpenAI configuration."""
+        return self.integrations.openai
 
-        # Use the new method to get the stage output directory
-        stage_1_output_dir = self.get_stage_output_dir(self.stages.stage_1.output_dir)
-        self.integrations.loguru.add_stage_logging(stage_1_output_dir)
+    @property
+    def web_extraction(self) -> WebExtractionConfig:
+        """Get web extraction configuration."""
+        return self.integrations.web_extraction
+
+    @property
+    def loguru(self) -> LoguruConfig:
+        """Get Loguru logging configuration."""
+        return self.integrations.loguru
+
+    @property
+    def stage_1(self) -> StageConfig:
+        """Get Stage 1 configuration."""
+        return self.stages.stage_1
