@@ -2,13 +2,17 @@ import asyncio
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 import openai
 from loguru import logger
+from openai.types.shared_params import ResponseFormatJSONSchema
 
 from pipeline.core.config import OpenAIConfig
 from pipeline.utils.exceptions import FileOperationError, OpenAIProcessingError
+
+if TYPE_CHECKING:
+    from openai.types.shared_params.response_format_json_schema_param import JSONSchema
 
 
 @dataclass
@@ -113,14 +117,27 @@ class OpenAIService:
         attempt: int,
         context: str,
     ) -> dict[str, Any] | None:
-        """Attempt a single OpenAI request."""
+        """Attempt a single OpenAI request.
+
+        Note: response_format should be a dict with 'name', 'schema', and optionally 'strict' keys
+        as per OpenAI's Structured Outputs format.
+        """
         logger.info(f"{context}Sending content to OpenAI (attempt {attempt + 1})...")
-        print(response_format)
+
         # Add rate limiting delay
         if attempt > 0:
             delay = self._rate_limit_delay * (2 ** (attempt - 1))  # Exponential backoff
             logger.info(f"{context}Waiting {delay}s before retry...")
             await asyncio.sleep(delay)
+
+        # Cast the response_format dict to JSONSchema type for type checking
+        # The response_format should already contain 'name', 'schema', and optionally 'strict'
+        json_schema = cast("JSONSchema", response_format)
+
+        # Create the proper ResponseFormatJSONSchema object
+        response_format_obj = ResponseFormatJSONSchema(
+            type="json_schema", json_schema=json_schema
+        )
 
         response = self.client.chat.completions.create(
             model=self.config.model,
@@ -131,6 +148,7 @@ class OpenAIService:
                 },
                 {"role": "user", "content": filled_prompt},
             ],
+            response_format=response_format_obj,
             timeout=self.config.timeout,
         )
 

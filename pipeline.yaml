@@ -48,7 +48,8 @@ pipeline:
           - html_content
           - company_name
         response_format:
-          type: "json_object"
+          name: "JobListings"
+          strict: true
           schema:
             type: "object"
             properties:
@@ -63,7 +64,6 @@ pipeline:
                     url:
                       type: "string"
                       description: "Full URL to job posting"
-                    signature:
-                      type: "string"
-                      description: "SHA256 hash signature for duplicate detection"
-                  required: ["title", "url", "signature"]
+                  required: ["title", "url"]
+            required: ["jobs"]
+            additionalProperties: false
