@@ -10,7 +10,6 @@ This module contains the fundamental building blocks of the job pipeline:
 
 from .config import (
     BrowserConfig,
-    LoguruConfig,
     OpenAIConfig,
     PipelineConfig,
     StageConfig,
@@ -22,7 +21,6 @@ __all__ = [
     "BrowserConfig",
     "CompanyData",
     "JobData",
-    "LoguruConfig",
     "OpenAIConfig",
     "PipelineConfig",
     "ProcessingResult",

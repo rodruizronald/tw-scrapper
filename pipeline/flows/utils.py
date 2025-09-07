@@ -1,13 +1,12 @@
 from pathlib import Path
 
 import yaml
-from loguru import logger
 
 from pipeline.core.config import PipelineConfig
 from pipeline.core.models import CompanyData
 
 
-def load_companies_from_file(companies_file: Path) -> list[CompanyData]:
+def load_companies_from_file(companies_file: Path, logger) -> list[CompanyData]:
     """
     Load companies from YAML file.
 

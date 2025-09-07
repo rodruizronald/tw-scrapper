@@ -11,11 +11,9 @@ from .company_processing import (
 )
 from .utils import (
     filter_enabled_companies,
-    save_task_results,
 )
 
 __all__ = [
     "filter_enabled_companies",
     "process_company_task",
-    "save_task_results",
 ]

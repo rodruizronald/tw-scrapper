@@ -93,7 +93,7 @@ class SelectorParser:
     def _log_result(self, result: ElementResult) -> None:
         """Log the result of element extraction."""
         if result.found:
-            logger.success(f"Found element with selector: {result.selector}")
+            logger.info(f"Found element with selector: {result.selector}")
         else:
             logger.warning(
                 f"Failed to find element: {result.selector} - {result.error_message}"

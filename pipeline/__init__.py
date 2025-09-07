@@ -17,7 +17,6 @@ Key Features:
 # Core pipeline components
 from .core.config import (
     BrowserConfig,
-    LoguruConfig,
     OpenAIConfig,
     PipelineConfig,
     StageConfig,
@@ -57,7 +56,6 @@ __all__ = [
     "FileOperationError",
     "FileService",
     "JobData",
-    "LoguruConfig",
     "OpenAIConfig",
     "OpenAIProcessingError",
     "OpenAIService",
