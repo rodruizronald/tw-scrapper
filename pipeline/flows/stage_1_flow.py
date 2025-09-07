@@ -13,12 +13,9 @@ from pipeline.tasks.utils import (
 async def _process_companies(
     companies: list[CompanyData],
     config: PipelineConfig,
+    logger,
 ) -> None:
     """Process validated companies sequentially."""
-    logger = get_run_logger()
-
-    logger.info(f"🏭 Step 2: Processing {len(companies)} companies sequentially...")
-
     for company in companies:
         try:
             # Submit Prefect task and await its result (sequential)
@@ -28,15 +25,15 @@ async def _process_companies(
 
             # Now check if the result has a success attribute
             if hasattr(result, "success") and result.success:
-                logger.info(f"✅ Completed: {company.name}")
+                logger.info(f"Completed: {company.name}")
             else:
-                logger.warning(f"❌ Failed: {company.name}")
+                logger.warning(f"Failed: {company.name}")
         except Exception as e:
-            logger.error(f"💥 Unexpected task failure: {company.name} - {e}")
+            logger.error(f"Unexpected task failure: {company.name} - {e}")
 
 
 @flow(
-    name="Stage 1: Job Extraction Pipeline",
+    name="stage_1_job_listing_extraction",
     description="Extract job listings from company career pages with concurrent processing",
     version="1.0.0",
     retries=1,
@@ -61,18 +58,19 @@ async def stage_1_flow(
     """
     logger = get_run_logger()
 
-    logger.info(f"🚀 Starting Stage 1 flow with {len(companies)} companies")
+    logger.info(f"Starting Stage 1 flow with {len(companies)} companies")
 
     # Filter enabled companies
     enabled_companies = filter_enabled_companies(companies)
 
     if not enabled_companies:
-        logger.warning("⚠️ No enabled companies found to process")
+        logger.warning("No enabled companies found to process")
         return None
 
-    logger.info(f"📋 Processing {len(enabled_companies)} enabled companies")
+    logger.info(f"Processing {len(enabled_companies)} enabled companies")
 
     await _process_companies(
         enabled_companies,
         config,
+        logger,
     )

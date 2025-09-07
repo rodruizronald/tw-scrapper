@@ -5,7 +5,6 @@ from typing import Any
 
 import yaml
 from dotenv import load_dotenv
-from loguru import logger
 
 from pipeline.parsers.models import ParserType
 
@@ -241,38 +240,11 @@ class OpenAIConfig:
 
 
 @dataclass
-class LoguruConfig:
-    """Configuration for logging."""
-
-    level: str
-    format_console: str
-
-    def __post_init__(self):
-        """Validate logging level."""
-        valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-        if self.level.upper() not in valid_levels:
-            raise ValueError(
-                f"Invalid log level: {self.level}. Must be one of {valid_levels}"
-            )
-        self.level = self.level.upper()
-
-    def setup_console_logging(self) -> None:
-        """Setup only console logging (call once at startup)."""
-        logger.remove()
-        logger.add(
-            sink=lambda msg: print(msg, end=""),
-            level=self.level,
-            format=self.format_console,
-        )
-
-
-@dataclass
 class IntegrationsConfig:
     """Integrations configuration for different services."""
 
     openai: OpenAIConfig
     web_extraction: WebExtractionConfig
-    loguru: LoguruConfig
 
 
 ##
@@ -307,10 +279,6 @@ class PipelineConfig:
             Full path to the prompt template file
         """
         return self.paths.prompts_dir / prompt_filename
-
-    def setup_logging(self) -> None:
-        """Setup complete logging configuration for the pipeline."""
-        self.loguru.setup_console_logging()
 
     def get_stage_1_output_file(self, timestamp: str) -> Path:
         """Get Stage 1 output file path."""
@@ -361,14 +329,9 @@ class PipelineConfig:
             parser_type=parser_type,
         )
 
-        # Handle loguru config
-        loguru_data = integrations_data.get("loguru", {})
-        loguru_config = LoguruConfig(**loguru_data)
-
         integrations = IntegrationsConfig(
             openai=openai_config,
             web_extraction=web_extraction_config,
-            loguru=loguru_config,
         )
 
         # Convert stages
@@ -433,10 +396,6 @@ class PipelineConfig:
                     "parser_type": self.web_extraction.parser_type.value,
                     "max_retries": self.web_extraction.max_retries,
                     "retry_delay": self.web_extraction.retry_delay,
-                },
-                "loguru": {
-                    "level": self.loguru.level,
-                    "format_console": self.loguru.format_console,
                 },
             },
             "stages": {
@@ -512,11 +471,6 @@ class PipelineConfig:
     def web_extraction(self) -> WebExtractionConfig:
         """Get web extraction configuration."""
         return self.integrations.web_extraction
-
-    @property
-    def loguru(self) -> LoguruConfig:
-        """Get Loguru logging configuration."""
-        return self.integrations.loguru
 
     @property
     def stage_1(self) -> StageConfig:

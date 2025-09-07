@@ -49,7 +49,7 @@ class GreenhouseParser(SelectorParser):
             if greenhouse_iframe:
                 frame = await greenhouse_iframe.content_frame()
                 if frame:
-                    logger.success("Successfully accessed Greenhouse iframe")
+                    logger.info("Successfully accessed Greenhouse iframe")
                     return ParseContext(
                         page=self.page, frame=frame, parser_type=ParserType.GREENHOUSE
                     )
@@ -141,7 +141,7 @@ class AngularParser(SelectorParser):
                     """,
                     timeout=10000,
                 )
-                logger.success("Angular content detected")
+                logger.info("Angular content detected")
 
             except PlaywrightTimeoutError:
                 logger.warning("Angular indicators not found, but proceeding anyway")

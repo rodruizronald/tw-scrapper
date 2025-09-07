@@ -10,7 +10,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from typing import Any
 
-from loguru import logger
+from loguru import logger as loguru_logger
 from playwright.async_api import Browser, async_playwright
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
@@ -27,13 +27,16 @@ class WebExtractionService:
     to extract elements from web pages with enhanced error handling and retry logic.
     """
 
-    def __init__(self, config: WebExtractionConfig):
+    def __init__(self, config: WebExtractionConfig, logger=None):
         """
         Initialize the extraction service.
 
         Args:
             config: Configuration for extraction operations
         """
+        if logger is None:
+            self.logger = loguru_logger
+
         self.config = config
 
     @asynccontextmanager
@@ -111,20 +114,20 @@ class WebExtractionService:
             ):
                 try:
                     # Navigate to URL
-                    logger.info(f"Navigating to {url}")
+                    self.logger.info(f"Navigating to {url}")
                     await page.goto(
                         url,
                         wait_until=self.config.browser_config.wait_until,
                         timeout=self.config.browser_config.timeout,
                     )
-                    logger.info("Initial page load complete")
+                    self.logger.info("Initial page load complete")
 
                 except PlaywrightTimeoutError as e:
-                    logger.error(f"Page load timeout for {url}")
+                    self.logger.error(f"Page load timeout for {url}")
                     raise WebExtractionError(url, e, company_name) from e
 
                 except Exception as e:
-                    logger.error(f"Failed to navigate to {url}: {e}")
+                    self.logger.error(f"Failed to navigate to {url}: {e}")
                     raise WebExtractionError(url, e, company_name) from e
 
                 # Create and run parser (only once, after navigation attempt)
@@ -132,7 +135,9 @@ class WebExtractionService:
                     parser = ParserFactory.create_parser(parser_type, page, selectors)
                     results = await parser.parse()
                 except Exception as parse_error:
-                    logger.error(f"Failed to parse content from {url}: {parse_error}")
+                    self.logger.error(
+                        f"Failed to parse content from {url}: {parse_error}"
+                    )
                     raise WebExtractionError(
                         url, parse_error, company_name
                     ) from parse_error
@@ -142,7 +147,7 @@ class WebExtractionService:
             raise
         except Exception as e:
             # Wrap any other unexpected errors
-            logger.error(f"Unexpected error during extraction from {url}: {e}")
+            self.logger.error(f"Unexpected error during extraction from {url}: {e}")
             raise WebExtractionError(url, e, company_name) from e
 
         return results
@@ -174,7 +179,7 @@ class WebExtractionService:
 
         for attempt in range(self.config.max_retries + 1):
             try:
-                logger.info(
+                self.logger.info(
                     f"{company_context}Extracting HTML content from {url} (attempt {attempt + 1})"
                 )
 
@@ -194,11 +199,11 @@ class WebExtractionService:
                     if result.found and result.html_content:
                         html_contents.append(result.html_content)
                         successful_selectors.append(result.selector)
-                        logger.debug(
+                        self.logger.debug(
                             f"{company_context}Extracted content from selector: {result.selector}"
                         )
                     else:
-                        logger.warning(
+                        self.logger.warning(
                             f"{company_context}No content found for selector: {result.selector}"
                         )
 
@@ -207,10 +212,10 @@ class WebExtractionService:
                     error_msg = (
                         f"No HTML content extracted from any selectors: {selectors}"
                     )
-                    logger.warning(f"{company_context}{error_msg}")
+                    self.logger.warning(f"{company_context}{error_msg}")
 
                     if attempt < self.config.max_retries:
-                        logger.info(
+                        self.logger.info(
                             f"{company_context}Retrying in {self.config.retry_delay} seconds..."
                         )
                         await asyncio.sleep(self.config.retry_delay)
@@ -226,7 +231,7 @@ class WebExtractionService:
                 # Concatenate all HTML content with newlines
                 concatenated_html = "\n".join(html_contents)
 
-                logger.success(
+                self.logger.info(
                     f"{company_context}Successfully extracted HTML content from "
                     f"{len(successful_selectors)} selectors: {successful_selectors}"
                 )
@@ -238,10 +243,10 @@ class WebExtractionService:
                 raise
             except Exception as e:
                 error_msg = f"Unexpected error during HTML extraction: {e!s}"
-                logger.error(f"{company_context}{error_msg}")
+                self.logger.error(f"{company_context}{error_msg}")
 
                 if attempt < self.config.max_retries:
-                    logger.info(
+                    self.logger.info(
                         f"{company_context}Retrying in {self.config.retry_delay} seconds..."
                     )
                     await asyncio.sleep(self.config.retry_delay)

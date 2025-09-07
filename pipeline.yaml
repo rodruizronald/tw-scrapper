@@ -30,10 +30,6 @@ pipeline:
       max_retries: 3
       retry_delay: 1.0 # seconds
 
-    loguru:
-      level: "INFO"
-      format_console: "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
-
   # Stages
   stages:
     stage_1:

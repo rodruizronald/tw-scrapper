@@ -2,11 +2,10 @@ import json
 import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
 
-from loguru import logger
+from prefect import get_run_logger
 
-from pipeline.core.models import JobData, ProcessingResult
+from pipeline.core.models import JobData
 from pipeline.utils.exceptions import FileOperationError
 
 
@@ -20,6 +19,7 @@ class FileService:
         Args:
             base_output_dir: Base directory for all file operations
         """
+        self.logger = get_run_logger()
         self.base_output_dir = base_output_dir
         self.base_output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -116,12 +116,14 @@ class FileService:
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(jobs_data, f, indent=2, ensure_ascii=False)
 
-            logger.success(f"{company_context} Saved {len(jobs)} jobs to {output_path}")
+            self.logger.info(
+                f"{company_context} Saved {len(jobs)} jobs to {output_path}"
+            )
             return output_path
 
         except Exception as e:
             error_msg = f"Failed to save jobs: {e!s}"
-            logger.error(f"{company_context} {error_msg}")
+            self.logger.error(f"{company_context} {error_msg}")
             raise FileOperationError(
                 "save", str(output_path), error_msg, company_name
             ) from e
@@ -154,7 +156,7 @@ class FileService:
             historical_file = previous_company_dir / "historical_jobs.json"
 
             if not historical_file.exists():
-                logger.info(
+                self.logger.info(
                     f"{company_context} No historical signatures found at {historical_file}"
                 )
                 return set()
@@ -163,13 +165,13 @@ class FileService:
                 historical_data = json.load(f)
 
             signatures = set(historical_data.get("signatures", []))
-            logger.info(
+            self.logger.info(
                 f"{company_context} Loaded {len(signatures)} historical signatures"
             )
             return signatures
 
         except Exception as e:
-            logger.warning(
+            self.logger.warning(
                 f"{company_context} Error loading historical signatures: {e}"
             )
             return set()
@@ -207,97 +209,14 @@ class FileService:
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(historical_data, f, indent=2, ensure_ascii=False)
 
-            logger.info(
+            self.logger.info(
                 f"{company_context} Saved {len(signatures)} signatures to {output_path}"
             )
             return output_path
 
         except Exception as e:
             error_msg = f"Failed to save historical signatures: {e!s}"
-            logger.error(f"{company_context} {error_msg}")
+            self.logger.error(f"{company_context} {error_msg}")
             raise FileOperationError(
                 "save", str(output_path), error_msg, company_name
             ) from e
-
-    def load_company_jobs(
-        self, company_name: str, filename: str = "jobs_stage_1.json"
-    ) -> list[dict[str, Any]]:
-        """
-        Load jobs for a specific company.
-
-        Args:
-            company_name: Company name
-            filename: Input filename
-
-        Returns:
-            List of job dictionaries
-        """
-        company_context = f"[{company_name}]"
-
-        try:
-            company_dir = self.get_company_output_dir(company_name)
-            input_path = company_dir / filename
-
-            if not input_path.exists():
-                logger.warning(f"{company_context} Jobs file not found: {input_path}")
-                return []
-
-            with open(input_path, encoding="utf-8") as f:
-                data: dict[str, Any] = json.load(f)
-
-            jobs: list[dict[str, Any]] = data.get("jobs", [])
-            logger.info(f"{company_context} Loaded {len(jobs)} jobs from {input_path}")
-            return jobs
-
-        except Exception as e:
-            logger.error(f"{company_context} Error loading jobs: {e}")
-            return []
-
-    def create_processing_summary(
-        self,
-        results: list[ProcessingResult],
-        summary_filename: str = "processing_summary.json",
-    ) -> Path:
-        """
-        Create a summary file of all processing results.
-
-        Args:
-            results: List of processing results
-            summary_filename: Summary filename
-
-        Returns:
-            Path to the summary file
-        """
-        try:
-            summary_path = self.base_output_dir / summary_filename
-
-            summary_data = {
-                "total_companies": len(results),
-                "successful_companies": len([r for r in results if r.success]),
-                "failed_companies": len([r for r in results if not r.success]),
-                "total_jobs_found": sum(r.jobs_found for r in results),
-                "total_jobs_saved": sum(r.jobs_saved for r in results),
-                "processing_timestamp": datetime.now(UTC).astimezone().isoformat(),
-                "results": [
-                    {
-                        "company_name": r.company_name,
-                        "success": r.success,
-                        "jobs_found": r.jobs_found,
-                        "jobs_saved": r.jobs_saved,
-                        "processing_time": r.processing_time,
-                        "error": r.error,
-                        "output_path": str(r.output_path) if r.output_path else None,
-                    }
-                    for r in results
-                ],
-            }
-
-            with open(summary_path, "w", encoding="utf-8") as f:
-                json.dump(summary_data, f, indent=2, ensure_ascii=False)
-
-            logger.success(f"Created processing summary: {summary_path}")
-            return summary_path
-
-        except Exception as e:
-            logger.error(f"Error creating processing summary: {e}")
-            raise FileOperationError("save", str(summary_path), str(e)) from e
