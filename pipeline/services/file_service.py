@@ -89,8 +89,6 @@ class FileService:
         Raises:
             FileOperationError: If file cannot be saved
         """
-        company_context = f"[{company_name}]"
-
         try:
             company_dir = self.get_company_output_dir(company_name)
             output_path = company_dir / filename
@@ -116,14 +114,12 @@ class FileService:
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(jobs_data, f, indent=2, ensure_ascii=False)
 
-            self.logger.info(
-                f"{company_context} Saved {len(jobs)} jobs to {output_path}"
-            )
+            self.logger.info(f"Saved {len(jobs)} jobs to {output_path}")
             return output_path
 
         except Exception as e:
             error_msg = f"Failed to save jobs: {e!s}"
-            self.logger.error(f"{company_context} {error_msg}")
+            self.logger.error(f"{error_msg}")
             raise FileOperationError(
                 "save", str(output_path), error_msg, company_name
             ) from e
@@ -138,8 +134,6 @@ class FileService:
         Returns:
             Set of historical job signatures
         """
-        company_context = f"[{company_name}]"
-
         try:
             current_date = datetime.now(UTC).astimezone()
             previous_date = current_date - timedelta(days=1)
@@ -156,24 +150,18 @@ class FileService:
             historical_file = previous_company_dir / "historical_jobs.json"
 
             if not historical_file.exists():
-                self.logger.info(
-                    f"{company_context} No historical signatures found at {historical_file}"
-                )
+                self.logger.info(f"No historical signatures found at {historical_file}")
                 return set()
 
             with open(historical_file, encoding="utf-8") as f:
                 historical_data = json.load(f)
 
             signatures = set(historical_data.get("signatures", []))
-            self.logger.info(
-                f"{company_context} Loaded {len(signatures)} historical signatures"
-            )
+            self.logger.info(f"Loaded {len(signatures)} historical signatures")
             return signatures
 
         except Exception as e:
-            self.logger.warning(
-                f"{company_context} Error loading historical signatures: {e}"
-            )
+            self.logger.warning(f"Error loading historical signatures: {e}")
             return set()
 
     async def save_historical_signatures(
@@ -193,8 +181,6 @@ class FileService:
         Returns:
             Path to the saved file
         """
-        company_context = f"[{company_name}]"
-
         try:
             company_dir = self.get_company_output_dir(company_name)
             output_path = company_dir / filename
@@ -209,14 +195,12 @@ class FileService:
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(historical_data, f, indent=2, ensure_ascii=False)
 
-            self.logger.info(
-                f"{company_context} Saved {len(signatures)} signatures to {output_path}"
-            )
+            self.logger.info(f"Saved {len(signatures)} signatures to {output_path}")
             return output_path
 
         except Exception as e:
             error_msg = f"Failed to save historical signatures: {e!s}"
-            self.logger.error(f"{company_context} {error_msg}")
+            self.logger.error(f"{error_msg}")
             raise FileOperationError(
                 "save", str(output_path), error_msg, company_name
             ) from e

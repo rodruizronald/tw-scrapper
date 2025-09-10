@@ -36,6 +36,8 @@ class WebExtractionService:
         """
         if logger is None:
             self.logger = loguru_logger
+        else:
+            self.logger = logger
 
         self.config = config
 
@@ -132,7 +134,9 @@ class WebExtractionService:
 
                 # Create and run parser (only once, after navigation attempt)
                 try:
-                    parser = ParserFactory.create_parser(parser_type, page, selectors)
+                    parser = ParserFactory.create_parser(
+                        parser_type, page, selectors, self.logger
+                    )
                     results = await parser.parse()
                 except Exception as parse_error:
                     self.logger.error(
@@ -174,13 +178,12 @@ class WebExtractionService:
         Raises:
             WebExtractionError: If extraction fails after all retries
         """
-        company_context = f"[{company_name}] " if company_name else ""
         parser_type = parser_type or self.config.parser_type
 
         for attempt in range(self.config.max_retries + 1):
             try:
                 self.logger.info(
-                    f"{company_context}Extracting HTML content from {url} (attempt {attempt + 1})"
+                    f"Extracting HTML content from {url} (attempt {attempt + 1})"
                 )
 
                 # Use existing extract_elements method
@@ -199,12 +202,12 @@ class WebExtractionService:
                     if result.found and result.html_content:
                         html_contents.append(result.html_content)
                         successful_selectors.append(result.selector)
-                        self.logger.debug(
-                            f"{company_context}Extracted content from selector: {result.selector}"
+                        self.logger.info(
+                            f"Extracted content from selector: {result.selector}"
                         )
                     else:
                         self.logger.warning(
-                            f"{company_context}No content found for selector: {result.selector}"
+                            f"No content found for selector: {result.selector}"
                         )
 
                 # Check if we got any content
@@ -212,11 +215,11 @@ class WebExtractionService:
                     error_msg = (
                         f"No HTML content extracted from any selectors: {selectors}"
                     )
-                    self.logger.warning(f"{company_context}{error_msg}")
+                    self.logger.warning(f"{error_msg}")
 
                     if attempt < self.config.max_retries:
                         self.logger.info(
-                            f"{company_context}Retrying in {self.config.retry_delay} seconds..."
+                            f"Retrying in {self.config.retry_delay} seconds..."
                         )
                         await asyncio.sleep(self.config.retry_delay)
                         continue
@@ -232,7 +235,7 @@ class WebExtractionService:
                 concatenated_html = "\n".join(html_contents)
 
                 self.logger.info(
-                    f"{company_context}Successfully extracted HTML content from "
+                    f"Successfully extracted HTML content from "
                     f"{len(successful_selectors)} selectors: {successful_selectors}"
                 )
 
@@ -243,11 +246,11 @@ class WebExtractionService:
                 raise
             except Exception as e:
                 error_msg = f"Unexpected error during HTML extraction: {e!s}"
-                self.logger.error(f"{company_context}{error_msg}")
+                self.logger.error(f"{error_msg}")
 
                 if attempt < self.config.max_retries:
                     self.logger.info(
-                        f"{company_context}Retrying in {self.config.retry_delay} seconds..."
+                        f"Retrying in {self.config.retry_delay} seconds..."
                     )
                     await asyncio.sleep(self.config.retry_delay)
                     continue

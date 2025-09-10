@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Any
 
 from prefect import task
 from prefect.logging import get_run_logger
@@ -14,6 +15,19 @@ from pipeline.utils.exceptions import (
 )
 
 
+def company_task_run_name(parameters: dict[str, Any]) -> str:
+    """Generate a clean task run name from company data."""
+    try:
+        company = parameters.get("company")
+        if company and hasattr(company, "name"):
+            # Create a URL-safe slug from company name
+            company_slug = company.name.lower().replace(" ", "-")
+            return f"{company_slug[:30]}"
+    except Exception:
+        pass
+    return "company-extraction"
+
+
 @task(
     name="Process Company",
     description="Extract job listings from a single company's career page",
@@ -21,6 +35,7 @@ from pipeline.utils.exceptions import (
     retries=2,
     retry_delay_seconds=30,
     timeout_seconds=300,  # 5 minutes per company
+    task_run_name=company_task_run_name,  # type: ignore[arg-type]
 )
 async def process_company_task(
     company: CompanyData,

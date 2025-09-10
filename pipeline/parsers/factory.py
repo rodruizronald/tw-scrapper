@@ -20,7 +20,7 @@ class ParserFactory:
 
     @classmethod
     def create_parser(
-        cls, parser_type: ParserType, page: Page, selectors: list[str]
+        cls, parser_type: ParserType, page: Page, selectors: list[str], logger=None
     ) -> SelectorParser:
         """
         Create a parser instance based on the specified type.
@@ -34,7 +34,7 @@ class ParserFactory:
             An instance of the appropriate parser class
         """
         parser_class = cls._parsers.get(parser_type, DefaultParser)
-        return parser_class(page, selectors)
+        return parser_class(page, selectors, logger)
 
     @classmethod
     def register_parser(
