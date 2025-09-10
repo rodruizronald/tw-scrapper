@@ -58,8 +58,6 @@ class OpenAIService:
             OpenAIProcessingError: If OpenAI processing fails
             FileOperationError: If prompt template cannot be read
         """
-        context = f"[{request.context_name}] " if request.context_name else ""
-
         # Read prompt template
         prompt_template = self._read_prompt_template(
             request.template_path, request.context_name
@@ -78,17 +76,16 @@ class OpenAIService:
                     request.system_message,
                     request.response_format,
                     attempt,
-                    context,
                 )
 
                 if result is not None:
                     self.logger.info(
-                        f"{context}OpenAI request completed successfully on attempt {attempt + 1}"
+                        f"OpenAI request completed successfully on attempt {attempt + 1}"
                     )
                     return result
 
                 self.logger.warning(
-                    f"{context}OpenAI request returned no result on attempt {attempt + 1}, retrying..."
+                    f"OpenAI request returned no result on attempt {attempt + 1}, retrying..."
                 )
 
             except (
@@ -97,14 +94,12 @@ class OpenAIService:
                 openai.APIError,
             ) as e:
                 if not await self._handle_openai_error(
-                    e, attempt, context, request.context_name
+                    e, attempt, request.context_name
                 ):
                     raise
 
             except Exception as e:
-                if not self._handle_unexpected_error(
-                    e, attempt, context, request.context_name
-                ):
+                if not self._handle_unexpected_error(e, attempt, request.context_name):
                     raise
 
         # This should never be reached
@@ -116,21 +111,18 @@ class OpenAIService:
         system_message: str,
         response_format: dict[str, Any],
         attempt: int,
-        context: str,
     ) -> dict[str, Any] | None:
         """Attempt a single OpenAI request.
 
         Note: response_format should be a dict with 'name', 'schema', and optionally 'strict' keys
         as per OpenAI's Structured Outputs format.
         """
-        self.logger.info(
-            f"{context}Sending content to OpenAI (attempt {attempt + 1})..."
-        )
+        self.logger.info(f"Sending content to OpenAI (attempt {attempt + 1})...")
 
         # Add rate limiting delay
         if attempt > 0:
             delay = self._rate_limit_delay * (2 ** (attempt - 1))  # Exponential backoff
-            self.logger.info(f"{context}Waiting {delay}s before retry...")
+            self.logger.info(f"Waiting {delay}s before retry...")
             await asyncio.sleep(delay)
 
         # Cast the response_format dict to JSONSchema type for type checking
@@ -155,47 +147,45 @@ class OpenAIService:
             timeout=self.config.timeout,
         )
 
-        return self._parse_openai_response(response, context)
+        return self._parse_openai_response(response)
 
     def _parse_openai_response(
         self,
         response: openai.types.chat.ChatCompletion,
-        context: str,
     ) -> dict[str, Any] | None:
         """Parse and validate OpenAI response."""
 
         response_text = response.choices[0].message.content
         if response_text is None:
             error_msg = "Empty response from OpenAI"
-            self.logger.error(f"{context}{error_msg}")
+            self.logger.error(f"{error_msg}")
             return None
 
         try:
             response_data: dict[str, Any] = json.loads(response_text)
-            self.logger.info(f"{context}Successfully parsed response from OpenAI")
+            self.logger.info("Successfully parsed response from OpenAI")
             return response_data
 
         except json.JSONDecodeError as e:
             error_msg = f"Invalid JSON response from OpenAI: {e}"
-            self.logger.error(f"{context}{error_msg}")
+            self.logger.error(f"{error_msg}")
             return None
 
     async def _handle_openai_error(
         self,
         error: Exception,
         attempt: int,
-        context: str,
         context_name: str | None,
     ) -> bool:
         """Handle OpenAI-specific errors. Returns True if should continue retrying."""
 
         if isinstance(error, openai.RateLimitError):
             error_msg = f"OpenAI rate limit exceeded: {error}"
-            self.logger.warning(f"{context}{error_msg}")
+            self.logger.warning(f"{error_msg}")
 
             if attempt < self.config.max_retries:
                 delay = self._rate_limit_delay * (3**attempt)
-                self.logger.info(f"{context}Rate limited, waiting {delay}s...")
+                self.logger.info(f"Rate limited, waiting {delay}s...")
                 await asyncio.sleep(delay)
                 return True
             else:
@@ -203,7 +193,7 @@ class OpenAIService:
 
         elif isinstance(error, openai.APITimeoutError):
             error_msg = f"OpenAI API timeout: {error}"
-            self.logger.warning(f"{context}{error_msg}")
+            self.logger.warning(f"{error_msg}")
 
             if attempt < self.config.max_retries:
                 return True
@@ -212,7 +202,7 @@ class OpenAIService:
 
         elif isinstance(error, openai.APIError):
             error_msg = f"OpenAI API error: {error}"
-            self.logger.error(f"{context}{error_msg}")
+            self.logger.error(f"{error_msg}")
 
             if attempt < self.config.max_retries:
                 return True
@@ -225,12 +215,11 @@ class OpenAIService:
         self,
         error: Exception,
         attempt: int,
-        context: str,
         context_name: str | None,
     ) -> bool:
         """Handle unexpected errors. Returns True if should continue retrying."""
         error_msg = f"Unexpected error during OpenAI processing: {error}"
-        self.logger.error(f"{context}{error_msg}")
+        self.logger.error(f"{error_msg}")
 
         if attempt < self.config.max_retries:
             return True

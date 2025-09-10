@@ -40,7 +40,7 @@ class Stage1Processor:
         self.openai_service = OpenAIService(config.openai)
         self.file_service = FileService(config.get_stage_1_output_dir(timestamp))
         self.web_extraction_service = WebExtractionService(
-            config.web_extraction, logger=logger
+            config.web_extraction, logger
         )
 
     async def process_single_company(
@@ -62,7 +62,7 @@ class Stage1Processor:
         start_datetime = datetime.now(UTC).astimezone()
         company_name = company_data.name
 
-        self.logger.info(f"🏢 Starting processing for company: {company_name}")
+        self.logger.info(f"Starting processing for company: {company_name}")
 
         # Initialize result with basic information
         result = ProcessingResult(
@@ -228,26 +228,26 @@ class Stage1Processor:
 
         # Validate company data
         self._validate_company_data(company_data)
-        self.logger.debug(f"✅ Company data validation passed for {company_name}")
+        self.logger.info(f"Company data validation passed for {company_name}")
 
         # Extract HTML content from career page
         html_content = await self._extract_career_page_content(company_data)
-        self.logger.debug(f"✅ HTML content extracted for {company_name}")
+        self.logger.info(f"HTML content extracted for {company_name}")
 
         # Parse job listings using OpenAI
         job_listings = await self._parse_job_listings(company_data, html_content)
-        self.logger.debug(f"✅ Job listings parsed for {company_name}")
+        self.logger.info(f"Job listings parsed for {company_name}")
 
         # Process and validate job data
         jobs = self._process_job_listings(company_data, job_listings)
-        self.logger.debug(
-            f"✅ Job data processed for {company_name}: {len(jobs)} jobs found"
+        self.logger.info(
+            f"Job data processed for {company_name}: {len(jobs)} jobs found"
         )
 
         # Filter out duplicate jobs
         unique_jobs = await self._filter_duplicate_jobs(company_data, jobs)
-        self.logger.debug(
-            f"✅ Duplicate filtering complete for {company_name}: {len(unique_jobs)} unique jobs"
+        self.logger.info(
+            f"Duplicate filtering complete for {company_name}: {len(unique_jobs)} unique jobs"
         )
 
         # Save jobs to file
@@ -257,7 +257,7 @@ class Stage1Processor:
                 unique_jobs, company_name
             )
             output_path = file_path  # Keep as Path, don't convert to str
-            self.logger.debug(f"✅ Jobs saved for {company_name}: {output_path}")
+            self.logger.info(f"Jobs saved for {company_name}: {output_path}")
 
         return jobs, unique_jobs, output_path
 
@@ -300,28 +300,28 @@ class Stage1Processor:
             result.error = f"Validation error: {error}"
             result.error_type = "ValidationError"
             result.retryable = False
-            self.logger.error(f"❌ {company_name}: Validation failed - {error}")
+            self.logger.error(f"{company_name}: Validation failed - {error}")
 
         elif isinstance(error, WebExtractionError | OpenAIProcessingError):
             # Potentially retryable errors - network/API issues
             result.error = str(error)
             result.error_type = type(error).__name__
             result.retryable = True
-            self.logger.error(f"❌ {company_name}: {type(error).__name__} - {error}")
+            self.logger.error(f"{company_name}: {type(error).__name__} - {error}")
 
         elif isinstance(error, FileOperationError):
             # File system errors - usually retryable
             result.error = str(error)
             result.error_type = "FileOperationError"
             result.retryable = True
-            self.logger.error(f"❌ {company_name}: File operation failed - {error}")
+            self.logger.error(f"{company_name}: File operation failed - {error}")
 
         else:
             # Unexpected errors - mark as non-retryable by default
             result.error = f"Unexpected error: {error}"
             result.error_type = "UnexpectedError"
             result.retryable = False
-            self.logger.error(f"❌ {company_name}: Unexpected error - {error}")
+            self.logger.error(f"{company_name}: Unexpected error - {error}")
 
             # Still raise CompanyProcessingError for upstream handling if needed
             raise CompanyProcessingError(company_name, error, "stage_1") from error

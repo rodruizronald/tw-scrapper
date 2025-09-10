@@ -1,6 +1,6 @@
 """Concrete parser implementations for different content types."""
 
-from loguru import logger
+from loguru import logger as loguru_logger
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from .base import SelectorParser
@@ -10,35 +10,45 @@ from .models import ElementResult, ParseContext, ParserType
 class DefaultParser(SelectorParser):
     """Parser for standard HTML pages."""
 
-    def __init__(self, page, selectors):
-        super().__init__(page, selectors)
+    def __init__(self, page, selectors, logger=None):
+        super().__init__(page, selectors, logger)
+        if logger is None:
+            self.logger = loguru_logger
+        else:
+            self.logger = logger
         self.parser_type = ParserType.DEFAULT
 
     async def setup(self) -> ParseContext:
         """Setup for default parsing - no special handling needed."""
-        logger.info("Using default parser for standard HTML")
+        self.logger.info("Using default parser for standard HTML")
         return ParseContext(page=self.page, parser_type=ParserType.DEFAULT)
 
     async def wait_for_content(self, context: ParseContext) -> None:
         """Wait for standard page load."""
         try:
             await context.page.wait_for_load_state("domcontentloaded", timeout=30000)
-            logger.debug("Page reached network idle state")
+            self.logger.info("Page reached network idle state")
         except PlaywrightTimeoutError:
-            logger.warning("Network idle timeout - proceeding with available content")
+            self.logger.warning(
+                "Network idle timeout - proceeding with available content"
+            )
             # Continue anyway - content might still be available
 
 
 class GreenhouseParser(SelectorParser):
     """Parser for Greenhouse iframe-based job boards."""
 
-    def __init__(self, page, selectors):
-        super().__init__(page, selectors)
+    def __init__(self, page, selectors, logger=None):
+        super().__init__(page, selectors, logger)
+        if logger is None:
+            self.logger = loguru_logger
+        else:
+            self.logger = logger
         self.parser_type = ParserType.GREENHOUSE
 
     async def setup(self) -> ParseContext:
         """Setup Greenhouse iframe context."""
-        logger.info("Using Greenhouse parser - looking for iframe")
+        self.logger.info("Using Greenhouse parser - looking for iframe")
 
         try:
             # Look for Greenhouse iframe
@@ -49,16 +59,16 @@ class GreenhouseParser(SelectorParser):
             if greenhouse_iframe:
                 frame = await greenhouse_iframe.content_frame()
                 if frame:
-                    logger.info("Successfully accessed Greenhouse iframe")
+                    self.logger.info("Successfully accessed Greenhouse iframe")
                     return ParseContext(
                         page=self.page, frame=frame, parser_type=ParserType.GREENHOUSE
                     )
                 else:
-                    logger.warning(
+                    self.logger.warning(
                         "Could not access iframe content, falling back to main page"
                     )
         except Exception as e:
-            logger.warning(f"Greenhouse iframe not found: {e}, using main page")
+            self.logger.warning(f"Greenhouse iframe not found: {e}, using main page")
 
         return ParseContext(page=self.page, parser_type=ParserType.GREENHOUSE)
 
@@ -69,13 +79,15 @@ class GreenhouseParser(SelectorParser):
                 await context.frame.wait_for_load_state(
                     "domcontentloaded", timeout=30000
                 )
-                logger.debug("Iframe content loaded")
+                self.logger.info("Iframe content loaded")
             else:
                 await context.page.wait_for_load_state(
                     "domcontentloaded", timeout=30000
                 )
         except PlaywrightTimeoutError:
-            logger.warning("Load state timeout - proceeding with available content")
+            self.logger.warning(
+                "Load state timeout - proceeding with available content"
+            )
 
     async def extract_element(
         self, context: ParseContext, selector: str, timeout: int = 5000
@@ -88,7 +100,9 @@ class GreenhouseParser(SelectorParser):
                 return result
 
             # Fallback to main page
-            logger.info(f"Selector not found in iframe, trying main page: {selector}")
+            self.logger.info(
+                f"Selector not found in iframe, trying main page: {selector}"
+            )
             main_context = ParseContext(
                 page=context.page, parser_type=context.parser_type
             )
@@ -101,13 +115,17 @@ class GreenhouseParser(SelectorParser):
 class AngularParser(SelectorParser):
     """Parser for Angular applications with dynamic content."""
 
-    def __init__(self, page, selectors):
-        super().__init__(page, selectors)
+    def __init__(self, page, selectors, logger=None):
+        super().__init__(page, selectors, logger)
+        if logger is None:
+            self.logger = loguru_logger
+        else:
+            self.logger = logger
         self.parser_type = ParserType.ANGULAR
 
     async def setup(self) -> ParseContext:
         """Setup for Angular parsing."""
-        logger.info("Using Angular parser for dynamic content")
+        self.logger.info("Using Angular parser for dynamic content")
         return ParseContext(page=self.page, parser_type=ParserType.ANGULAR)
 
     async def wait_for_content(self, context: ParseContext) -> None:
@@ -116,7 +134,7 @@ class AngularParser(SelectorParser):
             # For Angular, use 'domcontentloaded' or 'commit' instead of 'networkidle'
             # as Angular apps often never reach networkidle state
             await context.page.wait_for_load_state("domcontentloaded", timeout=30000)
-            logger.debug("DOM content loaded")
+            self.logger.info("DOM content loaded")
 
             # Wait a bit for initial Angular bootstrapping
             await context.page.wait_for_timeout(2000)
@@ -141,19 +159,21 @@ class AngularParser(SelectorParser):
                     """,
                     timeout=10000,
                 )
-                logger.info("Angular content detected")
+                self.logger.info("Angular content detected")
 
             except PlaywrightTimeoutError:
-                logger.warning("Angular indicators not found, but proceeding anyway")
+                self.logger.warning(
+                    "Angular indicators not found, but proceeding anyway"
+                )
 
             # Give Angular components time to render
             await context.page.wait_for_timeout(3000)
 
         except PlaywrightTimeoutError as e:
-            logger.warning(f"Angular content wait timeout: {e}")
+            self.logger.warning(f"Angular content wait timeout: {e}")
             # Don't re-raise - continue with what we have
         except Exception as e:
-            logger.error(f"Unexpected error waiting for Angular content: {e}")
+            self.logger.error(f"Unexpected error waiting for Angular content: {e}")
             # Don't re-raise - continue with what we have
 
     async def extract_element(

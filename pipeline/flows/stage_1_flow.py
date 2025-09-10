@@ -21,7 +21,7 @@ async def _process_companies(
             # Submit Prefect task and await its result (sequential)
             future = process_company_task.submit(company, config)
             # Wait for the future to complete and get the actual result
-            result = await future.result()
+            result = future.result()
 
             # Now check if the result has a success attribute
             if hasattr(result, "success") and result.success:

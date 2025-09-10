@@ -61,5 +61,6 @@ pipeline:
                       type: "string"
                       description: "Full URL to job posting"
                   required: ["title", "url"]
+                  additionalProperties: false
             required: ["jobs"]
             additionalProperties: false

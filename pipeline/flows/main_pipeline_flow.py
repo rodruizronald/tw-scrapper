@@ -18,10 +18,7 @@ from pipeline.flows.utils import (
     retries=0,  # No retries at pipeline level - let individual stages handle retries
     timeout_seconds=3600,  # 1 hour total pipeline timeout
 )
-async def main_pipeline_flow(
-    companies: list[CompanyData],
-    config: PipelineConfig,
-) -> None:
+async def main_pipeline_flow() -> None:
     """
     Main pipeline flow that orchestrates all stages of job processing.
 
@@ -31,18 +28,12 @@ async def main_pipeline_flow(
     - Stage 3: Extract skills and responsibilities
     - Stage 4: Extract technologies and tools
 
-    Args:
-        companies: List of companies to process
-        config: Pipeline configuration
-        stages_to_run: List of stage names to execute
-
     Returns:
         Complete pipeline execution results
     """
     logger = get_run_logger()
 
     logger.info("Starting Job Processing Pipeline")
-    logger.info(f"Companies to process: {len(companies)}")
     logger.info("=" * 60)
 
     try:
