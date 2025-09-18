@@ -1,4 +1,3 @@
-from datetime import UTC, datetime
 from typing import Any
 
 from prefect import task
@@ -60,23 +59,11 @@ async def process_company_task(
     try:
         logger.info(f"Starting task for company: {company.name}")
 
-        timestamp = datetime.now(UTC).astimezone().strftime("%Y%m%d")
-
         # Initialize processor
-        processor = Stage1Processor(config, timestamp)
+        processor = Stage1Processor(config)
 
         # Process the company
         result = await processor.process_single_company(company)
-
-        # Log result summary
-        if result.success:
-            logger.info(
-                f"{company.name}: Successfully processed "
-                f"({result.jobs_found} found, {result.jobs_saved} saved) "
-                f"in {result.processing_time:.2f}s"
-            )
-        else:
-            logger.error(f"{company.name}: Processing failed - {result.error}")
 
         return result
 

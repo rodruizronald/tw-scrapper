@@ -5,6 +5,7 @@ from pathlib import Path
 
 from prefect import get_run_logger
 
+from pipeline.core.config import PathsConfig
 from pipeline.core.models import JobData
 from pipeline.utils.exceptions import FileOperationError
 
@@ -12,16 +13,15 @@ from pipeline.utils.exceptions import FileOperationError
 class FileService:
     """Service for handling file operations in the pipeline."""
 
-    def __init__(self, base_output_dir: Path):
+    def __init__(self, paths: PathsConfig):
         """
         Initialize file service.
 
         Args:
-            base_output_dir: Base directory for all file operations
+            paths_config: Base directory for all file operations
         """
+        self.paths = paths
         self.logger = get_run_logger()
-        self.base_output_dir = base_output_dir
-        self.base_output_dir.mkdir(parents=True, exist_ok=True)
 
     def sanitize_company_name(self, company_name: str) -> str:
         """
@@ -65,7 +65,7 @@ class FileService:
             Path to company-specific output directory
         """
         sanitized_name = self.sanitize_company_name(company_name)
-        company_dir = self.base_output_dir / sanitized_name
+        company_dir = self.paths.output_dir / sanitized_name
         company_dir.mkdir(parents=True, exist_ok=True)
         return company_dir
 
@@ -73,7 +73,7 @@ class FileService:
         self,
         jobs: list[JobData],
         company_name: str,
-        filename: str = "jobs_stage_1.json",
+        stage_tag: str,
     ) -> Path:
         """
         Save jobs to a JSON file in the company-specific directory.
@@ -91,6 +91,7 @@ class FileService:
         """
         try:
             company_dir = self.get_company_output_dir(company_name)
+            filename = self.paths.get_stage_output_filename(stage_tag)
             output_path = company_dir / filename
 
             # Convert jobs to dictionaries
@@ -140,11 +141,7 @@ class FileService:
             previous_timestamp = previous_date.strftime("%Y%m%d")
 
             # Build path to previous day's historical jobs file
-            previous_day_base = (
-                self.base_output_dir.parent.parent
-                / previous_timestamp
-                / "pipeline_stage_4"
-            )
+            previous_day_base = self.paths.output_dir.parent.parent / previous_timestamp
             sanitized_name = self.sanitize_company_name(company_name)
             previous_company_dir = previous_day_base / sanitized_name
             historical_file = previous_company_dir / "historical_jobs.json"
@@ -164,14 +161,14 @@ class FileService:
             self.logger.warning(f"Error loading historical signatures: {e}")
             return set()
 
-    async def save_historical_signatures(
+    async def save_signatures(
         self,
         signatures: set[str],
         company_name: str,
-        filename: str = "historical_jobs.json",
+        filename: str,
     ) -> Path:
         """
-        Save job signatures for historical tracking.
+        Save job signatures.
 
         Args:
             signatures: Set of job signatures
@@ -185,7 +182,7 @@ class FileService:
             company_dir = self.get_company_output_dir(company_name)
             output_path = company_dir / filename
 
-            historical_data = {
+            data = {
                 "company": company_name,
                 "signatures": list(signatures),
                 "count": len(signatures),
@@ -193,13 +190,13 @@ class FileService:
             }
 
             with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(historical_data, f, indent=2, ensure_ascii=False)
+                json.dump(data, f, indent=2, ensure_ascii=False)
 
             self.logger.info(f"Saved {len(signatures)} signatures to {output_path}")
             return output_path
 
         except Exception as e:
-            error_msg = f"Failed to save historical signatures: {e!s}"
+            error_msg = f"Failed to save signatures: {e!s}"
             self.logger.error(f"{error_msg}")
             raise FileOperationError(
                 "save", str(output_path), error_msg, company_name
