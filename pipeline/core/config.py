@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -118,24 +119,20 @@ class PathsConfig:
     stage_output_patterns: StageOutputPatterns
     project_root: Path = field(default_factory=lambda: Path.cwd())
 
-    def initialize_paths(self, stages: StagesConfig, timestamp: str) -> None:
+    def initialize_paths(self, timestamp: str) -> None:
         """Convert relative paths to absolute paths using project_root."""
         self.output_dir = self.project_root / self.output_dir
         self.prompts_dir = self.project_root / self.prompts_dir
         self.companies_file = self.project_root / self.companies_file
 
-        # Initialize stage directories
-        for stage_tag in stages.get_enabled_stage_tags():
-            # Replace {stage_tag} in the pattern
-            stage_dir_name = self.stage_output_patterns.output_dir.format(
-                stage_tag=stage_tag
-            )
-            stage_output_dir = (
-                self.project_root / self.output_dir / timestamp / stage_dir_name
-            )
-            stage_output_dir.mkdir(parents=True, exist_ok=True)
+        # Create the timestamped output directory (this will be the base for FileService)
+        timestamped_output_dir = self.project_root / self.output_dir / timestamp
+        timestamped_output_dir.mkdir(parents=True, exist_ok=True)
 
-    def get_stage_output_file(self, stage_tag: str, timestamp: str) -> Path:
+        # Update the output_dir to include timestamp for FileService compatibility
+        self.output_dir = timestamped_output_dir
+
+    def get_stage_output_filename(self, stage_tag: str) -> str:
         """
         Get the full path to a stage's output file.
 
@@ -146,31 +143,7 @@ class PathsConfig:
         Returns:
             Full path to the stage's output file
         """
-        stage_dir_name = self.stage_output_patterns.output_dir.format(
-            stage_tag=stage_tag
-        )
-        stage_output_dir = self.output_dir / timestamp / stage_dir_name
-
-        stage_output_file = self.stage_output_patterns.output_file.format(
-            stage_tag=stage_tag
-        )
-        return stage_output_dir / stage_output_file
-
-    def get_stage_output_dir(self, stage_tag: str, timestamp: str) -> Path:
-        """
-        Get the full path to a stage's output file.
-
-        Args:
-            stage_tag: The stage tag (e.g., "stage_1")
-            timestamp: The timestamp string (e.g., "20241201")
-
-        Returns:
-            Full path to the stage's output file
-        """
-        stage_dir_name = self.stage_output_patterns.output_dir.format(
-            stage_tag=stage_tag
-        )
-        return self.output_dir / timestamp / stage_dir_name
+        return self.stage_output_patterns.output_file.format(stage_tag=stage_tag)
 
 
 ##
@@ -279,14 +252,6 @@ class PipelineConfig:
             Full path to the prompt template file
         """
         return self.paths.prompts_dir / prompt_filename
-
-    def get_stage_1_output_file(self, timestamp: str) -> Path:
-        """Get Stage 1 output file path."""
-        return self.paths.get_stage_output_file(self.stage_1.tag, timestamp)
-
-    def get_stage_1_output_dir(self, timestamp: str) -> Path:
-        """Get Stage 1 output dir path."""
-        return self.paths.get_stage_output_dir(self.stage_1.tag, timestamp)
 
     @classmethod
     def from_dict(cls, config_dict: dict[str, Any]) -> "PipelineConfig":
@@ -414,11 +379,11 @@ class PipelineConfig:
             },
         }
 
-    def initialize_paths(self, timestamp: str) -> None:
+    def initialize_paths(self) -> None:
         """Initialize all paths using the project root and stages configuration."""
-
+        timestamp = datetime.now(UTC).strftime("%Y%m%d")
         # Initialize paths with stages configuration
-        self.paths.initialize_paths(self.stages, timestamp)
+        self.paths.initialize_paths(timestamp)
 
     @classmethod
     def load(cls, env_file: Path | None = None) -> "PipelineConfig":

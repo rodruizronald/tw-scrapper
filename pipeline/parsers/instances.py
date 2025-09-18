@@ -20,14 +20,14 @@ class DefaultParser(SelectorParser):
 
     async def setup(self) -> ParseContext:
         """Setup for default parsing - no special handling needed."""
-        self.logger.info("Using default parser for standard HTML")
+        self.logger.debug("Using default parser for standard HTML")
         return ParseContext(page=self.page, parser_type=ParserType.DEFAULT)
 
     async def wait_for_content(self, context: ParseContext) -> None:
         """Wait for standard page load."""
         try:
             await context.page.wait_for_load_state("domcontentloaded", timeout=30000)
-            self.logger.info("Page reached network idle state")
+            self.logger.debug("Page reached network idle state")
         except PlaywrightTimeoutError:
             self.logger.warning(
                 "Network idle timeout - proceeding with available content"
@@ -48,7 +48,7 @@ class GreenhouseParser(SelectorParser):
 
     async def setup(self) -> ParseContext:
         """Setup Greenhouse iframe context."""
-        self.logger.info("Using Greenhouse parser - looking for iframe")
+        self.logger.debug("Using Greenhouse parser - looking for iframe")
 
         try:
             # Look for Greenhouse iframe
@@ -59,7 +59,7 @@ class GreenhouseParser(SelectorParser):
             if greenhouse_iframe:
                 frame = await greenhouse_iframe.content_frame()
                 if frame:
-                    self.logger.info("Successfully accessed Greenhouse iframe")
+                    self.logger.debug("Successfully accessed Greenhouse iframe")
                     return ParseContext(
                         page=self.page, frame=frame, parser_type=ParserType.GREENHOUSE
                     )
@@ -79,7 +79,7 @@ class GreenhouseParser(SelectorParser):
                 await context.frame.wait_for_load_state(
                     "domcontentloaded", timeout=30000
                 )
-                self.logger.info("Iframe content loaded")
+                self.logger.debug("Iframe content loaded")
             else:
                 await context.page.wait_for_load_state(
                     "domcontentloaded", timeout=30000
@@ -125,7 +125,7 @@ class AngularParser(SelectorParser):
 
     async def setup(self) -> ParseContext:
         """Setup for Angular parsing."""
-        self.logger.info("Using Angular parser for dynamic content")
+        self.logger.debug("Using Angular parser for dynamic content")
         return ParseContext(page=self.page, parser_type=ParserType.ANGULAR)
 
     async def wait_for_content(self, context: ParseContext) -> None:
@@ -134,7 +134,7 @@ class AngularParser(SelectorParser):
             # For Angular, use 'domcontentloaded' or 'commit' instead of 'networkidle'
             # as Angular apps often never reach networkidle state
             await context.page.wait_for_load_state("domcontentloaded", timeout=30000)
-            self.logger.info("DOM content loaded")
+            self.logger.debug("DOM content loaded")
 
             # Wait a bit for initial Angular bootstrapping
             await context.page.wait_for_timeout(2000)
@@ -159,7 +159,7 @@ class AngularParser(SelectorParser):
                     """,
                     timeout=10000,
                 )
-                self.logger.info("Angular content detected")
+                self.logger.debug("Angular content detected")
 
             except PlaywrightTimeoutError:
                 self.logger.warning(

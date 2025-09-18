@@ -1,5 +1,3 @@
-from datetime import UTC, datetime
-
 from prefect import flow, get_run_logger
 
 from pipeline.core.config import PipelineConfig
@@ -37,15 +35,12 @@ async def main_pipeline_flow() -> None:
     logger.info("=" * 60)
 
     try:
-        # Create timestamp
-        timestamp = datetime.now(UTC).strftime("%Y%m%d")
-
         # Load configuration
         config = PipelineConfig.load()
         logger.info("Configuration loaded")
 
         # Initialize paths
-        config.initialize_paths(timestamp)
+        config.initialize_paths()
         logger.info("Paths initialized")
 
         # Load companies

@@ -122,7 +122,7 @@ class WebExtractionService:
                         wait_until=self.config.browser_config.wait_until,
                         timeout=self.config.browser_config.timeout,
                     )
-                    self.logger.info("Initial page load complete")
+                    self.logger.debug("Initial page load complete")
 
                 except PlaywrightTimeoutError as e:
                     self.logger.error(f"Page load timeout for {url}")
