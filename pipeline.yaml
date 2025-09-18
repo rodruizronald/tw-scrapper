@@ -64,3 +64,74 @@ pipeline:
                   additionalProperties: false
             required: ["jobs"]
             additionalProperties: false
+    stage_2:
+      name: "Job Eligibility and Metadata Extraction"
+      tag: "stage_2"
+      description: "Analyze job postings to determine eligibility, extract metadata, and generate concise descriptions"
+      enabled: true
+      openai_service:
+        system_message: "You extract job descriptions, eligibility information, and basic metadata from HTML content."
+        prompt_template: "stage_2_details.md"
+        prompt_variables:
+          - html_content
+        response_format:
+          name: "JobAnalysis"
+          strict: true
+          schema:
+            type: "object"
+            properties:
+              job:
+                type: "object"
+                properties:
+                  eligible:
+                    type: "boolean"
+                    description: "Whether the job meets eligibility criteria"
+                  location:
+                    type: "string"
+                    enum: ["Costa Rica", "LATAM"]
+                    description: "Job location"
+                  work_mode:
+                    type: "string"
+                    enum: ["Remote", "Hybrid", "Onsite"]
+                    description: "Work arrangement mode"
+                  employment_type:
+                    type: "string"
+                    enum:
+                      [
+                        "Full-time",
+                        "Part-time",
+                        "Contract",
+                        "Freelance",
+                        "Temporary",
+                        "Internship",
+                      ]
+                    description: "Type of employment"
+                  experience_level:
+                    type: "string"
+                    enum:
+                      [
+                        "Entry-level",
+                        "Junior",
+                        "Mid-level",
+                        "Senior",
+                        "Lead",
+                        "Principal",
+                        "Executive",
+                      ]
+                    description: "Required experience level"
+                  description:
+                    type: "string"
+                    maxLength: 500
+                    description: "Concise job description focusing on role and responsibilities"
+                required:
+                  [
+                    "eligible",
+                    "location",
+                    "work_mode",
+                    "employment_type",
+                    "experience_level",
+                    "description",
+                  ]
+                additionalProperties: false
+            required: ["job"]
+            additionalProperties: false
