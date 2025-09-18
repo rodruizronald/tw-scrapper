@@ -1,7 +1,9 @@
+---
 pipeline:
   name: "Job Link Extraction Pipeline"
   version: "1.0.0"
-  description: "AI-powered job listing extraction and analysis from company career pages"
+  description: >-
+    AI-powered job listing extraction and analysis from company career pages
 
   # Directory structure and file paths
   paths:
@@ -19,26 +21,33 @@ pipeline:
     openai:
       model: "gpt-5-mini"
       max_retries: 3
-      timeout: 30 # seconds
+      # timeout in seconds
+      timeout: 30
 
     # Playwright integration for web scraping
     web_extraction:
       browser_config:
         headless: true
-        timeout: 30000 # milliseconds
+        # timeout in milliseconds
+        timeout: 30000
         wait_until: domcontentloaded
       max_retries: 3
-      retry_delay: 1.0 # seconds
+      # timeout in seconds
+      retry_delay: 1.0
 
   # Stages
   stages:
     stage_1:
       name: "Job Listing Extraction"
       tag: "stage_1"
-      description: "Extract job titles and URLs from company career pages using web scraping and AI parsing"
+      description: >-
+        Extract job titles and URLs from company career pages using web
+        scraping and AI parsing
       enabled: true
       openai_service:
-        system_message: "You are an AI assistant specialized in extracting job listings from HTML content."
+        system_message: >-
+          You are an AI assistant specialized in extracting job listings
+          from HTML content.
         prompt_template: "stage_1_jobs.md"
         prompt_variables:
           - html_content
@@ -67,10 +76,14 @@ pipeline:
     stage_2:
       name: "Job Eligibility and Metadata Extraction"
       tag: "stage_2"
-      description: "Analyze job postings to determine eligibility, extract metadata, and generate concise descriptions"
+      description: >-
+        Analyze job postings to determine eligibility, extract metadata,
+        and generate concise descriptions
       enabled: true
       openai_service:
-        system_message: "You extract job descriptions, eligibility information, and basic metadata from HTML content."
+        system_message: >-
+          You extract job descriptions, eligibility information, and basic
+          metadata from HTML content.
         prompt_template: "stage_2_details.md"
         prompt_variables:
           - html_content
@@ -122,7 +135,9 @@ pipeline:
                   description:
                     type: "string"
                     maxLength: 500
-                    description: "Concise job description focusing on role and responsibilities"
+                    description: >-
+                      Concise job description focusing on role and
+                      responsibilities
                 required:
                   [
                     "eligible",
