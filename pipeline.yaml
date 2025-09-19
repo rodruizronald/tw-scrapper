@@ -150,3 +150,56 @@ pipeline:
                 additionalProperties: false
             required: ["job"]
             additionalProperties: false
+    stage_3:
+      name: "Job Skills and Responsibilities Extraction"
+      tag: "stage_3"
+      description: >-
+        Extract detailed job information including responsibilities, required
+        and preferred skills, and benefits from job posting HTML content
+      enabled: true
+      openai_service:
+        system_message: >-
+          You extract job skills and responsibilities from HTML content.
+        prompt_template: "stage_3_skills.md"
+        prompt_variables:
+          - html_content
+        response_format:
+          name: "JobSkillsAndResponsibilities"
+          strict: true
+          schema:
+            type: "object"
+            properties:
+              responsibilities:
+                type: "array"
+                items:
+                  type: "string"
+                description: >-
+                  Action-oriented items describing what the person will do in
+                  the role
+              skill_must_have:
+                type: "array"
+                items:
+                  type: "string"
+                description: >-
+                  Skills that are required, essential, or mandatory for the
+                  role
+              skill_nice_to_have:
+                type: "array"
+                items:
+                  type: "string"
+                description: >-
+                  Skills that are preferred, bonus, or optional for the role
+              benefits:
+                type: "array"
+                items:
+                  type: "string"
+                description: >-
+                  Explicitly listed benefits, perks, and compensation details
+            required:
+              [
+                "responsibilities",
+                "skill_must_have",
+                "skill_nice_to_have",
+                "benefits",
+              ]
+            additionalProperties: false
