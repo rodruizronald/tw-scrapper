@@ -40,5 +40,8 @@ jobs:
       - name: Run linting
         run: make lint
 
+      - name: Check YAML files
+        run: make yaml-check
+
       - name: Run type checking
         run: make type-check

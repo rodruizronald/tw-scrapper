@@ -1,4 +1,10 @@
-.PHONY: format-check import-check type-check lint check-all format fix-imports fix-lint fix-all install install-dev clean help prefect-server prefect-config prefect-reset pre-commit-install pre-commit-run pre-commit-update
+.PHONY: \
+    format-check import-check type-check lint yaml-check check-all \
+    format fix-imports fix-lint fix-all \
+    install install-dev clean \
+    prefect-server prefect-config prefect-reset \
+    pre-commit-install pre-commit-run pre-commit-update \
+    help
 
 # Load environment variables from .env file if it exists
 ifneq (,$(wildcard ./.env))
@@ -33,6 +39,12 @@ lint:
 	@echo "Running linting with Ruff..."
 	@ruff check . --statistics
 	@echo "✅ Linting completed successfully"
+
+# YAML linting
+yaml-check:
+	@echo "Checking YAML files with yamllint..."
+	@yamllint pipeline.yaml companies.yaml .pre-commit-config.yaml
+	@echo "✅ YAML linting completed successfully"
 
 check-all: format-check import-check lint type-check
 	@echo "✅ All code quality checks completed successfully!"
@@ -126,6 +138,7 @@ help:
 	@echo "  make import-check       - Check import sorting with Ruff"
 	@echo "  make lint               - Run linting with Ruff"
 	@echo "  make type-check         - Run type checking with mypy"
+	@echo "  make yaml-check         - Check YAML files with yamllint"
 	@echo "  make check-all          - Run ALL quality checks"
 	@echo ""
 	@echo "🔧 Code Formatting & Fixes:"
