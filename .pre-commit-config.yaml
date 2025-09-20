@@ -1,3 +1,4 @@
+---
 repos:
   # Python tools using local installation
   - repo: local
@@ -16,6 +17,13 @@ repos:
         types: [python]
         require_serial: false
 
+      - id: yamllint
+        name: yamllint
+        entry: yamllint
+        language: system
+        types: [yaml]
+        require_serial: false
+
   # General file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
@@ -31,7 +39,7 @@ repos:
       - id: debug-statements
       - id: check-builtin-literals
       - id: check-toml
-      - id: check-case-conflict # Important for cross-platform
+      - id: check-case-conflict
 
   # Python-specific checks
   - repo: https://github.com/pre-commit/pygrep-hooks
@@ -39,4 +47,4 @@ repos:
     hooks:
       - id: python-check-blanket-noqa
       - id: python-no-log-warn
-      - id: python-use-type-annotations # Enforce type hints over comments
+      - id: python-use-type-annotations

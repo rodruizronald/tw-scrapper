@@ -1,7 +1,8 @@
-
+---
 companies:
   - name: Growth Acceleration Partners
-    career_url: https://careers.wearegap.com/jobs?country=Costa+Rica&query=
+    career_url: >-
+      https://careers.wearegap.com/jobs?country=Costa+Rica&query=
     enabled: true
     web_parser:
       type: default
@@ -26,7 +27,8 @@ companies:
 
   - name: Golabs Tech
     enabled: false
-    career_url: https://www.careers-page.com/golabstech#openings
+    career_url: >-
+      https://www.careers-page.com/golabstech#openings
     web_parser:
       type: default
       selectors:
@@ -37,7 +39,8 @@ companies:
 
   - name: Gorilla Logic
     enabled: false
-    career_url: https://gorillalogic.com/careers/open-roles?country=Remote%2C+Costa+Rica
+    career_url: >-
+      https://gorillalogic.com/careers/open-roles?country=Remote%2C+Costa+Rica
     web_parser:
       type: default
       selectors:
@@ -93,8 +96,12 @@ companies:
         job_board:
           - "body div.postings-wrapper"
         job_card:
-          - "body > div.content-wrapper.posting-page > div > div.section-wrapper.accent-section.page-full-width"
-          - "body > div.content-wrapper.posting-page > div > div:nth-child(2)"
+          - >-
+            body > div.content-wrapper.posting-page > div >
+            div.section-wrapper.accent-section.page-full-width
+          - >-
+            body > div.content-wrapper.posting-page > div >
+            div:nth-child(2)
 
   - name: Applaudo
     enabled: false
@@ -103,13 +110,19 @@ companies:
       type: default
       selectors:
         job_board:
-          - "body > div > div:nth-child(9) > div:nth-child(2) > div > div > div.rt-Box.rt-r-mt-9"
+          - >-
+            body > div > div:nth-child(9) > div:nth-child(2) > div > div >
+            div.rt-Box.rt-r-mt-9
         job_card:
-          - "body > div > div.rt-Container.rt-r-size-4.rt-r-px-5.sm\\:rt-r-px-7.rt-r-py-9 > div > div > div.rt-Box"
+          - >-
+            body > div >
+            div.rt-Container.rt-r-size-4.rt-r-px-5.sm\:rt-r-px-7.rt-r-py-9 >
+            div > div > div.rt-Box
 
   - name: Admios
     enabled: false
-    career_url: https://www.admios.com/careers#job-positions-section
+    career_url: >-
+      https://www.admios.com/careers#job-positions-section
     web_parser:
       type: default
       selectors:
@@ -121,7 +134,8 @@ companies:
 
   - name: Elite
     enabled: false
-    career_url: https://job-boards.greenhouse.io/elitetechnology?offices%5B%5D=4004147008
+    career_url: >-
+      https://job-boards.greenhouse.io/elitetechnology?offices%5B%5D=4004147008
     web_parser:
       type: default
       selectors:
@@ -152,7 +166,9 @@ companies:
         job_board:
           - "div.career-container.ng-star-inserted"
         job_card:
-          - "body > app-root > div > main > mat-sidenav-container > mat-sidenav-content > app-career-detail > mat-card"
+          - >-
+            body > app-root > div > main > mat-sidenav-container >
+            mat-sidenav-content > app-career-detail > mat-card
 
   - name: SMASH
     enabled: false
