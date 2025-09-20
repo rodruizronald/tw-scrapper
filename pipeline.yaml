@@ -203,3 +203,71 @@ pipeline:
                 "benefits",
               ]
             additionalProperties: false
+    stage_4:
+      name: "Technology Extraction and Categorization"
+      tag: "stage_4"
+      description: >-
+        Extract and categorize technologies from job requirements, determining
+        their requirement status and identifying main technologies for each role
+      enabled: true
+      openai_service:
+        system_message: >-
+          You extract and categorize technologies from structured job
+          requirements.
+        prompt_template: "stage_4_tech.md"
+        prompt_variables:
+          - requirements_json
+        response_format:
+          name: "TechnologyExtraction"
+          strict: true
+          schema:
+            type: "object"
+            properties:
+              technologies:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    name:
+                      type: "string"
+                      description: "Canonical technology name"
+                    category:
+                      type: "string"
+                      enum:
+                        [
+                          "programming",
+                          "frontend",
+                          "backend",
+                          "databases",
+                          "api",
+                          "cloud",
+                          "devops",
+                          "observability",
+                          "testing",
+                          "os",
+                          "ai",
+                          "productivity",
+                          "data",
+                          "messaging",
+                          "other",
+                        ]
+                      description: "Technology category"
+                    required:
+                      type: "boolean"
+                      description: >-
+                        Whether the technology is required (from must_have) or
+                        optional (from nice_to_have)
+                  required: ["name", "category", "required"]
+                  additionalProperties: false
+                description: >-
+                  List of all technologies found in the job requirements
+              main_technologies:
+                type: "array"
+                items:
+                  type: "string"
+                maxItems: 10
+                description: >-
+                  Up to 10 most essential technology names for the job,
+                  prioritizing required technologies and core job functions
+            required: ["technologies", "main_technologies"]
+            additionalProperties: false
