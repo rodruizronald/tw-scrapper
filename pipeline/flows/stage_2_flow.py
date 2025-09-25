@@ -3,7 +3,7 @@ from prefect import flow, get_run_logger
 from pipeline.core.config import PipelineConfig
 from pipeline.core.models import CompanyData
 from pipeline.services.file_service import FileService
-from pipeline.tasks.job_processing import process_jobs_task
+from pipeline.tasks.stage_2_task import process_job_details_task
 from pipeline.tasks.utils import (
     filter_enabled_companies,
 )
@@ -55,7 +55,7 @@ async def stage_2_flow(
                 continue
 
             # Submit Prefect task and await its result (sequential)
-            future = process_jobs_task.submit(company.name, jobs_data, config)
+            future = process_job_details_task.submit(company.name, jobs_data, config)
             # Wait for the future to complete and get the actual result
             result = future.result()
 
