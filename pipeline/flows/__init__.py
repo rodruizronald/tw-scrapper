@@ -9,6 +9,8 @@ and monitoring capabilities.
 from .main_pipeline_flow import main_pipeline_flow
 from .stage_1_flow import stage_1_flow
 from .stage_2_flow import stage_2_flow
+from .stage_3_flow import stage_3_flow
+from .stage_4_flow import stage_4_flow
 from .utils import (
     load_companies_from_file,
     validate_flow_inputs,
@@ -19,5 +21,7 @@ __all__ = [
     "main_pipeline_flow",
     "stage_1_flow",
     "stage_2_flow",
+    "stage_3_flow",
+    "stage_4_flow",
     "validate_flow_inputs",
 ]

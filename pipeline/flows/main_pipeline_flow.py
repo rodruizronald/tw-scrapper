@@ -4,6 +4,8 @@ from pipeline.core.config import PipelineConfig
 from pipeline.core.models import CompanyData
 from pipeline.flows.stage_1_flow import stage_1_flow
 from pipeline.flows.stage_2_flow import stage_2_flow
+from pipeline.flows.stage_3_flow import stage_3_flow
+from pipeline.flows.stage_4_flow import stage_4_flow
 from pipeline.flows.utils import (
     load_companies_from_file,
     validate_flow_inputs,
@@ -93,6 +95,22 @@ async def _execute_stages(
             logger,
         )
 
+    # Stage 3: Skills and Responsibilities Extraction
+    if config.stage_3.enabled:
+        await _execute_stage_3(
+            config,
+            companies,
+            logger,
+        )
+
+    # Stage 4: Technologies and Tools Extraction
+    if config.stage_4.enabled:
+        await _execute_stage_4(
+            config,
+            companies,
+            logger,
+        )
+
 
 async def _execute_stage_1(
     config: PipelineConfig,
@@ -134,4 +152,48 @@ async def _execute_stage_2(
         logger.error(f"Stage 2 failed: {e}")
 
         logger.error("Critical failure in Stage 2 - stopping pipeline")
+        raise
+
+
+async def _execute_stage_3(
+    config: PipelineConfig,
+    companies: list[CompanyData],
+    logger,
+) -> None:
+    """Execute Stage 3: Skills and Responsibilities Extraction."""
+    logger.info("STAGE 3: Skills and Responsibilities Extraction")
+    logger.info("=" * 80)
+
+    try:
+        await stage_3_flow(
+            companies=companies,
+            config=config,
+        )
+
+    except Exception as e:
+        logger.error(f"Stage 3 failed: {e}")
+
+        logger.error("Critical failure in Stage 3 - stopping pipeline")
+        raise
+
+
+async def _execute_stage_4(
+    config: PipelineConfig,
+    companies: list[CompanyData],
+    logger,
+) -> None:
+    """Execute Stage 4: Technologies and Tools Extraction."""
+    logger.info("STAGE 4: Technologies and Tools Extraction")
+    logger.info("=" * 80)
+
+    try:
+        await stage_4_flow(
+            companies=companies,
+            config=config,
+        )
+
+    except Exception as e:
+        logger.error(f"Stage 4 failed: {e}")
+
+        logger.error("Critical failure in Stage 4 - stopping pipeline")
         raise
