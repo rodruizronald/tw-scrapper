@@ -69,7 +69,7 @@ class FileService:
         company_dir.mkdir(parents=True, exist_ok=True)
         return company_dir
 
-    async def save_jobs(
+    def save_jobs(
         self,
         jobs: list[JobData],
         company_name: str,
@@ -125,6 +125,67 @@ class FileService:
                 "save", str(output_path), error_msg, company_name
             ) from e
 
+    def load_stage_results(
+        self,
+        company_name: str,
+        stage_tag: str,
+    ) -> list[JobData]:
+        """
+        Load stage results for a company and convert to JobData objects.
+
+        Args:
+            company_name: Company name
+            stage_tag: Stage identifier (e.g., "stage_1")
+
+        Returns:
+            List of JobData objects
+
+        Raises:
+            FileNotFoundError: If stage results file not found
+            Exception: For other file operation errors
+        """
+        logger = get_run_logger()
+
+        company_dir = self.get_company_output_dir(company_name)
+        filename = self.paths.get_stage_output_filename(stage_tag)
+        stage_result_file = company_dir / filename
+
+        logger.info(f"Loading jobs from: {stage_tag}")
+
+        if not stage_result_file.exists():
+            raise FileNotFoundError(
+                f"{stage_tag} results file not found: {stage_result_file}"
+            )
+
+        try:
+            with open(stage_result_file, encoding="utf-8") as f:
+                data = json.load(f)
+
+            # Extract jobs from the JSON structure
+            jobs_data = data.get("jobs", [])
+
+            # Convert to JobData objects
+            job_objects = []
+            for job_dict in jobs_data:
+                job = JobData(
+                    title=job_dict.get("title", ""),
+                    url=job_dict.get("url", ""),
+                    signature=job_dict.get("signature", ""),
+                    company=job_dict.get("company", company_name),
+                    timestamp=job_dict.get("timestamp", ""),
+                )
+                job_objects.append(job)
+
+            logger.info(f"Loaded {len(job_objects)} jobs for company: {company_name}")
+            return job_objects
+
+        except Exception as e:
+            error_msg = f"Failed to load {stage_tag} results: {e}"
+            logger.error(error_msg)
+            raise FileOperationError(
+                "load", str(stage_result_file), error_msg, company_name
+            ) from e
+
     def load_historical_signatures(self, company_name: str) -> set[str]:
         """
         Load historical job signatures for a company from previous day.
@@ -161,7 +222,7 @@ class FileService:
             self.logger.warning(f"Error loading historical signatures: {e}")
             return set()
 
-    async def save_signatures(
+    def save_signatures(
         self,
         signatures: set[str],
         company_name: str,

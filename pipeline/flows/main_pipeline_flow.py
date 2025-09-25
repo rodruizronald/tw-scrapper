@@ -3,6 +3,7 @@ from prefect import flow, get_run_logger
 from pipeline.core.config import PipelineConfig
 from pipeline.core.models import CompanyData
 from pipeline.flows.stage_1_flow import stage_1_flow
+from pipeline.flows.stage_2_flow import stage_2_flow
 from pipeline.flows.utils import (
     load_companies_from_file,
     validate_flow_inputs,
@@ -30,9 +31,7 @@ async def main_pipeline_flow() -> None:
         Complete pipeline execution results
     """
     logger = get_run_logger()
-
     logger.info("Starting Job Processing Pipeline")
-    logger.info("=" * 60)
 
     try:
         # Load configuration
@@ -86,6 +85,14 @@ async def _execute_stages(
             logger,
         )
 
+    # Stage 2: Job Listing Extraction
+    if config.stage_2.enabled:
+        await _execute_stage_2(
+            config,
+            companies,
+            logger,
+        )
+
 
 async def _execute_stage_1(
     config: PipelineConfig,
@@ -94,7 +101,7 @@ async def _execute_stage_1(
 ) -> None:
     """Execute Stage 1: Job Listing Extraction."""
     logger.info("STAGE 1: Job Listing Extraction")
-    logger.info("-" * 40)
+    logger.info("=" * 80)
 
     try:
         await stage_1_flow(
@@ -106,4 +113,25 @@ async def _execute_stage_1(
         logger.error(f"Stage 1 failed: {e}")
 
         logger.error("Critical failure in Stage 1 - stopping pipeline")
+        raise
+
+
+async def _execute_stage_2(
+    config: PipelineConfig,
+    companies: list[CompanyData],
+    logger,
+) -> None:
+    """Execute Stage 2: Job Details Extraction."""
+    logger.info("=" * 80)
+
+    try:
+        await stage_2_flow(
+            companies=companies,
+            config=config,
+        )
+
+    except Exception as e:
+        logger.error(f"Stage 2 failed: {e}")
+
+        logger.error("Critical failure in Stage 2 - stopping pipeline")
         raise
