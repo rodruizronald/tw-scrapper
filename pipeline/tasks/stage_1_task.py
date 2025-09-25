@@ -36,7 +36,7 @@ def company_task_run_name(parameters: dict[str, Any]) -> str:
     timeout_seconds=300,  # 5 minutes per company
     task_run_name=company_task_run_name,  # type: ignore[arg-type]
 )
-async def process_company_task(
+async def process_job_listings_task(
     company: CompanyData,
     config: PipelineConfig,
 ) -> ProcessingResult:

@@ -327,7 +327,7 @@ The pipeline uses the following task hierarchy:
 ```
 stage_1_flow
 ├── validate_company_data_task (parallel for each company)
-├── process_company_task (parallel with concurrency control)
+├── process_job_listings_task (parallel with concurrency control)
 └── aggregate_results_task (final aggregation)
 ```
 
@@ -811,8 +811,8 @@ Real-time progress updates with:
 10:30:15.123 | INFO    | Flow run 'stage-1-20241201-103015' - Starting flow execution
 10:30:16.456 | INFO    | Task run 'validate_company_data_task-1' - Task started
 10:30:16.789 | INFO    | Task run 'validate_company_data_task-1' - Task completed successfully
-10:30:17.012 | INFO    | Task run 'process_company_task-1' - Task started
-10:30:23.456 | INFO    | Task run 'process_company_task-1' - Task completed successfully
+10:30:17.012 | INFO    | Task run 'process_job_listings_task-1' - Task started
+10:30:23.456 | INFO    | Task run 'process_job_listings_task-1' - Task completed successfully
 ```
 
 ### Performance Tuning
