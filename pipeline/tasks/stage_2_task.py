@@ -1,29 +1,16 @@
-from typing import Any
-
 from prefect import task
 from prefect.logging import get_run_logger
 
 from pipeline.core.config import PipelineConfig
-from pipeline.core.models import JobData, ProcessingResult
+from pipeline.core.models import CompanyData, Job, JobData, ProcessingResult
 from pipeline.stages.stage_2 import Stage2Processor
+from pipeline.tasks.utils import company_task_run_name
 from pipeline.utils.exceptions import (
     FileOperationError,
     OpenAIProcessingError,
     ValidationError,
     WebExtractionError,
 )
-
-
-def company_task_run_name(parameters: dict[str, Any]) -> str:
-    """Generate a clean task run name from company data."""
-    try:
-        company_name = parameters.get("company_name")
-        if company_name:
-            company_slug = company_name.lower().replace(" ", "-")
-            return f"{company_slug[:30]}"
-    except Exception:
-        pass
-    return "company-extraction"
 
 
 @task(
@@ -36,7 +23,7 @@ def company_task_run_name(parameters: dict[str, Any]) -> str:
     task_run_name=company_task_run_name,  # type: ignore[arg-type]
 )
 async def process_job_details_task(
-    company_name: str,
+    company: CompanyData,
     jobs_data: list[JobData],
     config: PipelineConfig,
 ) -> ProcessingResult:
@@ -64,27 +51,26 @@ async def process_job_details_task(
     logger.info("-" * 80)
 
     try:
-        logger.info(f"Starting task for company: {company_name}")
+        logger.info(f"Starting task for company: {company.name}")
         logger.info(f"Processing {len(jobs_data)} jobs")
 
         # Initialize processor
-        processor = Stage2Processor(config)
+        processor = Stage2Processor(config, company.web_parser_config)
+        empty_job_list: list[Job] = []
 
-        # Process each job individually
-        for job_data in jobs_data:
-            result = await processor.process_single_job(job_data)
+        result = await processor.process_jobs(empty_job_list, company.name)
 
         # Return as dict format expected by the function signature
         return result
 
     except ValidationError as e:
         # Non-retryable errors - don't retry these
-        logger.error(f"Validation error for {company_name}: {e}")
+        logger.error(f"Validation error for {company.name}: t{e}")
 
         # Create failed result
         failed_result = ProcessingResult(
             success=False,
-            company_name=company_name,
+            company_name=company.name,
             error=str(e),
             error_type="ValidationError",
             retryable=False,
@@ -95,12 +81,12 @@ async def process_job_details_task(
 
     except (WebExtractionError, OpenAIProcessingError, FileOperationError) as e:
         # Retryable errors - let Prefect handle retries
-        logger.warning(f"Retryable error for {company_name}: {e}")
+        logger.warning(f"Retryable error for {company.name}: {e}")
         # Re-raise to trigger Prefect retry mechanism
         raise
 
     except Exception as e:
         # Unexpected errors - log and re-raise for retry
-        logger.error(f"Unexpected error for {company_name}: {e}")
+        logger.error(f"Unexpected error for {company.name}: {e}")
         # Re-raise to trigger Prefect retry mechanism
         raise

@@ -55,7 +55,7 @@ async def stage_3_flow(
                 continue
 
             # Submit Prefect task and await its result (sequential)
-            future = process_job_skills_task.submit(company.name, jobs_data, config)
+            future = process_job_skills_task.submit(company, jobs_data, config)
             # Wait for the future to complete and get the actual result
             result = future.result()
 
