@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -69,6 +70,12 @@ class CompanyData:
             )
 
     @property
+    def web_parser_config(self) -> WebParserConfig:
+        """Get parser type."""
+        assert isinstance(self.web_parser, WebParserConfig)
+        return self.web_parser
+
+    @property
     def parser_type(self) -> ParserType:
         """Get parser type."""
         assert isinstance(self.web_parser, WebParserConfig)
@@ -114,6 +121,91 @@ class JobData:
         """Validate job data after initialization."""
         if not self.url:
             raise ValueError("Job URL is required")
+
+
+class Location(str, Enum):
+    COSTA_RICA = "Costa Rica"
+    LATAM = "LATAM"
+
+
+class WorkMode(str, Enum):
+    REMOTE = "Remote"
+    HYBRID = "Hybrid"
+    ONSITE = "Onsite"
+
+
+class EmploymentType(str, Enum):
+    FULL_TIME = "Full-time"
+    PART_TIME = "Part-time"
+    CONTRACT = "Contract"
+    FREELANCE = "Freelance"
+    TEMPORARY = "Temporary"
+    INTERNSHIP = "Internship"
+
+
+class ExperienceLevel(str, Enum):
+    ENTRY_LEVEL = "Entry-level"
+    JUNIOR = "Junior"
+    MID_LEVEL = "Mid-level"
+    SENIOR = "Senior"
+    LEAD = "Lead"
+    PRINCIPAL = "Principal"
+    EXECUTIVE = "Executive"
+
+
+@dataclass
+class JobDetails:
+    """Job details extracted from Stage 2 analysis."""
+
+    eligible: bool
+    location: Location
+    work_mode: WorkMode
+    employment_type: EmploymentType
+    experience_level: ExperienceLevel
+    description: str
+
+
+@dataclass
+class Job:
+    """Evolving job model that grows through pipeline stages."""
+
+    # Stage 1 data (always present)
+    title: str
+    url: str
+    signature: str
+    company: str
+    timestamp: str
+
+    # Stage 2 data (optional, populated after stage 2)
+    details: JobDetails | None = None
+
+    @property
+    def is_stage_2_processed(self) -> bool:
+        """Check if job has been processed through Stage 2."""
+        return self.details is not None
+
+    @property
+    def is_eligible(self) -> bool:
+        """Check if job is eligible (requires Stage 2 processing)."""
+        return self.details is not None and self.details.eligible
+
+    def __post_init__(self):
+        """Validate required fields."""
+        if not self.title:
+            raise ValueError("Job title is required")
+        if not self.url:
+            raise ValueError("Job URL is required")
+
+    @classmethod
+    def from_job_data(cls, job_data: JobData) -> "Job":
+        """Create Job from JobData (Stage 1 data)."""
+        return cls(
+            title=job_data.title,
+            url=job_data.url,
+            signature=job_data.signature,
+            company=job_data.company,
+            timestamp=job_data.timestamp,
+        )
 
 
 @dataclass

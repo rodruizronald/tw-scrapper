@@ -80,6 +80,9 @@ class StagesConfig:
     """Configuration for all stages."""
 
     stage_1: StageConfig
+    stage_2: StageConfig
+    stage_3: StageConfig
+    stage_4: StageConfig
 
     def get_enabled_stage_tags(self) -> list[str]:
         """
@@ -92,6 +95,15 @@ class StagesConfig:
 
         if self.stage_1.enabled:
             enabled_stages.append(self.stage_1.tag)
+
+        if self.stage_2.enabled:
+            enabled_stages.append(self.stage_2.tag)
+
+        if self.stage_3.enabled:
+            enabled_stages.append(self.stage_3.tag)
+
+        if self.stage_4.enabled:
+            enabled_stages.append(self.stage_4.tag)
 
         return enabled_stages
 
@@ -236,22 +248,27 @@ class PipelineConfig:
     integrations: IntegrationsConfig
     stages: StagesConfig
 
-    @property
-    def companies_file_path(self) -> Path:
-        """Get the full path to the companies file."""
-        return self.paths.companies_file
-
-    def get_prompt_path(self, prompt_filename: str) -> Path:
+    @classmethod
+    def _create_stage_config(cls, stage_data: dict[str, Any]) -> StageConfig:
         """
-        Get the full path to a prompt template file.
+        Create a StageConfig from stage data dictionary.
 
         Args:
-            prompt_filename: Name of the prompt file (e.g., "job_extraction.md")
+            stage_data: Dictionary containing stage configuration data
 
         Returns:
-            Full path to the prompt template file
+            Configured StageConfig instance
         """
-        return self.paths.prompts_dir / prompt_filename
+        openai_service_data = stage_data.get("openai_service", {})
+        openai_service = OpenAIServiceConfig(**openai_service_data)
+
+        return StageConfig(
+            name=stage_data.get("name", ""),
+            tag=stage_data.get("tag", ""),
+            description=stage_data.get("description", ""),
+            enabled=stage_data.get("enabled", True),
+            openai_service=openai_service,
+        )
 
     @classmethod
     def from_dict(cls, config_dict: dict[str, Any]) -> "PipelineConfig":
@@ -302,20 +319,22 @@ class PipelineConfig:
         # Convert stages
         stages_data = config_dict.get("stages", {})
         stage_1_data = stages_data.get("stage_1", {})
+        stage_2_data = stages_data.get("stage_2", {})
+        stage_3_data = stages_data.get("stage_3", {})
+        stage_4_data = stages_data.get("stage_4", {})
 
-        # Handle nested openai_service
-        openai_service_data = stage_1_data.get("openai_service", {})
-        openai_service = OpenAIServiceConfig(**openai_service_data)
+        # Create stage configurations using helper method
+        stage_1_config = cls._create_stage_config(stage_1_data)
+        stage_2_config = cls._create_stage_config(stage_2_data)
+        stage_3_config = cls._create_stage_config(stage_3_data)
+        stage_4_config = cls._create_stage_config(stage_4_data)
 
-        stage_1_config = StageConfig(
-            name=stage_1_data.get("name", ""),
-            tag=stage_1_data.get("tag", ""),
-            description=stage_1_data.get("description", ""),
-            enabled=stage_1_data.get("enabled", True),
-            openai_service=openai_service,
+        stages = StagesConfig(
+            stage_1=stage_1_config,
+            stage_2=stage_2_config,
+            stage_3=stage_3_config,
+            stage_4=stage_4_config,
         )
-
-        stages = StagesConfig(stage_1=stage_1_config)
 
         return cls(
             name=config_dict["name"],
@@ -376,14 +395,44 @@ class PipelineConfig:
                         "response_format": self.stage_1.openai_service.response_format,
                     },
                 },
+                "stage_2": {
+                    "name": self.stage_2.name,
+                    "tag": self.stage_2.tag,
+                    "description": self.stage_2.description,
+                    "enabled": self.stage_2.enabled,
+                    "openai_service": {
+                        "system_message": self.stage_2.openai_service.system_message,
+                        "prompt_template": self.stage_2.openai_service.prompt_template,
+                        "prompt_variables": self.stage_2.openai_service.prompt_variables,
+                        "response_format": self.stage_2.openai_service.response_format,
+                    },
+                },
+                "stage_3": {
+                    "name": self.stage_3.name,
+                    "tag": self.stage_3.tag,
+                    "description": self.stage_3.description,
+                    "enabled": self.stage_3.enabled,
+                    "openai_service": {
+                        "system_message": self.stage_3.openai_service.system_message,
+                        "prompt_template": self.stage_3.openai_service.prompt_template,
+                        "prompt_variables": self.stage_3.openai_service.prompt_variables,
+                        "response_format": self.stage_3.openai_service.response_format,
+                    },
+                },
+                "stage_4": {
+                    "name": self.stage_4.name,
+                    "tag": self.stage_4.tag,
+                    "description": self.stage_4.description,
+                    "enabled": self.stage_4.enabled,
+                    "openai_service": {
+                        "system_message": self.stage_4.openai_service.system_message,
+                        "prompt_template": self.stage_4.openai_service.prompt_template,
+                        "prompt_variables": self.stage_4.openai_service.prompt_variables,
+                        "response_format": self.stage_4.openai_service.response_format,
+                    },
+                },
             },
         }
-
-    def initialize_paths(self) -> None:
-        """Initialize all paths using the project root and stages configuration."""
-        timestamp = datetime.now(UTC).strftime("%Y%m%d")
-        # Initialize paths with stages configuration
-        self.paths.initialize_paths(timestamp)
 
     @classmethod
     def load(cls, env_file: Path | None = None) -> "PipelineConfig":
@@ -427,6 +476,29 @@ class PipelineConfig:
         config.paths.project_root = project_root
         return config
 
+    def get_prompt_path(self, prompt_filename: str) -> Path:
+        """
+        Get the full path to a prompt template file.
+
+        Args:
+            prompt_filename: Name of the prompt file (e.g., "job_extraction.md")
+
+        Returns:
+            Full path to the prompt template file
+        """
+        return self.paths.prompts_dir / prompt_filename
+
+    def initialize_paths(self) -> None:
+        """Initialize all paths using the project root and stages configuration."""
+        timestamp = datetime.now(UTC).strftime("%Y%m%d")
+        # Initialize paths with stages configuration
+        self.paths.initialize_paths(timestamp)
+
+    @property
+    def companies_file_path(self) -> Path:
+        """Get the full path to the companies file."""
+        return self.paths.companies_file
+
     @property
     def openai(self) -> OpenAIConfig:
         """Get OpenAI configuration."""
@@ -441,3 +513,18 @@ class PipelineConfig:
     def stage_1(self) -> StageConfig:
         """Get Stage 1 configuration."""
         return self.stages.stage_1
+
+    @property
+    def stage_2(self) -> StageConfig:
+        """Get Stage 2 configuration."""
+        return self.stages.stage_2
+
+    @property
+    def stage_3(self) -> StageConfig:
+        """Get Stage 3 configuration."""
+        return self.stages.stage_3
+
+    @property
+    def stage_4(self) -> StageConfig:
+        """Get Stage 4 configuration."""
+        return self.stages.stage_4

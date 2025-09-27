@@ -212,7 +212,7 @@ class Stage1Processor:
             )
 
         # Save current signatures for future duplicate detection
-        await self.file_service.save_signatures(
+        self.file_service.save_signatures(
             current_signatures, company_data.name, "unfiltered_signatures.json"
         )
 
@@ -247,7 +247,7 @@ class Stage1Processor:
         # Save jobs to file
         output_path: Path | None = None
         if unique_jobs:
-            file_path: Path | None = await self.file_service.save_jobs(
+            file_path: Path | None = self.file_service.save_jobs(
                 unique_jobs, company_name, self.config.stage_1.tag
             )
             output_path = file_path  # Keep as Path, don't convert to str

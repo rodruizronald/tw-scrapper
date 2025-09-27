@@ -20,10 +20,17 @@ from .models import CompanyData, JobData, ProcessingResult
 __all__ = [
     "BrowserConfig",
     "CompanyData",
+    "EmploymentType",
+    "ExperienceLevel",
+    "Job",
     "JobData",
+    "JobDetails",
+    "JobDetailsMapper",
+    "Location",
     "OpenAIConfig",
     "PipelineConfig",
     "ProcessingResult",
     "StageConfig",
     "WebExtractionConfig",
+    "WorkMode",
 ]

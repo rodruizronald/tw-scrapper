@@ -6,8 +6,8 @@ by Prefect flows to process job data with proper monitoring,
 error handling, and retry capabilities.
 """
 
-from .company_processing import (
-    process_company_task,
+from .stage_1_task import (
+    process_job_listings_task,
 )
 from .utils import (
     filter_enabled_companies,
@@ -15,5 +15,5 @@ from .utils import (
 
 __all__ = [
     "filter_enabled_companies",
-    "process_company_task",
+    "process_job_listings_task",
 ]
