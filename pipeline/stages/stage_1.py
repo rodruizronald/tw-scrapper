@@ -7,7 +7,7 @@ from typing import Any
 from prefect.logging import get_run_logger
 
 from pipeline.core.config import PipelineConfig
-from pipeline.core.models import CompanyData, JobData, ProcessingResult
+from pipeline.core.models import CompanyData, Job, ProcessingResult
 from pipeline.services.file_service import FileService
 from pipeline.services.openai_service import OpenAIRequest, OpenAIService
 from pipeline.services.web_extraction_service import WebExtractionService
@@ -161,19 +161,20 @@ class Stage1Processor:
 
     def _process_job_listings(
         self, company_data: CompanyData, job_listings: dict[str, Any]
-    ) -> list[JobData]:
+    ) -> list[Job]:
         """Process and validate job listings data."""
         jobs = []
         job_data = job_listings.get("jobs", [])
 
         for job_info in job_data:
             try:
-                job = JobData(
+                job = Job(
                     title=job_info.get("title", ""),
                     url=job_info.get("url", ""),
                     company=company_data.name,
                     signature=self._generate_job_signature(job_info.get("url", "")),
                     timestamp=datetime.now(UTC).isoformat(),
+                    details=None,  # Stage 1 doesn't populate details
                 )
                 jobs.append(job)
             except Exception as e:
@@ -189,9 +190,9 @@ class Stage1Processor:
         return hashlib.sha256(url.encode()).hexdigest()
 
     async def _filter_duplicate_jobs(
-        self, company_data: CompanyData, jobs: list[JobData]
-    ) -> list[JobData]:
-        """Filter out duplicate jobs based on historical signatures."""
+        self, company_data: CompanyData, jobs: list[Job]
+    ) -> list[Job]:
+        """Filter out duplicate jobs based on historical data."""
         if not jobs:
             return jobs
 
@@ -220,8 +221,8 @@ class Stage1Processor:
 
     async def _execute_company_processing(
         self, company_data: CompanyData
-    ) -> tuple[list[JobData], list[JobData], Path | None]:
-        """Execute the core company processing steps."""
+    ) -> tuple[list[Job], list[Job], Path | None]:
+        """Execute the main processing logic for a company."""
         company_name = company_data.name
 
         # Validate company data
@@ -257,8 +258,8 @@ class Stage1Processor:
     def _build_success_result(
         self,
         result: ProcessingResult,
-        jobs: list[JobData],
-        unique_jobs: list[JobData],
+        jobs: list[Job],
+        unique_jobs: list[Job],
         output_path: Path | None,
         processing_time: float,
     ) -> ProcessingResult:

@@ -4,7 +4,6 @@ from pipeline.core.config import PipelineConfig
 from pipeline.core.mappers import JobDetailsMapper
 from pipeline.core.models import (
     Job,
-    JobData,
     JobDetails,
     ProcessingResult,
     WebParserConfig,
@@ -78,7 +77,7 @@ class Stage2Processor:
 
             # Save eligible jobs only
             if eligible_jobs:
-                empty_job_data_list: list[JobData] = []
+                empty_job_data_list: list[Job] = []
                 self.file_service.save_jobs(
                     empty_job_data_list, company_name, self.config.stage_2.tag
                 )
