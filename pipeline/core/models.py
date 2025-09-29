@@ -1,7 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
 from enum import Enum
-from pathlib import Path
 from typing import Any
 
 from pipeline.parsers.models import ParserType
@@ -179,61 +177,3 @@ class Job:
             raise ValueError("Job title is required")
         if not self.url:
             raise ValueError("Job URL is required")
-
-
-@dataclass
-class ProcessingResult:
-    """Result of processing a single company."""
-
-    # Basic result information
-    success: bool
-    company_name: str
-
-    # Success metrics
-    jobs_found: int = 0
-    jobs_saved: int = 0
-    processing_time: float = 0.0
-
-    # File paths
-    output_path: Path | None = None
-
-    # Error information
-    error: str | None = None
-    error_type: str | None = None
-
-    # Timing information
-    start_time: datetime | None = None
-    end_time: datetime | None = None
-
-    # Additional metadata
-    stage: str = "stage_1"
-    retryable: bool = True
-
-    @property
-    def is_successful(self) -> bool:
-        """Check if processing was successful."""
-        return self.success and self.error is None
-
-    def __str__(self) -> str:
-        """String representation of the result."""
-        if self.success:
-            return f"✅ {self.company_name}: {self.jobs_found} jobs found, {self.jobs_saved} saved"
-        else:
-            return f"❌ {self.company_name}: {self.error}"
-
-    def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary for JSON serialization."""
-        return {
-            "success": self.success,
-            "company_name": self.company_name,
-            "jobs_found": self.jobs_found,
-            "jobs_saved": self.jobs_saved,
-            "processing_time": self.processing_time,
-            "output_path": str(self.output_path) if self.output_path else None,
-            "error": self.error,
-            "error_type": self.error_type,
-            "start_time": self.start_time.isoformat() if self.start_time else None,
-            "end_time": self.end_time.isoformat() if self.end_time else None,
-            "stage": self.stage,
-            "retryable": self.retryable,
-        }

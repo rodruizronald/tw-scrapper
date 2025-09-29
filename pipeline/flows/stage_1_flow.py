@@ -52,12 +52,7 @@ async def stage_1_flow(
             # Submit Prefect task and await its result (sequential)
             future = process_job_listings_task.submit(company, config)
             # Wait for the future to complete and get the actual result
-            result = future.result()
-
-            # Now check if the result has a success attribute
-            if hasattr(result, "success") and result.success:
-                logger.info(f"Completed: {company.name}")
-            else:
-                logger.warning(f"Failed: {company.name}")
+            await future.result()
+            logger.info(f"Completed: {company.name}")
         except Exception as e:
             logger.error(f"Unexpected task failure: {company.name} - {e}")

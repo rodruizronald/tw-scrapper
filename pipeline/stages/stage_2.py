@@ -5,7 +5,6 @@ from pipeline.core.mappers import JobDetailsMapper
 from pipeline.core.models import (
     Job,
     JobDetails,
-    ProcessingResult,
     WebParserConfig,
 )
 from pipeline.services.file_service import FileService
@@ -35,9 +34,7 @@ class Stage2Processor:
         # Initialize mapper
         self.job_details_mapper = JobDetailsMapper()
 
-    async def process_jobs(
-        self, jobs: list[Job], company_name: str
-    ) -> ProcessingResult:
+    async def process_jobs(self, jobs: list[Job], company_name: str) -> None:
         """
         Process multiple jobs for a company to extract eligibility and metadata.
 
@@ -45,8 +42,6 @@ class Stage2Processor:
             jobs: List of Job objects to enrich with Stage 2 data
             company_name: Name of the company
 
-        Returns:
-            ProcessingResult with success status and processed data
         """
         self.logger.info(f"Processing {len(jobs)} jobs for {company_name}")
 
@@ -89,20 +84,8 @@ class Stage2Processor:
             else:
                 self.logger.warning(f"No eligible jobs found for {company_name}")
 
-            return ProcessingResult(
-                success=True,
-                company_name=company_name,
-                stage=self.config.stage_2.tag,
-            )
-
         except Exception as e:
             self.logger.error(f"Error processing jobs for {company_name}: {e!s}")
-            return ProcessingResult(
-                success=False,
-                company_name=company_name,
-                stage=self.config.stage_2.tag,
-                error=str(e),
-            )
 
     async def process_single_job(self, job: Job) -> Job:
         """

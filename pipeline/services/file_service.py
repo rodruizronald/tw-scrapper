@@ -82,7 +82,7 @@ class FileService:
         jobs: list[Job],
         company_name: str,
         stage_tag: str,
-    ) -> Path:
+    ) -> None:
         """
         Save jobs to a JSON file in the company-specific directory.
 
@@ -138,7 +138,6 @@ class FileService:
                 json.dump(jobs_data, f, indent=2, ensure_ascii=False)
 
             self.logger.info(f"Saved {len(jobs)} jobs to {output_path}")
-            return output_path
 
         except Exception as e:
             error_msg = f"Failed to save jobs: {e!s}"
