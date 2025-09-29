@@ -2,7 +2,7 @@ from prefect import task
 from prefect.logging import get_run_logger
 
 from pipeline.core.config import PipelineConfig
-from pipeline.core.models import CompanyData, JobData, ProcessingResult
+from pipeline.core.models import CompanyData, Job, ProcessingResult
 from pipeline.stages.stage_3 import Stage3Processor
 from pipeline.tasks.utils import company_task_run_name
 from pipeline.utils.exceptions import (
@@ -24,7 +24,7 @@ from pipeline.utils.exceptions import (
 )
 async def process_job_skills_task(
     company: CompanyData,
-    jobs_data: list[JobData],
+    jobs_data: list[Job],
     config: PipelineConfig,
 ) -> ProcessingResult:
     """

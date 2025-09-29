@@ -2,11 +2,19 @@ import json
 import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 from prefect import get_run_logger
 
 from pipeline.core.config import PathsConfig
-from pipeline.core.models import JobData
+from pipeline.core.models import (
+    EmploymentType,
+    ExperienceLevel,
+    Job,
+    JobDetails,
+    Location,
+    WorkMode,
+)
 from pipeline.utils.exceptions import FileOperationError
 
 
@@ -71,7 +79,7 @@ class FileService:
 
     def save_jobs(
         self,
-        jobs: list[JobData],
+        jobs: list[Job],
         company_name: str,
         stage_tag: str,
     ) -> Path:
@@ -79,9 +87,9 @@ class FileService:
         Save jobs to a JSON file in the company-specific directory.
 
         Args:
-            jobs: List of job data to save
+            jobs: List of Job objects to save
             company_name: Company name for directory creation
-            filename: Output filename
+            stage_tag: Stage identifier
 
         Returns:
             Path to the saved file
@@ -94,19 +102,33 @@ class FileService:
             filename = self.paths.get_stage_output_filename(stage_tag)
             output_path = company_dir / filename
 
-            # Convert jobs to dictionaries
+            # Convert Job objects to dictionaries
+            jobs_list = []
+            for job in jobs:
+                job_dict: dict[str, Any] = {
+                    "title": job.title,
+                    "url": job.url,
+                    "signature": job.signature,
+                    "company": job.company,
+                    "timestamp": job.timestamp,
+                }
+
+                # Include details if present (Stage 2+)
+                if job.details is not None:
+                    job_dict["details"] = {
+                        "eligible": job.details.eligible,
+                        "location": job.details.location.value,
+                        "work_mode": job.details.work_mode.value,
+                        "employment_type": job.details.employment_type.value,
+                        "experience_level": job.details.experience_level.value,
+                        "description": job.details.description,
+                    }
+
+                jobs_list.append(job_dict)
+
             jobs_data = {
                 "company": company_name,
-                "jobs": [
-                    {
-                        "title": job.title,
-                        "url": job.url,
-                        "signature": job.signature,
-                        "company": job.company,
-                        "timestamp": job.timestamp,
-                    }
-                    for job in jobs
-                ],
+                "jobs": jobs_list,
                 "total_jobs": len(jobs),
                 "saved_at": datetime.now(UTC).astimezone().isoformat(),
             }
@@ -129,16 +151,16 @@ class FileService:
         self,
         company_name: str,
         stage_tag: str,
-    ) -> list[JobData]:
+    ) -> list[Job]:
         """
-        Load stage results for a company and convert to JobData objects.
+        Load stage results for a company and convert to Job objects.
 
         Args:
             company_name: Company name
             stage_tag: Stage identifier (e.g., "stage_1")
 
         Returns:
-            List of JobData objects
+            List of Job objects
 
         Raises:
             FileNotFoundError: If stage results file not found
@@ -164,16 +186,35 @@ class FileService:
             # Extract jobs from the JSON structure
             jobs_data = data.get("jobs", [])
 
-            # Convert to JobData objects
+            # Convert to Job objects
             job_objects = []
             for job_dict in jobs_data:
-                job = JobData(
+                # Create Job object with basic data
+                job = Job(
                     title=job_dict.get("title", ""),
                     url=job_dict.get("url", ""),
                     signature=job_dict.get("signature", ""),
                     company=job_dict.get("company", company_name),
                     timestamp=job_dict.get("timestamp", ""),
+                    details=None,  # Will be populated if details exist
                 )
+
+                # If details exist in the saved data, reconstruct them
+                if job_dict.get("details"):
+                    details_data = job_dict["details"]
+                    job.details = JobDetails(
+                        eligible=details_data.get("eligible", False),
+                        location=Location(details_data.get("location", "unknown")),
+                        work_mode=WorkMode(details_data.get("work_mode", "unknown")),
+                        employment_type=EmploymentType(
+                            details_data.get("employment_type", "unknown")
+                        ),
+                        experience_level=ExperienceLevel(
+                            details_data.get("experience_level", "unknown")
+                        ),
+                        description=details_data.get("description", ""),
+                    )
+
                 job_objects.append(job)
 
             logger.info(f"Loaded {len(job_objects)} jobs for company: {company_name}")

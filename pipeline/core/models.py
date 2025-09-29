@@ -107,22 +107,6 @@ class CompanyData:
         }
 
 
-@dataclass
-class JobData:
-    """Data structure for individual job information."""
-
-    title: str
-    url: str
-    signature: str
-    company: str
-    timestamp: str
-
-    def __post_init__(self):
-        """Validate job data after initialization."""
-        if not self.url:
-            raise ValueError("Job URL is required")
-
-
 class Location(str, Enum):
     COSTA_RICA = "Costa Rica"
     LATAM = "LATAM"
@@ -195,17 +179,6 @@ class Job:
             raise ValueError("Job title is required")
         if not self.url:
             raise ValueError("Job URL is required")
-
-    @classmethod
-    def from_job_data(cls, job_data: JobData) -> "Job":
-        """Create Job from JobData (Stage 1 data)."""
-        return cls(
-            title=job_data.title,
-            url=job_data.url,
-            signature=job_data.signature,
-            company=job_data.company,
-            timestamp=job_data.timestamp,
-        )
 
 
 @dataclass

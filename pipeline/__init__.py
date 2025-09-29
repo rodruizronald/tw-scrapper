@@ -22,7 +22,7 @@ from .core.config import (
     StageConfig,
     WebExtractionConfig,
 )
-from .core.models import CompanyData, JobData, ParserType, ProcessingResult
+from .core.models import CompanyData, ParserType, ProcessingResult
 from .services.file_service import FileService
 from .services.openai_service import OpenAIService
 
@@ -55,7 +55,6 @@ __all__ = [
     "ConfigurationError",
     "FileOperationError",
     "FileService",
-    "JobData",
     "OpenAIConfig",
     "OpenAIProcessingError",
     "OpenAIService",

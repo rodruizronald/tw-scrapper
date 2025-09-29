@@ -15,7 +15,7 @@ from .config import (
     StageConfig,
     WebExtractionConfig,
 )
-from .models import CompanyData, JobData, ProcessingResult
+from .models import CompanyData, ProcessingResult
 
 __all__ = [
     "BrowserConfig",
@@ -23,7 +23,6 @@ __all__ = [
     "EmploymentType",
     "ExperienceLevel",
     "Job",
-    "JobData",
     "JobDetails",
     "JobDetailsMapper",
     "Location",

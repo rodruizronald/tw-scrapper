@@ -2,7 +2,7 @@ from prefect import task
 from prefect.logging import get_run_logger
 
 from pipeline.core.config import PipelineConfig
-from pipeline.core.models import CompanyData, Job, JobData, ProcessingResult
+from pipeline.core.models import CompanyData, Job, ProcessingResult
 from pipeline.stages.stage_2 import Stage2Processor
 from pipeline.tasks.utils import company_task_run_name
 from pipeline.utils.exceptions import (
@@ -19,48 +19,39 @@ from pipeline.utils.exceptions import (
     tags=["stage-2", "job-processing"],
     retries=2,
     retry_delay_seconds=30,
-    timeout_seconds=180,  # 3 minutes per job
+    timeout_seconds=180,
     task_run_name=company_task_run_name,  # type: ignore[arg-type]
 )
 async def process_job_details_task(
     company: CompanyData,
-    jobs_data: list[JobData],
+    jobs: list[Job],
     config: PipelineConfig,
 ) -> ProcessingResult:
     """
-    Prefect task to process a single job for eligibility analysis.
+    Prefect task to process jobs for eligibility analysis.
 
     Args:
-        job_data: Job data from Stage 1 containing:
-            - title: Job title
-            - url: Job posting URL
-            - signature: Job signature for deduplication
-        company_config: Company configuration containing selectors
+        company: Company data containing configuration
+        jobs: Job objects from Stage 1
         config: Pipeline configuration
 
     Returns:
-        Dictionary containing:
-            - success: bool
-            - job_data: Enhanced job data (if eligible and successful)
-            - error: Error message (if failed)
-            - company_name: Company name
-            - job_title: Job title
-            - processing_time: Time taken to process
+        ProcessingResult with success status and processing info
     """
     logger = get_run_logger()
     logger.info("-" * 80)
 
     try:
         logger.info(f"Starting task for company: {company.name}")
-        logger.info(f"Processing {len(jobs_data)} jobs")
+        logger.info(f"Processing {len(jobs)} jobs")
 
+        # No need to convert - jobs are already Job objects
         # Initialize processor
         processor = Stage2Processor(config, company.web_parser_config)
-        empty_job_list: list[Job] = []
 
-        result = await processor.process_jobs(empty_job_list, company.name)
+        # Process all jobs for the company
+        result = await processor.process_jobs(jobs, company.name)
 
-        # Return as dict format expected by the function signature
         return result
 
     except ValidationError as e:
