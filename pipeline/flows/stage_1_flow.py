@@ -1,7 +1,7 @@
 from prefect import flow, get_run_logger
 
 from pipeline.core.config import PipelineConfig
-from pipeline.core.models import CompanyData
+from pipeline.core.models import CompanyData, Job
 from pipeline.tasks.stage_1_task import (
     process_job_listings_task,
 )
@@ -20,7 +20,7 @@ from pipeline.tasks.utils import (
 async def stage_1_flow(
     companies: list[CompanyData],
     config: PipelineConfig,
-) -> None:
+) -> dict[str, list[Job]]:
     """
     Main flow for Stage 1: Extract job listings from company career pages.
 
@@ -43,16 +43,27 @@ async def stage_1_flow(
 
     if not enabled_companies:
         logger.warning("No enabled companies found to process")
-        return None
+        return {}
 
     logger.info(f"Processing {len(enabled_companies)} enabled companies")
+
+    # Initialize results map
+    results_map = {}
 
     for company in enabled_companies:
         try:
             # Submit Prefect task and await its result (sequential)
             future = process_job_listings_task.submit(company, config)
             # Wait for the future to complete and get the actual result
-            await future.result()
+            result = await future.result()
+
+            # Store result in the map
+            results_map[company.name] = result
+
             logger.info(f"Completed: {company.name}")
         except Exception as e:
             logger.error(f"Unexpected task failure: {company.name} - {e}")
+            # Store empty list for failed companies
+            results_map[company.name] = []
+
+    return results_map

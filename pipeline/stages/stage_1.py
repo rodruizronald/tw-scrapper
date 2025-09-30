@@ -41,7 +41,7 @@ class Stage1Processor:
             config.web_extraction, logger
         )
 
-    async def process_single_company(self, company_data: CompanyData) -> None:
+    async def process_single_company(self, company_data: CompanyData) -> list[Job]:
         """
         Process a single company to extract job listings.
 
@@ -62,17 +62,24 @@ class Stage1Processor:
                 f"Found {len(jobs)} jobs, saved {len(unique_jobs)} unique jobs "
             )
 
+            return unique_jobs
+
         except ValidationError as e:
             # Non-retryable error - bad company data
             self.logger.error(f"Validation failed - {e}")
+            return []  # Return empty list instead of None
 
         except (WebExtractionError, OpenAIProcessingError) as e:
             # Potentially retryable errors - network/API issues
             self.logger.error(f"{type(e).__name__} - {e}")
+            # Re-raise these for Prefect retry mechanism
+            raise
 
         except FileOperationError as e:
             # File system errors - usually retryable
             self.logger.error(f"File operation failed - {e}")
+            # Re-raise these for Prefect retry mechanism
+            raise
 
         except Exception as e:
             # Unexpected errors

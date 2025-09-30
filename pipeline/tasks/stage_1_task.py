@@ -2,7 +2,7 @@ from prefect import task
 from prefect.logging import get_run_logger
 
 from pipeline.core.config import PipelineConfig
-from pipeline.core.models import CompanyData
+from pipeline.core.models import CompanyData, Job
 from pipeline.stages.stage_1 import Stage1Processor
 from pipeline.tasks.utils import company_task_run_name
 from pipeline.utils.exceptions import (
@@ -25,7 +25,7 @@ from pipeline.utils.exceptions import (
 async def process_job_listings_task(
     company: CompanyData,
     config: PipelineConfig,
-) -> None:
+) -> list[Job]:
     """
     Prefect task to process a single company for job listings.
 
@@ -38,6 +38,7 @@ async def process_job_listings_task(
         Exception: For retryable errors (network, API, file operations)
     """
     logger = get_run_logger()
+    logger.info("-" * 80)
 
     try:
         logger.info(f"Starting task for company: {company.name}")
@@ -46,11 +47,14 @@ async def process_job_listings_task(
         processor = Stage1Processor(config)
 
         # Process the company
-        await processor.process_single_company(company)
+        jobs = await processor.process_single_company(company)
+
+        return jobs
 
     except ValidationError as e:
         # Non-retryable errors - don't retry these
         logger.error(f"Validation error for {company.name}: {e}")
+        return []  # Return empty list instead of None
 
     except (WebExtractionError, OpenAIProcessingError, FileOperationError) as e:
         # Retryable errors - let Prefect handle retries

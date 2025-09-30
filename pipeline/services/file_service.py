@@ -245,7 +245,7 @@ class FileService:
             previous_day_base = self.paths.output_dir.parent.parent / previous_timestamp
             sanitized_name = self.sanitize_company_name(company_name)
             previous_company_dir = previous_day_base / sanitized_name
-            historical_file = previous_company_dir / "historical_jobs.json"
+            historical_file = previous_company_dir / "unfiltered_signatures.json"
 
             if not historical_file.exists():
                 self.logger.info(f"No historical signatures found at {historical_file}")
