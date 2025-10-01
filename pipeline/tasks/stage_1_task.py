@@ -38,7 +38,6 @@ async def process_job_listings_task(
         Exception: For retryable errors (network, API, file operations)
     """
     logger = get_run_logger()
-    logger.info("-" * 80)
 
     try:
         logger.info(f"Starting task for company: {company.name}")

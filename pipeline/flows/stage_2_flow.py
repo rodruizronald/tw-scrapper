@@ -1,7 +1,7 @@
 from prefect import flow, get_run_logger
 
 from pipeline.core.config import PipelineConfig
-from pipeline.core.models import CompanyData
+from pipeline.core.models import CompanyData, Job
 from pipeline.services.file_service import FileService
 from pipeline.tasks.stage_2_task import process_job_details_task
 from pipeline.tasks.utils import (
@@ -19,6 +19,7 @@ from pipeline.tasks.utils import (
 async def stage_2_flow(
     companies: list[CompanyData],
     config: PipelineConfig,
+    stage_1_results: dict[str, list[Job]] | None,
 ) -> None:
     """
     Main flow for Stage 2: Extract job eligibility, metadata, and detailed descriptions from individual job postings.
@@ -31,8 +32,8 @@ async def stage_2_flow(
         config: Pipeline configuration
     """
     logger = get_run_logger()
+    logger.info("Stage 2: Job Details Extraction")
 
-    logger.info("STAGE 2: Job Details Extraction")
     file_service = FileService(config.paths)
 
     # Filter enabled companies
@@ -46,10 +47,16 @@ async def stage_2_flow(
 
     for company in enabled_companies:
         try:
-            # Load jobs found in stage 1
-            jobs_data = file_service.load_stage_results(
-                company.name, config.stage_1.tag
-            )
+            # Get jobs data from stage 1 results or fallback to file loading
+            jobs_data = None
+            if stage_1_results and company.name in stage_1_results:
+                jobs_data = stage_1_results[company.name]
+            else:
+                # Fallback to loading from file if stage 1 results not available
+                jobs_data = file_service.load_stage_results(
+                    company.name, config.stage_1.tag
+                )
+
             if not jobs_data:
                 logger.debug(f"No jobs data found for {company.name}")
                 continue

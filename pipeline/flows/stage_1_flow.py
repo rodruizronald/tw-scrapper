@@ -1,3 +1,5 @@
+import asyncio
+
 from prefect import flow, get_run_logger
 
 from pipeline.core.config import PipelineConfig
@@ -35,8 +37,7 @@ async def stage_1_flow(
         Aggregated results from all company processing
     """
     logger = get_run_logger()
-
-    logger.info(f"Starting Stage 1 flow with {len(companies)} companies")
+    logger.info("Stage 1: Job Listing Extraction")
 
     # Filter enabled companies
     enabled_companies = filter_enabled_companies(companies)
@@ -47,23 +48,31 @@ async def stage_1_flow(
 
     logger.info(f"Processing {len(enabled_companies)} enabled companies")
 
-    # Initialize results map
-    results_map = {}
+    async def process_with_semaphore(
+        company: CompanyData, semaphore: asyncio.Semaphore
+    ) -> tuple[str, list[Job]]:
+        """Process a company with semaphore to limit concurrency."""
+        async with semaphore:
+            try:
+                result = await process_job_listings_task(company, config)
+                logger.info(f"Completed: {company.name}")
+                return company.name, result
+            except Exception as e:
+                logger.error(f"Unexpected task failure: {company.name} - {e}")
+                return company.name, []
 
-    for company in enabled_companies:
-        try:
-            # Submit Prefect task and await its result (sequential)
-            future = process_job_listings_task.submit(company, config)
-            # Wait for the future to complete and get the actual result
-            result = await future.result()
+    # Create semaphore for concurrency control
+    semaphore = asyncio.Semaphore(3)
 
-            # Store result in the map
-            results_map[company.name] = result
+    # Create tasks for all companies
+    tasks = [
+        process_with_semaphore(company, semaphore) for company in enabled_companies
+    ]
 
-            logger.info(f"Completed: {company.name}")
-        except Exception as e:
-            logger.error(f"Unexpected task failure: {company.name} - {e}")
-            # Store empty list for failed companies
-            results_map[company.name] = []
+    # Run all tasks concurrently (limited by semaphore)
+    results = await asyncio.gather(*tasks)
+
+    # Build results map
+    results_map = dict(results)
 
     return results_map

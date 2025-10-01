@@ -31,8 +31,8 @@ async def stage_3_flow(
         config: Pipeline configuration
     """
     logger = get_run_logger()
-
     logger.info("STAGE 3: Skills and Responsibilities Extraction")
+
     file_service = FileService(config.paths)
 
     # Filter enabled companies

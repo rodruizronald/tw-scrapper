@@ -192,7 +192,7 @@ class Stage1Processor:
             return jobs
 
         # Load historical signatures
-        historical_signatures = self.file_service.load_historical_signatures(
+        historical_signatures = self.file_service.load_previous_day_signatures(
             company_data.name
         )
 

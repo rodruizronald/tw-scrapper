@@ -72,9 +72,8 @@ class Stage2Processor:
 
             # Save eligible jobs only
             if eligible_jobs:
-                empty_job_data_list: list[Job] = []
                 self.file_service.save_jobs(
-                    empty_job_data_list, company_name, self.config.stage_2.tag
+                    eligible_jobs, company_name, self.config.stage_2.tag
                 )
                 self.logger.info(
                     f"Saved {len(eligible_jobs)} eligible jobs for {company_name}. "

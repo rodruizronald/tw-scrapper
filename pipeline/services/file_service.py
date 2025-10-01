@@ -226,40 +226,42 @@ class FileService:
                 "load", str(stage_result_file), error_msg, company_name
             ) from e
 
-    def load_historical_signatures(self, company_name: str) -> set[str]:
+    def load_previous_day_signatures(self, company_name: str) -> set[str]:
         """
-        Load historical job signatures for a company from previous day.
+        Load job signatures for a company from previous day.
 
         Args:
             company_name: Company name
 
         Returns:
-            Set of historical job signatures
+            Set of job signatures from previous day
         """
         try:
             current_date = datetime.now(UTC).astimezone()
             previous_date = current_date - timedelta(days=1)
             previous_timestamp = previous_date.strftime("%Y%m%d")
 
-            # Build path to previous day's historical jobs file
+            # Build path to previous day's jobs file
             previous_day_base = self.paths.output_dir.parent.parent / previous_timestamp
             sanitized_name = self.sanitize_company_name(company_name)
             previous_company_dir = previous_day_base / sanitized_name
-            historical_file = previous_company_dir / "unfiltered_signatures.json"
+            unfiltered_signatures = previous_company_dir / "unfiltered_signatures.json"
 
-            if not historical_file.exists():
-                self.logger.info(f"No historical signatures found at {historical_file}")
+            if not unfiltered_signatures.exists():
+                self.logger.info(
+                    f"No signatures found from yesterday at {unfiltered_signatures}"
+                )
                 return set()
 
-            with open(historical_file, encoding="utf-8") as f:
-                historical_data = json.load(f)
+            with open(unfiltered_signatures, encoding="utf-8") as f:
+                previous_data = json.load(f)
 
-            signatures = set(historical_data.get("signatures", []))
-            self.logger.info(f"Loaded {len(signatures)} historical signatures")
+            signatures = set(previous_data.get("signatures", []))
+            self.logger.info(f"Loaded {len(signatures)} signatures from yesterday")
             return signatures
 
         except Exception as e:
-            self.logger.warning(f"Error loading historical signatures: {e}")
+            self.logger.warning(f"Error loading signatures from yesterday: {e}")
             return set()
 
     def save_signatures(

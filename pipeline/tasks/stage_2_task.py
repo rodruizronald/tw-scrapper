@@ -41,9 +41,7 @@ async def process_job_details_task(
 
     try:
         logger.info(f"Starting task for company: {company.name}")
-        logger.info(f"Processing {len(jobs)} jobs")
 
-        # No need to convert - jobs are already Job objects
         # Initialize processor
         processor = Stage2Processor(config, company.web_parser_config)
 

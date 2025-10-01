@@ -79,7 +79,7 @@ pipeline:
       description: >-
         Analyze job postings to determine eligibility, extract metadata,
         and generate concise descriptions
-      enabled: false
+      enabled: true
       openai_service:
         system_message: >-
           You extract job descriptions, eligibility information, and basic
