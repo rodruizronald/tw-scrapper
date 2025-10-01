@@ -110,13 +110,11 @@ class FileService:
                     "url": job.url,
                     "signature": job.signature,
                     "company": job.company,
-                    "timestamp": job.timestamp,
                 }
 
                 # Include details if present (Stage 2+)
                 if job.details is not None:
                     job_dict["details"] = {
-                        "eligible": job.details.eligible,
                         "location": job.details.location.value,
                         "work_mode": job.details.work_mode.value,
                         "employment_type": job.details.employment_type.value,
@@ -242,14 +240,14 @@ class FileService:
             previous_timestamp = previous_date.strftime("%Y%m%d")
 
             # Build path to previous day's jobs file
-            previous_day_base = self.paths.output_dir.parent.parent / previous_timestamp
+            previous_day_base = self.paths.output_dir.parent / previous_timestamp
             sanitized_name = self.sanitize_company_name(company_name)
             previous_company_dir = previous_day_base / sanitized_name
             unfiltered_signatures = previous_company_dir / "unfiltered_signatures.json"
 
             if not unfiltered_signatures.exists():
                 self.logger.info(
-                    f"No signatures found from yesterday at {unfiltered_signatures}"
+                    f"No signatures from previous day at {unfiltered_signatures}"
                 )
                 return set()
 
@@ -257,7 +255,7 @@ class FileService:
                 previous_data = json.load(f)
 
             signatures = set(previous_data.get("signatures", []))
-            self.logger.info(f"Loaded {len(signatures)} signatures from yesterday")
+            self.logger.info(f"Loaded {len(signatures)} signatures from previous day")
             return signatures
 
         except Exception as e:
