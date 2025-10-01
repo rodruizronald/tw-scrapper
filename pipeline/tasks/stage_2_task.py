@@ -37,7 +37,6 @@ async def process_job_details_task(
 
     """
     logger = get_run_logger()
-    logger.info("-" * 80)
 
     try:
         logger.info(f"Starting task for company: {company.name}")

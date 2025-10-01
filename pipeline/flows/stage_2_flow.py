@@ -1,3 +1,5 @@
+import asyncio
+
 from prefect import flow, get_run_logger
 
 from pipeline.core.config import PipelineConfig
@@ -30,6 +32,7 @@ async def stage_2_flow(
     Args:
         companies: List of companies to process
         config: Pipeline configuration
+        stage_1_results: Results from stage 1 or None to load from files
     """
     logger = get_run_logger()
     logger.info("Stage 2: Job Details Extraction")
@@ -45,27 +48,40 @@ async def stage_2_flow(
 
     logger.info(f"Processing {len(enabled_companies)} enabled companies")
 
-    for company in enabled_companies:
-        try:
-            # Get jobs data from stage 1 results or fallback to file loading
-            jobs_data = None
-            if stage_1_results and company.name in stage_1_results:
-                jobs_data = stage_1_results[company.name]
-            else:
-                # Fallback to loading from file if stage 1 results not available
-                jobs_data = file_service.load_stage_results(
-                    company.name, config.stage_1.tag
-                )
+    async def process_with_semaphore(
+        company: CompanyData, semaphore: asyncio.Semaphore
+    ) -> None:
+        """Process a company with semaphore to limit concurrency."""
+        async with semaphore:
+            try:
+                # Get jobs data from stage 1 results or fallback to file loading
+                jobs_data = None
+                if stage_1_results and company.name in stage_1_results:
+                    jobs_data = stage_1_results[company.name]
+                else:
+                    # Fallback to loading from file if stage 1 results not available
+                    jobs_data = file_service.load_stage_results(
+                        company.name, config.stage_1.tag
+                    )
 
-            if not jobs_data:
-                logger.debug(f"No jobs data found for {company.name}")
-                continue
+                if not jobs_data:
+                    logger.debug(f"No jobs data found for {company.name}")
+                    return
 
-            # Submit Prefect task and await its result (sequential)
-            future = process_job_details_task.submit(company, jobs_data, config)
+                # Submit Prefect task and await its result
+                future = process_job_details_task.submit(company, jobs_data, config)
+                await future.result()
+                logger.info(f"Completed: {company.name}")
+            except Exception as e:
+                logger.error(f"Unexpected task failure: {company.name} - {e}")
 
-            # Wait for the future to complete and get the actual result
-            await future.result()
-            logger.info(f"Completed: {company.name}")
-        except Exception as e:
-            logger.error(f"Unexpected task failure: {company.name} - {e}")
+    # Create semaphore for concurrency control
+    semaphore = asyncio.Semaphore(3)
+
+    # Create tasks for all companies
+    tasks = [
+        process_with_semaphore(company, semaphore) for company in enabled_companies
+    ]
+
+    # Run all tasks concurrently (limited by semaphore)
+    await asyncio.gather(*tasks)

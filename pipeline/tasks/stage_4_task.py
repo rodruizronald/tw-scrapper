@@ -48,11 +48,9 @@ async def process_job_technologies_task(
             - processing_time: Time taken to process
     """
     logger = get_run_logger()
-    logger.info("-" * 80)
 
     try:
         logger.info(f"Starting task for company: {company.name}")
-        logger.info(f"Processing {len(jobs_data)} jobs")
 
         # Initialize processor
         processor = Stage4Processor(config)
