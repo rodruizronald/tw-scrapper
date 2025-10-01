@@ -53,7 +53,7 @@ async def process_job_skills_task(
         logger.info(f"Starting task for company: {company.name}")
 
         # Initialize processor
-        processor = Stage3Processor(config)
+        processor = Stage3Processor(config, company.web_parser_config)
 
         # Process each job individually
         for job_data in jobs_data:

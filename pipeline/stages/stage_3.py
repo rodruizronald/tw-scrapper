@@ -64,7 +64,7 @@ class Stage3Processor:
 
             # Save all processed jobs (including previously processed ones)
             if processed_jobs:
-                self.file_service.save_jobs(
+                self.file_service.save_stage_results(
                     processed_jobs, company_name, self.config.stage_3.tag
                 )
                 self.logger.info(

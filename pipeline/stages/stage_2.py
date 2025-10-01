@@ -72,7 +72,7 @@ class Stage2Processor:
 
             # Save eligible jobs only
             if eligible_jobs:
-                self.file_service.save_jobs(
+                self.file_service.save_stage_results(
                     eligible_jobs, company_name, self.config.stage_2.tag
                 )
                 self.logger.info(
