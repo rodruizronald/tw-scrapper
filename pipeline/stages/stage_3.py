@@ -1,7 +1,7 @@
 from prefect.logging import get_run_logger
 
 from pipeline.core.config import PipelineConfig
-from pipeline.core.models import Job, ProcessingResult
+from pipeline.core.models import Job
 from pipeline.services.file_service import FileService
 from pipeline.services.openai_service import OpenAIService
 from pipeline.services.web_extraction_service import WebExtractionService
@@ -24,14 +24,8 @@ class Stage3Processor:
             config.web_extraction, logger
         )
 
-    async def process_single_job(self, job_data: Job) -> ProcessingResult:
+    async def process_single_job(self, job_data: Job) -> None:
         """
         Process a single job to extract skills and responsibilities.
         """
         self.logger.info(f"Processing job: {job_data.title}")
-
-        return ProcessingResult(
-            success=True,
-            company_name=job_data.company,  # Add this required field
-            stage=self.config.stage_3.tag,  # Add stage info
-        )

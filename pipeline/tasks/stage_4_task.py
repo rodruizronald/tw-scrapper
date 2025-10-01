@@ -2,7 +2,7 @@ from prefect import task
 from prefect.logging import get_run_logger
 
 from pipeline.core.config import PipelineConfig
-from pipeline.core.models import CompanyData, Job, ProcessingResult
+from pipeline.core.models import CompanyData, Job
 from pipeline.stages.stage_4 import Stage4Processor
 from pipeline.tasks.utils import company_task_run_name
 from pipeline.utils.exceptions import (
@@ -26,7 +26,7 @@ async def process_job_technologies_task(
     company: CompanyData,
     jobs_data: list[Job],
     config: PipelineConfig,
-) -> ProcessingResult:
+) -> None:
     """
     Prefect task to process a single job for technologies and tools extraction.
 
@@ -48,37 +48,20 @@ async def process_job_technologies_task(
             - processing_time: Time taken to process
     """
     logger = get_run_logger()
-    logger.info("-" * 80)
 
     try:
         logger.info(f"Starting task for company: {company.name}")
-        logger.info(f"Processing {len(jobs_data)} jobs")
 
         # Initialize processor
         processor = Stage4Processor(config)
 
         # Process each job individually
         for job_data in jobs_data:
-            result = await processor.process_single_job(job_data)
-
-        # Return as dict format expected by the function signature
-        return result
+            await processor.process_single_job(job_data)
 
     except ValidationError as e:
         # Non-retryable errors - don't retry these
         logger.error(f"Validation error for {company.name}: {e}")
-
-        # Create failed result
-        failed_result = ProcessingResult(
-            success=False,
-            company_name=company.name,
-            error=str(e),
-            error_type="ValidationError",
-            retryable=False,
-            stage="stage_4",
-        )
-
-        return failed_result
 
     except (WebExtractionError, OpenAIProcessingError, FileOperationError) as e:
         # Retryable errors - let Prefect handle retries

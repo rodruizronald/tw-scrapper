@@ -15,7 +15,7 @@ from .config import (
     StageConfig,
     WebExtractionConfig,
 )
-from .models import CompanyData, ProcessingResult
+from .models import CompanyData
 
 __all__ = [
     "BrowserConfig",
@@ -28,7 +28,6 @@ __all__ = [
     "Location",
     "OpenAIConfig",
     "PipelineConfig",
-    "ProcessingResult",
     "StageConfig",
     "WebExtractionConfig",
     "WorkMode",

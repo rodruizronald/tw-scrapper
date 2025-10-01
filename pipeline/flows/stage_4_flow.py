@@ -31,8 +31,8 @@ async def stage_4_flow(
         config: Pipeline configuration
     """
     logger = get_run_logger()
-
     logger.info("STAGE 4: Technologies and Tools Extraction")
+
     file_service = FileService(config.paths)
 
     # Filter enabled companies
@@ -56,13 +56,9 @@ async def stage_4_flow(
 
             # Submit Prefect task and await its result (sequential)
             future = process_job_technologies_task.submit(company, jobs_data, config)
-            # Wait for the future to complete and get the actual result
-            result = future.result()
 
-            # Now check if the result has a success attribute
-            if hasattr(result, "success") and result.success:
-                logger.info(f"Completed: {company.name}")
-            else:
-                logger.warning(f"Failed: {company.name}")
+            # Wait for the future to complete and get the actual result
+            await future.result()
+            logger.info(f"Completed: {company.name}")
         except Exception as e:
             logger.error(f"Unexpected task failure: {company.name} - {e}")

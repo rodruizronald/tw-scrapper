@@ -1,7 +1,7 @@
 from prefect import flow, get_run_logger
 
 from pipeline.core.config import PipelineConfig
-from pipeline.core.models import CompanyData
+from pipeline.core.models import CompanyData, Job
 from pipeline.flows.stage_1_flow import stage_1_flow
 from pipeline.flows.stage_2_flow import stage_2_flow
 from pipeline.flows.stage_3_flow import stage_3_flow
@@ -80,8 +80,9 @@ async def _execute_stages(
     """Execute all requested pipeline stages."""
 
     # Stage 1: Job Listing Extraction
+    stage_1_results = None
     if config.stage_1.enabled:
-        await _execute_stage_1(
+        stage_1_results = await _execute_stage_1(
             config,
             companies,
             logger,
@@ -92,6 +93,7 @@ async def _execute_stages(
         await _execute_stage_2(
             config,
             companies,
+            stage_1_results,
             logger,
         )
 
@@ -116,16 +118,17 @@ async def _execute_stage_1(
     config: PipelineConfig,
     companies: list[CompanyData],
     logger,
-) -> None:
+) -> dict[str, list[Job]]:
     """Execute Stage 1: Job Listing Extraction."""
-    logger.info("STAGE 1: Job Listing Extraction")
-    logger.info("=" * 80)
 
     try:
-        await stage_1_flow(
+        results = await stage_1_flow(
             companies=companies,
             config=config,
         )
+
+        logger.info("Stage 1 completed successfully")
+        return results
 
     except Exception as e:
         logger.error(f"Stage 1 failed: {e}")
@@ -137,16 +140,19 @@ async def _execute_stage_1(
 async def _execute_stage_2(
     config: PipelineConfig,
     companies: list[CompanyData],
+    stage_1_results: dict[str, list[Job]] | None,
     logger,
 ) -> None:
     """Execute Stage 2: Job Details Extraction."""
-    logger.info("=" * 80)
 
     try:
         await stage_2_flow(
             companies=companies,
             config=config,
+            stage_1_results=stage_1_results,
         )
+
+        logger.info("Stage 1 completed successfully")
 
     except Exception as e:
         logger.error(f"Stage 2 failed: {e}")
@@ -161,14 +167,14 @@ async def _execute_stage_3(
     logger,
 ) -> None:
     """Execute Stage 3: Skills and Responsibilities Extraction."""
-    logger.info("STAGE 3: Skills and Responsibilities Extraction")
-    logger.info("=" * 80)
 
     try:
         await stage_3_flow(
             companies=companies,
             config=config,
         )
+
+        logger.info("Stage 3 completed successfully")
 
     except Exception as e:
         logger.error(f"Stage 3 failed: {e}")
@@ -183,14 +189,14 @@ async def _execute_stage_4(
     logger,
 ) -> None:
     """Execute Stage 4: Technologies and Tools Extraction."""
-    logger.info("STAGE 4: Technologies and Tools Extraction")
-    logger.info("=" * 80)
 
     try:
         await stage_4_flow(
             companies=companies,
             config=config,
         )
+
+        logger.info("Stage 4 completed successfully")
 
     except Exception as e:
         logger.error(f"Stage 4 failed: {e}")

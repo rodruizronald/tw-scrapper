@@ -22,7 +22,7 @@ from .core.config import (
     StageConfig,
     WebExtractionConfig,
 )
-from .core.models import CompanyData, ParserType, ProcessingResult
+from .core.models import CompanyData, ParserType
 from .services.file_service import FileService
 from .services.openai_service import OpenAIService
 
@@ -61,7 +61,6 @@ __all__ = [
     "ParserType",
     "PipelineConfig",
     "PipelineError",
-    "ProcessingResult",
     "Stage1Processor",
     "StageConfig",
     "ValidationError",
