@@ -1,3 +1,4 @@
+import hashlib
 from typing import Any
 
 from prefect.logging import get_run_logger
@@ -21,7 +22,9 @@ class JobMapper:
     def __init__(self):
         self.logger = get_run_logger()
 
-    def map_from_openai_response(self, response: dict[str, Any]) -> list[Job]:
+    def map_from_openai_response(
+        self, response: dict[str, Any], company: str
+    ) -> list[Job]:
         """
         Transform OpenAI response containing multiple jobs to list of Job models.
 
@@ -52,8 +55,9 @@ class JobMapper:
                     # Map and validate each field
                     title = self._extract_title(job_info)
                     url = self._extract_url(job_info)
-                    signature = self._extract_signature(job_info)
-                    company = self._extract_company(job_info)
+
+                    # Generate a unique signature for a job URL.
+                    signature = hashlib.sha256(url.encode()).hexdigest()
 
                     job = Job(
                         title=title,
@@ -106,36 +110,6 @@ class JobMapper:
             raise ValueError(f"Invalid URL format: {url_str}")
 
         return url_str
-
-    def _extract_signature(self, job_data: dict[str, Any]) -> str:
-        """Extract and validate signature field."""
-        signature = job_data.get("signature")
-        if not signature:
-            raise ValueError("Missing signature field")
-
-        if not isinstance(signature, str):
-            raise ValueError(f"Invalid signature value: {signature}")
-
-        signature_str = signature.strip()
-        if not signature_str:
-            raise ValueError("Signature cannot be empty")
-
-        return signature_str
-
-    def _extract_company(self, job_data: dict[str, Any]) -> str:
-        """Extract and validate company field."""
-        company = job_data.get("company")
-        if not company:
-            raise ValueError("Missing company field")
-
-        if not isinstance(company, str):
-            raise ValueError(f"Invalid company value: {company}")
-
-        company_str = company.strip()
-        if not company_str:
-            raise ValueError("Company cannot be empty")
-
-        return company_str
 
 
 class JobDetailsMapper:

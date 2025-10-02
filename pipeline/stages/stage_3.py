@@ -148,7 +148,7 @@ class Stage3Processor:
             # Get raw response from OpenAI
             raw_response = await self.openai_service.process_with_template(request)
 
-            # Transform to typed model
+            # Process and validate job data using JobRequirementsMapper
             job_requirements = self.job_requirments_mapper.map_from_openai_response(
                 raw_response
             )
