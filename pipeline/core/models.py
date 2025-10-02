@@ -148,6 +148,16 @@ class JobDetails:
 
 
 @dataclass
+class JobSkills:
+    """Job skills and responsibilities extracted from Stage 3 analysis."""
+
+    responsibilities: list[str]
+    skill_must_have: list[str]
+    skill_nice_to_have: list[str]
+    benefits: list[str]
+
+
+@dataclass
 class Job:
     """Evolving job model that grows through pipeline stages."""
 
@@ -161,10 +171,18 @@ class Job:
     # Stage 2 data (optional, populated after stage 2)
     details: JobDetails | None = None
 
+    # Stage 3 data (optional, populated after stage 3)
+    skills: JobSkills | None = None
+
     @property
     def is_stage_2_processed(self) -> bool:
         """Check if job has been processed through Stage 2."""
         return self.details is not None
+
+    @property
+    def is_stage_3_processed(self) -> bool:
+        """Check if job has been processed through Stage 3."""
+        return self.skills is not None
 
     @property
     def is_eligible(self) -> bool:

@@ -22,7 +22,7 @@ async def stage_2_flow(
     companies: list[CompanyData],
     config: PipelineConfig,
     stage_1_results: dict[str, list[Job]] | None,
-) -> None:
+) -> dict[str, list[Job]]:
     """
     Main flow for Stage 2: Extract job eligibility, metadata, and detailed descriptions from individual job postings.
 
@@ -44,13 +44,13 @@ async def stage_2_flow(
 
     if not enabled_companies:
         logger.warning("No enabled companies found to process")
-        return None
+        return {}
 
     logger.info(f"Processing {len(enabled_companies)} enabled companies")
 
     async def process_with_semaphore(
         company: CompanyData, semaphore: asyncio.Semaphore
-    ) -> None:
+    ) -> tuple[str, list[Job]]:
         """Process a company with semaphore to limit concurrency."""
         async with semaphore:
             try:
@@ -65,15 +65,15 @@ async def stage_2_flow(
                     )
 
                 if not jobs_data:
-                    logger.debug(f"No jobs data found for {company.name}")
-                    return
+                    logger.info(f"No jobs data found for {company.name}")
+                    return company.name, []
 
-                # Submit Prefect task and await its result
-                future = process_job_details_task.submit(company, jobs_data, config)
-                await future.result()
+                result = await process_job_details_task(company, jobs_data, config)
                 logger.info(f"Completed: {company.name}")
+                return company.name, result
             except Exception as e:
                 logger.error(f"Unexpected task failure: {company.name} - {e}")
+                return company.name, []
 
     # Create semaphore for concurrency control
     semaphore = asyncio.Semaphore(3)
@@ -84,4 +84,9 @@ async def stage_2_flow(
     ]
 
     # Run all tasks concurrently (limited by semaphore)
-    await asyncio.gather(*tasks)
+    results = await asyncio.gather(*tasks)
+
+    # Build results map
+    results_map = dict(results)
+
+    return results_map

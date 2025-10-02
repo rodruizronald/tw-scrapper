@@ -22,7 +22,7 @@ pipeline:
       model: "gpt-5-mini"
       max_retries: 3
       # timeout in seconds
-      timeout: 30
+      timeout: 300
 
     # Playwright integration for web scraping
     web_extraction:
@@ -43,7 +43,7 @@ pipeline:
       description: >-
         Extract job titles and URLs from company career pages using web
         scraping and AI parsing
-      enabled: true
+      enabled: false
       openai_service:
         system_message: >-
           You are an AI assistant specialized in extracting job listings
@@ -79,7 +79,7 @@ pipeline:
       description: >-
         Analyze job postings to determine eligibility, extract metadata,
         and generate concise descriptions
-      enabled: true
+      enabled: false
       openai_service:
         system_message: >-
           You extract job descriptions, eligibility information, and basic
@@ -93,62 +93,57 @@ pipeline:
           schema:
             type: "object"
             properties:
-              job:
-                type: "object"
-                properties:
-                  eligible:
-                    type: "boolean"
-                    description: "Whether the job meets eligibility criteria"
-                  location:
-                    type: "string"
-                    enum: ["Costa Rica", "LATAM"]
-                    description: "Job location"
-                  work_mode:
-                    type: "string"
-                    enum: ["Remote", "Hybrid", "Onsite"]
-                    description: "Work arrangement mode"
-                  employment_type:
-                    type: "string"
-                    enum:
-                      [
-                        "Full-time",
-                        "Part-time",
-                        "Contract",
-                        "Freelance",
-                        "Temporary",
-                        "Internship",
-                      ]
-                    description: "Type of employment"
-                  experience_level:
-                    type: "string"
-                    enum:
-                      [
-                        "Entry-level",
-                        "Junior",
-                        "Mid-level",
-                        "Senior",
-                        "Lead",
-                        "Principal",
-                        "Executive",
-                      ]
-                    description: "Required experience level"
-                  description:
-                    type: "string"
-                    maxLength: 500
-                    description: >-
-                      Concise job description focusing on role and
-                      responsibilities
-                required:
+              eligible:
+                type: "boolean"
+                description: "Whether the job meets eligibility criteria"
+              location:
+                type: "string"
+                enum: ["Costa Rica", "LATAM"]
+                description: "Job location"
+              work_mode:
+                type: "string"
+                enum: ["Remote", "Hybrid", "Onsite"]
+                description: "Work arrangement mode"
+              employment_type:
+                type: "string"
+                enum:
                   [
-                    "eligible",
-                    "location",
-                    "work_mode",
-                    "employment_type",
-                    "experience_level",
-                    "description",
+                    "Full-time",
+                    "Part-time",
+                    "Contract",
+                    "Freelance",
+                    "Temporary",
+                    "Internship",
                   ]
-                additionalProperties: false
-            required: ["job"]
+                description: "Type of employment"
+              experience_level:
+                type: "string"
+                enum:
+                  [
+                    "Entry-level",
+                    "Junior",
+                    "Mid-level",
+                    "Senior",
+                    "Lead",
+                    "Principal",
+                    "Executive",
+                  ]
+                description: "Required experience level"
+              description:
+                type: "string"
+                maxLength: 500
+                description: >-
+                  Concise job description focusing on role and
+                  responsibilities
+            required:
+              [
+                "eligible",
+                "location",
+                "work_mode",
+                "employment_type",
+                "experience_level",
+                "description",
+              ]
             additionalProperties: false
     stage_3:
       name: "Job Skills and Responsibilities Extraction"
@@ -156,7 +151,7 @@ pipeline:
       description: >-
         Extract detailed job information including responsibilities, required
         and preferred skills, and benefits from job posting HTML content
-      enabled: false
+      enabled: true
       openai_service:
         system_message: >-
           You extract job skills and responsibilities from HTML content.

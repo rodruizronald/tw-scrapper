@@ -51,7 +51,7 @@ async def stage_4_flow(
                 company.name, config.stage_3.tag
             )
             if not jobs_data:
-                logger.debug(f"No jobs data found for {company.name}")
+                logger.info(f"No jobs data found for {company.name}")
                 continue
 
             # Submit Prefect task and await its result (sequential)

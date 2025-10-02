@@ -89,8 +89,9 @@ async def _execute_stages(
         )
 
     # Stage 2: Job Listing Extraction
+    stage_2_results = None
     if config.stage_2.enabled:
-        await _execute_stage_2(
+        stage_2_results = await _execute_stage_2(
             config,
             companies,
             stage_1_results,
@@ -102,6 +103,7 @@ async def _execute_stages(
         await _execute_stage_3(
             config,
             companies,
+            stage_2_results,
             logger,
         )
 
@@ -120,6 +122,7 @@ async def _execute_stage_1(
     logger,
 ) -> dict[str, list[Job]]:
     """Execute Stage 1: Job Listing Extraction."""
+    logger.info("Stage 1 starting...")
 
     try:
         results = await stage_1_flow(
@@ -142,17 +145,19 @@ async def _execute_stage_2(
     companies: list[CompanyData],
     stage_1_results: dict[str, list[Job]] | None,
     logger,
-) -> None:
+) -> dict[str, list[Job]]:
     """Execute Stage 2: Job Details Extraction."""
+    logger.info("Stage 2 starting...")
 
     try:
-        await stage_2_flow(
+        results = await stage_2_flow(
             companies=companies,
             config=config,
             stage_1_results=stage_1_results,
         )
 
-        logger.info("Stage 1 completed successfully")
+        logger.info("Stage 2 completed successfully")
+        return results
 
     except Exception as e:
         logger.error(f"Stage 2 failed: {e}")
@@ -164,14 +169,17 @@ async def _execute_stage_2(
 async def _execute_stage_3(
     config: PipelineConfig,
     companies: list[CompanyData],
+    stage_2_results: dict[str, list[Job]] | None,
     logger,
 ) -> None:
     """Execute Stage 3: Skills and Responsibilities Extraction."""
+    logger.info("Stage 3 starting...")
 
     try:
         await stage_3_flow(
             companies=companies,
             config=config,
+            stage_2_results=stage_2_results,
         )
 
         logger.info("Stage 3 completed successfully")
@@ -189,6 +197,7 @@ async def _execute_stage_4(
     logger,
 ) -> None:
     """Execute Stage 4: Technologies and Tools Extraction."""
+    logger.info("Stage 4 starting...")
 
     try:
         await stage_4_flow(

@@ -242,7 +242,7 @@ class Stage1Processor:
 
         # Save jobs to file
         if unique_jobs:
-            self.file_service.save_jobs(
+            self.file_service.save_stage_results(
                 unique_jobs, company_name, self.config.stage_1.tag
             )
 

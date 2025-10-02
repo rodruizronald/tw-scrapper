@@ -12,6 +12,7 @@ from pipeline.core.models import (
     ExperienceLevel,
     Job,
     JobDetails,
+    JobSkills,
     Location,
     WorkMode,
 )
@@ -77,7 +78,7 @@ class FileService:
         company_dir.mkdir(parents=True, exist_ok=True)
         return company_dir
 
-    def save_jobs(
+    def save_stage_results(
         self,
         jobs: list[Job],
         company_name: str,
@@ -110,18 +111,25 @@ class FileService:
                     "url": job.url,
                     "signature": job.signature,
                     "company": job.company,
-                    "timestamp": job.timestamp,
                 }
 
                 # Include details if present (Stage 2+)
                 if job.details is not None:
                     job_dict["details"] = {
-                        "eligible": job.details.eligible,
                         "location": job.details.location.value,
                         "work_mode": job.details.work_mode.value,
                         "employment_type": job.details.employment_type.value,
                         "experience_level": job.details.experience_level.value,
                         "description": job.details.description,
+                    }
+
+                # Include skills if present (Stage 3+)
+                if job.skills is not None:
+                    job_dict["skills"] = {
+                        "responsibilities": job.skills.responsibilities,
+                        "skill_must_have": job.skills.skill_must_have,
+                        "skill_nice_to_have": job.skills.skill_nice_to_have,
+                        "benefits": job.skills.benefits,
                     }
 
                 jobs_list.append(job_dict)
@@ -196,6 +204,7 @@ class FileService:
                     company=job_dict.get("company", company_name),
                     timestamp=job_dict.get("timestamp", ""),
                     details=None,  # Will be populated if details exist
+                    skills=None,  # Will be populated if skills exist
                 )
 
                 # If details exist in the saved data, reconstruct them
@@ -212,6 +221,16 @@ class FileService:
                             details_data.get("experience_level", "unknown")
                         ),
                         description=details_data.get("description", ""),
+                    )
+
+                # If skills exist in the saved data, reconstruct them
+                if job_dict.get("skills"):
+                    skills_data = job_dict["skills"]
+                    job.skills = JobSkills(
+                        responsibilities=skills_data.get("responsibilities", []),
+                        skill_must_have=skills_data.get("skill_must_have", []),
+                        skill_nice_to_have=skills_data.get("skill_nice_to_have", []),
+                        benefits=skills_data.get("benefits", []),
                     )
 
                 job_objects.append(job)
@@ -242,14 +261,14 @@ class FileService:
             previous_timestamp = previous_date.strftime("%Y%m%d")
 
             # Build path to previous day's jobs file
-            previous_day_base = self.paths.output_dir.parent.parent / previous_timestamp
+            previous_day_base = self.paths.output_dir.parent / previous_timestamp
             sanitized_name = self.sanitize_company_name(company_name)
             previous_company_dir = previous_day_base / sanitized_name
             unfiltered_signatures = previous_company_dir / "unfiltered_signatures.json"
 
             if not unfiltered_signatures.exists():
                 self.logger.info(
-                    f"No signatures found from yesterday at {unfiltered_signatures}"
+                    f"No signatures from previous day at {unfiltered_signatures}"
                 )
                 return set()
 
@@ -257,7 +276,7 @@ class FileService:
                 previous_data = json.load(f)
 
             signatures = set(previous_data.get("signatures", []))
-            self.logger.info(f"Loaded {len(signatures)} signatures from yesterday")
+            self.logger.info(f"Loaded {len(signatures)} signatures from previous day")
             return signatures
 
         except Exception as e:

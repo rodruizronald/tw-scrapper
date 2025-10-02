@@ -103,14 +103,12 @@ Return the analysis in JSON format using the following structure:
 
 ```json
 {
-  "job": {
-    "eligible": true/false,
-    "location": "Costa Rica" OR "LATAM",
-    "work_mode": "Remote" OR "Hybrid" OR "Onsite",
-    "employment_type": "Full-time" OR "Part-time" OR "Contract" OR "Freelance" OR "Temporary" OR "Internship",
-    "experience_level": "Entry-level" OR "Junior" OR "Mid-level" OR "Senior" OR "Lead" OR "Principal" OR "Executive",
-    "description": "Concise 500-character description focusing on position, role, key responsibilities, and context"
-  },
+  "eligible": true/false,
+  "location": "Costa Rica" OR "LATAM",
+  "work_mode": "Remote" OR "Hybrid" OR "Onsite",
+  "employment_type": "Full-time" OR "Part-time" OR "Contract" OR "Freelance" OR "Temporary" OR "Internship",
+  "experience_level": "Entry-level" OR "Junior" OR "Mid-level" OR "Senior" OR "Lead" OR "Principal" OR "Executive",
+  "description": "Concise 500-character description focusing on position, role, key responsibilities, and context"
 }
 ```
 
