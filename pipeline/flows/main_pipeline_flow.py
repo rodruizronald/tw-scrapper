@@ -99,8 +99,9 @@ async def _execute_stages(
         )
 
     # Stage 3: Skills and Responsibilities Extraction
+    stage_3_results = None
     if config.stage_3.enabled:
-        await _execute_stage_3(
+        stage_3_results = await _execute_stage_3(
             config,
             companies,
             stage_2_results,
@@ -112,6 +113,7 @@ async def _execute_stages(
         await _execute_stage_4(
             config,
             companies,
+            stage_3_results,
             logger,
         )
 
@@ -171,18 +173,19 @@ async def _execute_stage_3(
     companies: list[CompanyData],
     stage_2_results: dict[str, list[Job]] | None,
     logger,
-) -> None:
+) -> dict[str, list[Job]]:
     """Execute Stage 3: Skills and Responsibilities Extraction."""
     logger.info("Stage 3 starting...")
 
     try:
-        await stage_3_flow(
+        results = await stage_3_flow(
             companies=companies,
             config=config,
             stage_2_results=stage_2_results,
         )
 
         logger.info("Stage 3 completed successfully")
+        return results
 
     except Exception as e:
         logger.error(f"Stage 3 failed: {e}")
@@ -194,6 +197,7 @@ async def _execute_stage_3(
 async def _execute_stage_4(
     config: PipelineConfig,
     companies: list[CompanyData],
+    stage_3_results: dict[str, list[Job]] | None,
     logger,
 ) -> None:
     """Execute Stage 4: Technologies and Tools Extraction."""
@@ -203,6 +207,7 @@ async def _execute_stage_4(
         await stage_4_flow(
             companies=companies,
             config=config,
+            stage_3_results=stage_3_results,
         )
 
         logger.info("Stage 4 completed successfully")

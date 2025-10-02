@@ -1,3 +1,5 @@
+import asyncio
+
 from prefect import flow, get_run_logger
 
 from pipeline.core.config import PipelineConfig
@@ -20,7 +22,7 @@ async def stage_3_flow(
     companies: list[CompanyData],
     config: PipelineConfig,
     stage_2_results: dict[str, list[Job]] | None,
-) -> None:
+) -> dict[str, list[Job]]:
     """
     Main flow for Stage 3: Extract skills and responsibilities from job postings.
 
@@ -30,6 +32,7 @@ async def stage_3_flow(
     Args:
         companies: List of companies to process
         config: Pipeline configuration
+        stage_2_results: Results from stage 2 or None to load from files
     """
     logger = get_run_logger()
     logger.info("Stage 3: Skills and Responsibilities Extraction")
@@ -41,31 +44,49 @@ async def stage_3_flow(
 
     if not enabled_companies:
         logger.warning("No enabled companies found to process")
-        return None
+        return {}
 
     logger.info(f"Processing {len(enabled_companies)} enabled companies")
 
-    for company in enabled_companies:
-        try:
-            # Get jobs data from stage 2 results or fallback to file loading
-            jobs_data = None
-            if stage_2_results and company.name in stage_2_results:
-                jobs_data = stage_2_results[company.name]
-            else:
-                # Fallback to loading from file if stage 2 results not available
-                jobs_data = file_service.load_stage_results(
-                    company.name, config.stage_2.tag
-                )
+    async def process_with_semaphore(
+        company: CompanyData, semaphore: asyncio.Semaphore
+    ) -> tuple[str, list[Job]]:
+        """Process a company with semaphore to limit concurrency."""
+        async with semaphore:
+            try:
+                # Get jobs data from stage 2 results or fallback to file loading
+                jobs_data = None
+                if stage_2_results and company.name in stage_2_results:
+                    jobs_data = stage_2_results[company.name]
+                else:
+                    # Fallback to loading from file if stage 2 results not available
+                    jobs_data = file_service.load_stage_results(
+                        company.name, config.stage_2.tag
+                    )
 
-            if not jobs_data:
-                logger.info(f"No jobs data found for {company.name}")
-                return
+                if not jobs_data:
+                    logger.info(f"No jobs data found for {company.name}")
+                    return company.name, []
 
-            # Submit Prefect task and await its result (sequential)
-            future = process_job_skills_task.submit(company, jobs_data, config)
+                result = await process_job_skills_task(company, jobs_data, config)
+                logger.info(f"Completed: {company.name}")
+                return company.name, result
+            except Exception as e:
+                logger.error(f"Unexpected task failure: {company.name} - {e}")
+                return company.name, []
 
-            # Wait for the future to complete and get the actual result
-            await future.result()
-            logger.info(f"Completed: {company.name}")
-        except Exception as e:
-            logger.error(f"Unexpected task failure: {company.name} - {e}")
+    # Create semaphore for concurrency control
+    semaphore = asyncio.Semaphore(3)
+
+    # Create tasks for all companies
+    tasks = [
+        process_with_semaphore(company, semaphore) for company in enabled_companies
+    ]
+
+    # Run all tasks concurrently (limited by semaphore)
+    results = await asyncio.gather(*tasks)
+
+    # Build results map
+    results_map = dict(results)
+
+    return results_map

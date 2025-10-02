@@ -6,7 +6,7 @@ from pipeline.core.models import (
     EmploymentType,
     ExperienceLevel,
     JobDetails,
-    JobSkills,
+    JobRequirements,
     JobTechnologies,
     Location,
     Technology,
@@ -125,21 +125,21 @@ class JobDetailsMapper:
         return description.strip()
 
 
-class JobSkillsMapper:
-    """Maps OpenAI response to JobSkills model."""
+class JobRequirementsMapper:
+    """Maps OpenAI response to JobRequirements model."""
 
     def __init__(self):
         self.logger = get_run_logger()
 
-    def map_from_openai_response(self, response: dict[str, Any]) -> JobSkills:
+    def map_from_openai_response(self, response: dict[str, Any]) -> JobRequirements:
         """
-        Transform OpenAI response to JobSkills model.
+        Transform OpenAI response to JobRequirements model.
 
         Args:
             response: Raw OpenAI response dictionary
 
         Returns:
-            JobSkills: Validated and typed job skills
+            JobRequirements: Validated and typed job skills
 
         Raises:
             ValueError: If response format is invalid or required fields are missing
@@ -151,7 +151,7 @@ class JobSkillsMapper:
             skill_nice_to_have = self._extract_skill_nice_to_have(response)
             benefits = self._extract_benefits(response)
 
-            return JobSkills(
+            return JobRequirements(
                 responsibilities=responsibilities,
                 skill_must_have=skill_must_have,
                 skill_nice_to_have=skill_nice_to_have,
@@ -159,7 +159,7 @@ class JobSkillsMapper:
             )
 
         except Exception as e:
-            self.logger.error(f"Failed to map OpenAI response to JobSkills: {e}")
+            self.logger.error(f"Failed to map OpenAI response to JobRequirements: {e}")
             raise ValueError(f"Invalid OpenAI response format: {e}") from e
 
     def _extract_responsibilities(self, job_data: dict[str, Any]) -> list[str]:

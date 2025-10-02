@@ -12,7 +12,7 @@ from pipeline.core.models import (
     ExperienceLevel,
     Job,
     JobDetails,
-    JobSkills,
+    JobRequirements,
     Location,
     WorkMode,
 )
@@ -124,12 +124,12 @@ class FileService:
                     }
 
                 # Include skills if present (Stage 3+)
-                if job.skills is not None:
+                if job.requirements is not None:
                     job_dict["skills"] = {
-                        "responsibilities": job.skills.responsibilities,
-                        "skill_must_have": job.skills.skill_must_have,
-                        "skill_nice_to_have": job.skills.skill_nice_to_have,
-                        "benefits": job.skills.benefits,
+                        "responsibilities": job.requirements.responsibilities,
+                        "skill_must_have": job.requirements.skill_must_have,
+                        "skill_nice_to_have": job.requirements.skill_nice_to_have,
+                        "benefits": job.requirements.benefits,
                     }
 
                 jobs_list.append(job_dict)
@@ -204,9 +204,8 @@ class FileService:
                     company=job_dict.get("company", company_name),
                     timestamp=job_dict.get("timestamp", ""),
                     details=None,  # Will be populated if details exist
-                    skills=None,  # Will be populated if skills exist
+                    requirements=None,  # Will be populated if skills exist
                 )
-
                 # If details exist in the saved data, reconstruct them
                 if job_dict.get("details"):
                     details_data = job_dict["details"]
@@ -224,9 +223,9 @@ class FileService:
                     )
 
                 # If skills exist in the saved data, reconstruct them
-                if job_dict.get("skills"):
-                    skills_data = job_dict["skills"]
-                    job.skills = JobSkills(
+                if job_dict.get("requirements"):
+                    skills_data = job_dict["requirements"]
+                    job.requirements = JobRequirements(
                         responsibilities=skills_data.get("responsibilities", []),
                         skill_must_have=skills_data.get("skill_must_have", []),
                         skill_nice_to_have=skills_data.get("skill_nice_to_have", []),

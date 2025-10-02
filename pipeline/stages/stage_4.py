@@ -24,8 +24,6 @@ class Stage4Processor:
             config.web_extraction, logger
         )
 
-    async def process_single_job(self, job_data: Job) -> None:
-        """
-        Process a single job to extract technologies and tools.
-        """
-        self.logger.info(f"Processing job: {job_data.title}")
+    async def process_jobs(self, jobs: list[Job], company_name: str) -> list[Job]:
+        self.logger.info(f"Processing technologies and tools for {company_name} {jobs}")
+        return []
