@@ -146,6 +146,33 @@ class JobDetails:
     experience_level: ExperienceLevel
     description: str
 
+    def to_dict(self) -> dict[str, Any]:
+        """Convert JobDetails to dictionary for JSON serialization."""
+        return {
+            "eligible": self.eligible,
+            "location": self.location.value,
+            "work_mode": self.work_mode.value,
+            "employment_type": self.employment_type.value,
+            "experience_level": self.experience_level.value,
+            "description": self.description,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "JobDetails":
+        """Create JobDetails from dictionary."""
+        return cls(
+            eligible=data.get("eligible", False),
+            location=Location(data.get("location", Location.LATAM.value)),
+            work_mode=WorkMode(data.get("work_mode", WorkMode.REMOTE.value)),
+            employment_type=EmploymentType(
+                data.get("employment_type", EmploymentType.FULL_TIME.value)
+            ),
+            experience_level=ExperienceLevel(
+                data.get("experience_level", ExperienceLevel.MID_LEVEL.value)
+            ),
+            description=data.get("description", ""),
+        )
+
 
 @dataclass
 class JobRequirements:
@@ -156,6 +183,25 @@ class JobRequirements:
     skill_nice_to_have: list[str]
     benefits: list[str]
 
+    def to_dict(self) -> dict[str, Any]:
+        """Convert JobRequirements to dictionary for JSON serialization."""
+        return {
+            "responsibilities": self.responsibilities,
+            "skill_must_have": self.skill_must_have,
+            "skill_nice_to_have": self.skill_nice_to_have,
+            "benefits": self.benefits,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "JobRequirements":
+        """Create JobRequirements from dictionary."""
+        return cls(
+            responsibilities=data.get("responsibilities", []),
+            skill_must_have=data.get("skill_must_have", []),
+            skill_nice_to_have=data.get("skill_nice_to_have", []),
+            benefits=data.get("benefits", []),
+        )
+
 
 @dataclass
 class Technology:
@@ -165,6 +211,23 @@ class Technology:
     category: str
     required: bool
 
+    def to_dict(self) -> dict[str, Any]:
+        """Convert Technology to dictionary for JSON serialization."""
+        return {
+            "name": self.name,
+            "category": self.category,
+            "required": self.required,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "Technology":
+        """Create Technology from dictionary."""
+        return cls(
+            name=data.get("name", ""),
+            category=data.get("category", ""),
+            required=data.get("required", False),
+        )
+
 
 @dataclass
 class JobTechnologies:
@@ -172,6 +235,24 @@ class JobTechnologies:
 
     technologies: list[Technology]
     main_technologies: list[str]
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert JobTechnologies to dictionary for JSON serialization."""
+        return {
+            "technologies": [tech.to_dict() for tech in self.technologies],
+            "main_technologies": self.main_technologies,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "JobTechnologies":
+        """Create JobTechnologies from dictionary."""
+        return cls(
+            technologies=[
+                Technology.from_dict(tech_data)
+                for tech_data in data.get("technologies", [])
+            ],
+            main_technologies=data.get("main_technologies", []),
+        )
 
 
 @dataclass
@@ -212,6 +293,50 @@ class Job:
     def is_eligible(self) -> bool:
         """Check if job is eligible (requires Stage 2 processing)."""
         return self.details is not None and self.details.eligible
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert Job to dictionary for JSON serialization."""
+        result: dict[str, Any] = {
+            "title": self.title,
+            "url": self.url,
+            "signature": self.signature,
+            "company": self.company,
+        }
+
+        # Add optional stage data if present
+        if self.details is not None:
+            result["details"] = self.details.to_dict()
+
+        if self.requirements is not None:
+            result["requirements"] = self.requirements.to_dict()
+
+        if self.technologies is not None:
+            result["technologies"] = self.technologies.to_dict()
+
+        return result
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "Job":
+        """Create Job from dictionary."""
+        # Extract required Stage 1 fields
+        job = cls(
+            title=data.get("title", ""),
+            url=data.get("url", ""),
+            signature=data.get("signature", ""),
+            company=data.get("company", ""),
+        )
+
+        # Add optional stage data if present
+        if "details" in data and data["details"] is not None:
+            job.details = JobDetails.from_dict(data["details"])
+
+        if "requirements" in data and data["requirements"] is not None:
+            job.requirements = JobRequirements.from_dict(data["requirements"])
+
+        if "technologies" in data and data["technologies"] is not None:
+            job.technologies = JobTechnologies.from_dict(data["technologies"])
+
+        return job
 
     def __post_init__(self):
         """Validate required fields."""

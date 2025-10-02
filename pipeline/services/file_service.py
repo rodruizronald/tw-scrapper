@@ -2,19 +2,12 @@ import json
 import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
 
 from prefect import get_run_logger
 
 from pipeline.core.config import PathsConfig
 from pipeline.core.models import (
-    EmploymentType,
-    ExperienceLevel,
     Job,
-    JobDetails,
-    JobRequirements,
-    Location,
-    WorkMode,
 )
 from pipeline.utils.exceptions import FileOperationError
 
@@ -103,36 +96,8 @@ class FileService:
             filename = self.paths.get_stage_output_filename(stage_tag)
             output_path = company_dir / filename
 
-            # Convert Job objects to dictionaries
-            jobs_list = []
-            for job in jobs:
-                job_dict: dict[str, Any] = {
-                    "title": job.title,
-                    "url": job.url,
-                    "signature": job.signature,
-                    "company": job.company,
-                }
-
-                # Include details if present (Stage 2+)
-                if job.details is not None:
-                    job_dict["details"] = {
-                        "location": job.details.location.value,
-                        "work_mode": job.details.work_mode.value,
-                        "employment_type": job.details.employment_type.value,
-                        "experience_level": job.details.experience_level.value,
-                        "description": job.details.description,
-                    }
-
-                # Include skills if present (Stage 3+)
-                if job.requirements is not None:
-                    job_dict["skills"] = {
-                        "responsibilities": job.requirements.responsibilities,
-                        "skill_must_have": job.requirements.skill_must_have,
-                        "skill_nice_to_have": job.requirements.skill_nice_to_have,
-                        "benefits": job.requirements.benefits,
-                    }
-
-                jobs_list.append(job_dict)
+            # Convert Job objects to dictionaries using to_dict method
+            jobs_list = [job.to_dict() for job in jobs]
 
             jobs_data = {
                 "company": company_name,
@@ -193,45 +158,8 @@ class FileService:
             # Extract jobs from the JSON structure
             jobs_data = data.get("jobs", [])
 
-            # Convert to Job objects
-            job_objects = []
-            for job_dict in jobs_data:
-                # Create Job object with basic data
-                job = Job(
-                    title=job_dict.get("title", ""),
-                    url=job_dict.get("url", ""),
-                    signature=job_dict.get("signature", ""),
-                    company=job_dict.get("company", company_name),
-                    details=None,  # Will be populated if details exist
-                    requirements=None,  # Will be populated if skills exist
-                )
-                # If details exist in the saved data, reconstruct them
-                if job_dict.get("details"):
-                    details_data = job_dict["details"]
-                    job.details = JobDetails(
-                        eligible=details_data.get("eligible", False),
-                        location=Location(details_data.get("location", "unknown")),
-                        work_mode=WorkMode(details_data.get("work_mode", "unknown")),
-                        employment_type=EmploymentType(
-                            details_data.get("employment_type", "unknown")
-                        ),
-                        experience_level=ExperienceLevel(
-                            details_data.get("experience_level", "unknown")
-                        ),
-                        description=details_data.get("description", ""),
-                    )
-
-                # If skills exist in the saved data, reconstruct them
-                if job_dict.get("requirements"):
-                    skills_data = job_dict["requirements"]
-                    job.requirements = JobRequirements(
-                        responsibilities=skills_data.get("responsibilities", []),
-                        skill_must_have=skills_data.get("skill_must_have", []),
-                        skill_nice_to_have=skills_data.get("skill_nice_to_have", []),
-                        benefits=skills_data.get("benefits", []),
-                    )
-
-                job_objects.append(job)
+            # Convert to Job objects using from_dict method
+            job_objects = [Job.from_dict(job_dict) for job_dict in jobs_data]
 
             logger.info(f"Loaded {len(job_objects)} jobs for company: {company_name}")
             return job_objects
