@@ -5,6 +5,7 @@ from prefect.logging import get_run_logger
 from pipeline.core.models import (
     EmploymentType,
     ExperienceLevel,
+    Job,
     JobDetails,
     JobRequirements,
     JobTechnologies,
@@ -12,6 +13,129 @@ from pipeline.core.models import (
     Technology,
     WorkMode,
 )
+
+
+class JobMapper:
+    """Maps OpenAI response to Job model"""
+
+    def __init__(self):
+        self.logger = get_run_logger()
+
+    def map_from_openai_response(self, response: dict[str, Any]) -> list[Job]:
+        """
+        Transform OpenAI response containing multiple jobs to list of Job models.
+
+        Args:
+            response: Raw OpenAI response dictionary containing jobs
+
+        Returns:
+            List of validated Job objects
+
+        Raises:
+            ValueError: If response format is invalid or required fields are missing
+        """
+        try:
+            jobs = []
+            job_data = response.get("jobs", [])
+
+            if not isinstance(job_data, list):
+                raise ValueError(f"Invalid jobs data format: {job_data}")
+
+            for i, job_info in enumerate(job_data):
+                try:
+                    if not isinstance(job_info, dict):
+                        self.logger.warning(
+                            f"Skipping invalid job item at index {i}: not a dictionary"
+                        )
+                        continue
+
+                    # Map and validate each field
+                    title = self._extract_title(job_info)
+                    url = self._extract_url(job_info)
+                    signature = self._extract_signature(job_info)
+                    company = self._extract_company(job_info)
+
+                    job = Job(
+                        title=title,
+                        url=url,
+                        signature=signature,
+                        company=company,
+                    )
+                    jobs.append(job)
+
+                except Exception as e:
+                    self.logger.warning(f"Skipping invalid job data at index {i}: {e}")
+                    continue
+
+            return jobs
+
+        except Exception as e:
+            self.logger.error(f"Failed to map OpenAI response to Job: {e}")
+            raise ValueError(f"Invalid OpenAI response format: {e}") from e
+
+    def _extract_title(self, job_data: dict[str, Any]) -> str:
+        """Extract and validate title field."""
+        title = job_data.get("title")
+        if not title:
+            raise ValueError("Missing title field")
+
+        if not isinstance(title, str):
+            raise ValueError(f"Invalid title value: {title}")
+
+        title_str = title.strip()
+        if not title_str:
+            raise ValueError("Title cannot be empty")
+
+        return title_str
+
+    def _extract_url(self, job_data: dict[str, Any]) -> str:
+        """Extract and validate URL field."""
+        url = job_data.get("url")
+        if not url:
+            raise ValueError("Missing url field")
+
+        if not isinstance(url, str):
+            raise ValueError(f"Invalid url value: {url}")
+
+        url_str = url.strip()
+        if not url_str:
+            raise ValueError("URL cannot be empty")
+
+        # Basic URL validation
+        if not (url_str.startswith("http://") or url_str.startswith("https://")):
+            raise ValueError(f"Invalid URL format: {url_str}")
+
+        return url_str
+
+    def _extract_signature(self, job_data: dict[str, Any]) -> str:
+        """Extract and validate signature field."""
+        signature = job_data.get("signature")
+        if not signature:
+            raise ValueError("Missing signature field")
+
+        if not isinstance(signature, str):
+            raise ValueError(f"Invalid signature value: {signature}")
+
+        signature_str = signature.strip()
+        if not signature_str:
+            raise ValueError("Signature cannot be empty")
+
+        return signature_str
+
+    def _extract_company(self, job_data: dict[str, Any]) -> str:
+        """Extract and validate company field."""
+        company = job_data.get("company")
+        if not company:
+            raise ValueError("Missing company field")
+
+        if not isinstance(company, str):
+            raise ValueError(f"Invalid company value: {company}")
+
+        company_str = company.strip()
+        if not company_str:
+            raise ValueError("Company cannot be empty")
+
+        return company_str
 
 
 class JobDetailsMapper:

@@ -202,7 +202,6 @@ class FileService:
                     url=job_dict.get("url", ""),
                     signature=job_dict.get("signature", ""),
                     company=job_dict.get("company", company_name),
-                    timestamp=job_dict.get("timestamp", ""),
                     details=None,  # Will be populated if details exist
                     requirements=None,  # Will be populated if skills exist
                 )

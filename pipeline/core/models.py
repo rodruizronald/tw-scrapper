@@ -183,7 +183,6 @@ class Job:
     url: str
     signature: str
     company: str
-    timestamp: str
 
     # Stage 2 data (optional, populated after stage 2)
     details: JobDetails | None = None

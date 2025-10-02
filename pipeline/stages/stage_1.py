@@ -1,5 +1,4 @@
 import hashlib
-from datetime import UTC, datetime
 from typing import Any
 
 from prefect.logging import get_run_logger
@@ -170,7 +169,6 @@ class Stage1Processor:
                     url=job_info.get("url", ""),
                     company=company_data.name,
                     signature=self._generate_job_signature(job_info.get("url", "")),
-                    timestamp=datetime.now(UTC).isoformat(),
                     details=None,  # Stage 1 doesn't populate details
                 )
                 jobs.append(job)
