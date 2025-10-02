@@ -46,9 +46,9 @@ async def process_job_listings_task(
         processor = Stage1Processor(config)
 
         # Process the company
-        jobs = await processor.process_single_company(company)
+        results = await processor.process_single_company(company)
 
-        return jobs
+        return results
 
     except ValidationError as e:
         # Non-retryable errors - don't retry these

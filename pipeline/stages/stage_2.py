@@ -34,7 +34,7 @@ class Stage2Processor:
         # Initialize mapper
         self.job_details_mapper = JobDetailsMapper()
 
-    async def process_jobs(self, jobs: list[Job], company_name: str) -> None:
+    async def process_jobs(self, jobs: list[Job], company_name: str) -> list[Job]:
         """
         Process multiple jobs for a company to extract eligibility and metadata.
 
@@ -83,8 +83,11 @@ class Stage2Processor:
             else:
                 self.logger.warning(f"No eligible jobs found for {company_name}")
 
+            return eligible_jobs
+
         except Exception as e:
             self.logger.error(f"Error processing jobs for {company_name}: {e!s}")
+            return []  # Return empty list instead of None
 
     async def process_single_job(self, job: Job) -> Job:
         """

@@ -1,7 +1,7 @@
 from prefect import flow, get_run_logger
 
 from pipeline.core.config import PipelineConfig
-from pipeline.core.models import CompanyData
+from pipeline.core.models import CompanyData, Job
 from pipeline.services.file_service import FileService
 from pipeline.tasks.stage_3_task import process_job_skills_task
 from pipeline.tasks.utils import (
@@ -19,6 +19,7 @@ from pipeline.tasks.utils import (
 async def stage_3_flow(
     companies: list[CompanyData],
     config: PipelineConfig,
+    stage_2_results: dict[str, list[Job]] | None,
 ) -> None:
     """
     Main flow for Stage 3: Extract skills and responsibilities from job postings.
@@ -46,13 +47,19 @@ async def stage_3_flow(
 
     for company in enabled_companies:
         try:
-            # Load jobs found in stage 2
-            jobs_data = file_service.load_stage_results(
-                company.name, config.stage_2.tag
-            )
+            # Get jobs data from stage 2 results or fallback to file loading
+            jobs_data = None
+            if stage_2_results and company.name in stage_2_results:
+                jobs_data = stage_2_results[company.name]
+            else:
+                # Fallback to loading from file if stage 2 results not available
+                jobs_data = file_service.load_stage_results(
+                    company.name, config.stage_2.tag
+                )
+
             if not jobs_data:
-                logger.debug(f"No jobs data found for {company.name}")
-                continue
+                logger.info(f"No jobs data found for {company.name}")
+                return
 
             # Submit Prefect task and await its result (sequential)
             future = process_job_skills_task.submit(company, jobs_data, config)

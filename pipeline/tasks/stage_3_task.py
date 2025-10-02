@@ -19,12 +19,12 @@ from pipeline.utils.exceptions import (
     tags=["stage-3", "job-processing"],
     retries=2,
     retry_delay_seconds=30,
-    timeout_seconds=180,  # 3 minutes per job
+    timeout_seconds=300,  # 5 minutes per job
     task_run_name=company_task_run_name,  # type: ignore[arg-type]
 )
 async def process_job_skills_task(
     company: CompanyData,
-    jobs_data: list[Job],
+    jobs: list[Job],
     config: PipelineConfig,
 ) -> None:
     """
@@ -55,9 +55,8 @@ async def process_job_skills_task(
         # Initialize processor
         processor = Stage3Processor(config, company.web_parser_config)
 
-        # Process each job individually
-        for job_data in jobs_data:
-            await processor.process_single_job(job_data)
+        # Process all jobs for the company
+        await processor.process_jobs(jobs, company.name)
 
     except ValidationError as e:
         # Non-retryable errors - don't retry these

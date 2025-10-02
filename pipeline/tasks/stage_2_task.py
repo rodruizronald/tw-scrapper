@@ -19,14 +19,14 @@ from pipeline.utils.exceptions import (
     tags=["stage-2", "job-processing"],
     retries=2,
     retry_delay_seconds=30,
-    timeout_seconds=180,
+    timeout_seconds=300,
     task_run_name=company_task_run_name,  # type: ignore[arg-type]
 )
 async def process_job_details_task(
     company: CompanyData,
     jobs: list[Job],
     config: PipelineConfig,
-) -> None:
+) -> list[Job]:
     """
     Prefect task to process jobs for eligibility analysis.
 
@@ -45,11 +45,14 @@ async def process_job_details_task(
         processor = Stage2Processor(config, company.web_parser_config)
 
         # Process all jobs for the company
-        await processor.process_jobs(jobs, company.name)
+        results = await processor.process_jobs(jobs, company.name)
+
+        return results
 
     except ValidationError as e:
         # Non-retryable errors - don't retry these
         logger.error(f"Validation error for {company.name}: t{e}")
+        return []  # Return empty list instead of None
 
     except (WebExtractionError, OpenAIProcessingError, FileOperationError) as e:
         # Retryable errors - let Prefect handle retries
