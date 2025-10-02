@@ -158,6 +158,23 @@ class JobSkills:
 
 
 @dataclass
+class Technology:
+    """Individual technology with categorization and requirement status."""
+
+    name: str
+    category: str
+    required: bool
+
+
+@dataclass
+class JobTechnologies:
+    """Job technologies extracted from Stage 4 analysis."""
+
+    technologies: list[Technology]
+    main_technologies: list[str]
+
+
+@dataclass
 class Job:
     """Evolving job model that grows through pipeline stages."""
 
@@ -174,6 +191,9 @@ class Job:
     # Stage 3 data (optional, populated after stage 3)
     skills: JobSkills | None = None
 
+    # Stage 4 data (optional, populated after stage 4)
+    technologies: JobTechnologies | None = None
+
     @property
     def is_stage_2_processed(self) -> bool:
         """Check if job has been processed through Stage 2."""
@@ -183,6 +203,11 @@ class Job:
     def is_stage_3_processed(self) -> bool:
         """Check if job has been processed through Stage 3."""
         return self.skills is not None
+
+    @property
+    def is_stage_4_processed(self) -> bool:
+        """Check if job has been processed through Stage 4."""
+        return self.technologies is not None
 
     @property
     def is_eligible(self) -> bool:

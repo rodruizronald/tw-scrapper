@@ -7,7 +7,9 @@ from pipeline.core.models import (
     ExperienceLevel,
     JobDetails,
     JobSkills,
+    JobTechnologies,
     Location,
+    Technology,
     WorkMode,
 )
 
@@ -213,3 +215,87 @@ class JobSkillsMapper:
                 raise ValueError(f"Invalid benefit item at index {i}: {item}")
 
         return [item.strip() for item in benefits if item.strip()]
+
+
+class JobTechnologiesMapper:
+    """Maps OpenAI response to JobTechnologies model."""
+
+    def __init__(self):
+        self.logger = get_run_logger()
+
+    def map_from_openai_response(self, response: dict[str, Any]) -> JobTechnologies:
+        """
+        Transform OpenAI response to JobTechnologies model.
+
+        Args:
+            response: Raw OpenAI response dictionary
+
+        Returns:
+            JobTechnologies: Validated and typed job technologies
+
+        Raises:
+            ValueError: If response format is invalid or required fields are missing
+        """
+        try:
+            # Map and validate each field
+            technologies = self._extract_technologies(response)
+            main_technologies = self._extract_main_technologies(response)
+
+            return JobTechnologies(
+                technologies=technologies,
+                main_technologies=main_technologies,
+            )
+
+        except Exception as e:
+            self.logger.error(f"Failed to map OpenAI response to JobTechnologies: {e}")
+            raise ValueError(f"Invalid OpenAI response format: {e}") from e
+
+    def _extract_technologies(self, job_data: dict[str, Any]) -> list[Technology]:
+        """Extract and validate technologies field."""
+        technologies_data = job_data.get("technologies")
+        if not isinstance(technologies_data, list):
+            raise ValueError(f"Invalid technologies value: {technologies_data}")
+
+        technologies = []
+        for i, tech_data in enumerate(technologies_data):
+            if not isinstance(tech_data, dict):
+                raise ValueError(f"Invalid technology item at index {i}: {tech_data}")
+
+            # Validate required fields
+            name = tech_data.get("name")
+            category = tech_data.get("category")
+            required = tech_data.get("required")
+
+            if not name or not isinstance(name, str):
+                raise ValueError(f"Invalid technology name at index {i}: {name}")
+            if not category or not isinstance(category, str):
+                raise ValueError(
+                    f"Invalid technology category at index {i}: {category}"
+                )
+            if not isinstance(required, bool):
+                raise ValueError(
+                    f"Invalid technology required field at index {i}: {required}"
+                )
+
+            technologies.append(
+                Technology(
+                    name=name.strip(),
+                    category=category.strip().lower(),
+                    required=required,
+                )
+            )
+
+        return technologies
+
+    def _extract_main_technologies(self, job_data: dict[str, Any]) -> list[str]:
+        """Extract and validate main_technologies field."""
+        main_technologies = job_data.get("main_technologies")
+        if not isinstance(main_technologies, list):
+            raise ValueError(f"Invalid main_technologies value: {main_technologies}")
+
+        # Validate each item is a string
+        for i, tech in enumerate(main_technologies):
+            if not isinstance(tech, str):
+                raise ValueError(f"Invalid main technology item at index {i}: {tech}")
+
+        return [tech.strip() for tech in main_technologies if tech.strip()]
