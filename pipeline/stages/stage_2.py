@@ -36,7 +36,7 @@ class Stage2Processor:
 
     async def process_jobs(self, jobs: list[Job], company_name: str) -> list[Job]:
         """
-        Process multiple jobs for a company to extract eligibility and metadata.
+        Process multiple jobs for a company to extract metadata and descriptions.
 
         Args:
             jobs: List of Job objects to enrich with Stage 2 data
@@ -46,44 +46,35 @@ class Stage2Processor:
         self.logger.info(f"Processing {len(jobs)} jobs for {company_name}")
 
         try:
-            eligible_jobs = []
+            processed_jobs = []
             failed_jobs = []
-            ineligible_jobs_count = 0
 
             for job in jobs:
                 try:
                     # Process and enrich the job
                     enriched_job = await self.process_single_job(job)
-
-                    if enriched_job.is_eligible:
-                        eligible_jobs.append(enriched_job)
-                        self.logger.info(
-                            f"Job {job.title} is eligible and added to results"
-                        )
-                    else:
-                        ineligible_jobs_count += 1
-                        self.logger.info(
-                            f"Job {job.title} did not meet eligibility criteria"
-                        )
+                    processed_jobs.append(enriched_job)
+                    self.logger.info(f"Successfully processed job: {job.title}")
 
                 except Exception as e:
                     failed_jobs.append((job, e))
                     self.logger.error(f"Failed to process {job.title}: {e}")
 
-            # Save eligible jobs only
-            if eligible_jobs:
+            # Save processed jobs
+            if processed_jobs:
                 self.file_service.save_stage_results(
-                    eligible_jobs, company_name, self.config.stage_2.tag
+                    processed_jobs, company_name, self.config.stage_2.tag
                 )
                 self.logger.info(
-                    f"Saved {len(eligible_jobs)} eligible jobs for {company_name}. "
-                    f"Filtered out {ineligible_jobs_count} ineligible jobs. "
+                    f"Saved {len(processed_jobs)} processed jobs for {company_name}. "
                     f"Failed to process {len(failed_jobs)} jobs."
                 )
             else:
-                self.logger.warning(f"No eligible jobs found for {company_name}")
+                self.logger.warning(
+                    f"No jobs were successfully processed for {company_name}"
+                )
 
-            return eligible_jobs
+            return processed_jobs
 
         except Exception as e:
             self.logger.error(f"Error processing jobs for {company_name}: {e!s}")
@@ -91,7 +82,7 @@ class Stage2Processor:
 
     async def process_single_job(self, job: Job) -> Job:
         """
-        Process a single job to extract job eligibility and metadata.
+        Process a single job to extract job metadata and description.
 
         Args:
             job: Job instance to enrich with Stage 2 data

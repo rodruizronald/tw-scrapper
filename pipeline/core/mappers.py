@@ -8,6 +8,7 @@ from pipeline.core.models import (
     ExperienceLevel,
     Job,
     JobDetails,
+    JobFunction,
     JobRequirements,
     JobTechnologies,
     Location,
@@ -133,32 +134,29 @@ class JobDetailsMapper:
         """
         try:
             # Map and validate each field
-            eligible = self._extract_eligible(response)
             location = self._extract_location(response)
             work_mode = self._extract_work_mode(response)
             employment_type = self._extract_employment_type(response)
             experience_level = self._extract_experience_level(response)
+            job_function = self._extract_job_function(response)
+            province = self._extract_province(response)
+            city = self._extract_city(response)
             description = self._extract_description(response)
 
             return JobDetails(
-                eligible=eligible,
                 location=location,
                 work_mode=work_mode,
                 employment_type=employment_type,
                 experience_level=experience_level,
+                job_function=job_function,
+                province=province,
+                city=city,
                 description=description,
             )
 
         except Exception as e:
             self.logger.error(f"Failed to map OpenAI response to JobDetails: {e}")
             raise ValueError(f"Invalid OpenAI response format: {e}") from e
-
-    def _extract_eligible(self, job_data: dict[str, Any]) -> bool:
-        """Extract and validate eligible field."""
-        eligible = job_data.get("eligible")
-        if not isinstance(eligible, bool):
-            raise ValueError(f"Invalid eligible value: {eligible}")
-        return eligible
 
     def _extract_location(self, job_data: dict[str, Any]) -> Location:
         """Extract and validate location field."""
@@ -207,6 +205,35 @@ class JobDetailsMapper:
             raise ValueError(
                 f"Invalid experience_level value: {experience_level_str}"
             ) from err
+
+    def _extract_job_function(self, job_data: dict[str, Any]) -> JobFunction:
+        """Extract and validate job_function field."""
+        job_function_str = job_data.get("job_function")
+        if not job_function_str:
+            raise ValueError("Missing job_function field")
+
+        try:
+            return JobFunction(job_function_str)
+        except ValueError as err:
+            raise ValueError(f"Invalid job_function value: {job_function_str}") from err
+
+    def _extract_province(self, job_data: dict[str, Any]) -> str:
+        """Extract and validate province field."""
+        province = job_data.get("province", "")
+
+        if not isinstance(province, str):
+            raise ValueError(f"Invalid province value: {province}")
+
+        return province.strip()
+
+    def _extract_city(self, job_data: dict[str, Any]) -> str:
+        """Extract and validate city field."""
+        city = job_data.get("city", "")
+
+        if not isinstance(city, str):
+            raise ValueError(f"Invalid city value: {city}")
+
+        return city.strip()
 
     def _extract_description(self, job_data: dict[str, Any]) -> str:
         """Extract and validate description field."""

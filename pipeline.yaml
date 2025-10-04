@@ -43,7 +43,7 @@ pipeline:
       description: >-
         Extract job titles and URLs from company career pages using web
         scraping and AI parsing
-      enabled: false
+      enabled: true
       openai_service:
         system_message: >-
           You are an AI assistant specialized in extracting job listings
@@ -79,7 +79,7 @@ pipeline:
       description: >-
         Analyze job postings to determine eligibility, extract metadata,
         and generate concise descriptions
-      enabled: false
+      enabled: true
       openai_service:
         system_message: >-
           You extract job descriptions, eligibility information, and basic
@@ -93,9 +93,6 @@ pipeline:
           schema:
             type: "object"
             properties:
-              eligible:
-                type: "boolean"
-                description: "Whether the job meets eligibility criteria"
               location:
                 type: "string"
                 enum: ["Costa Rica", "LATAM"]
@@ -129,6 +126,36 @@ pipeline:
                     "Executive",
                   ]
                 description: "Required experience level"
+              job_function:
+                type: "string"
+                enum:
+                  [
+                    "Technology & Engineering",
+                    "Sales & Business Development",
+                    "Marketing & Communications",
+                    "Operations & Logistics",
+                    "Finance & Accounting",
+                    "Human Resources",
+                    "Customer Success & Support",
+                    "Product Management",
+                    "Data & Analytics",
+                    "Healthcare & Medical",
+                    "Legal & Compliance",
+                    "Design & Creative",
+                    "Administrative & Office",
+                    "Consulting & Strategy",
+                    "General Management",
+                    "Other",
+                  ]
+                description: "Job function category"
+              province:
+                type: "string"
+                description: >-
+                  Province name for Costa Rica locations or empty string for
+                  LATAM
+              city:
+                type: "string"
+                description: "City name or empty string"
               description:
                 type: "string"
                 maxLength: 500
@@ -137,11 +164,13 @@ pipeline:
                   responsibilities
             required:
               [
-                "eligible",
                 "location",
                 "work_mode",
                 "employment_type",
                 "experience_level",
+                "job_function",
+                "province",
+                "city",
                 "description",
               ]
             additionalProperties: false
@@ -151,7 +180,7 @@ pipeline:
       description: >-
         Extract detailed job information including responsibilities, required
         and preferred skills, and benefits from job posting HTML content
-      enabled: true
+      enabled: false
       openai_service:
         system_message: >-
           You extract job skills and responsibilities from HTML content.

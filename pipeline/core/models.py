@@ -135,25 +135,58 @@ class ExperienceLevel(str, Enum):
     EXECUTIVE = "Executive"
 
 
+class JobFunction(str, Enum):
+    TECHNOLOGY_ENGINEERING = "Technology & Engineering"
+    SALES_BUSINESS_DEVELOPMENT = "Sales & Business Development"
+    MARKETING_COMMUNICATIONS = "Marketing & Communications"
+    OPERATIONS_LOGISTICS = "Operations & Logistics"
+    FINANCE_ACCOUNTING = "Finance & Accounting"
+    HUMAN_RESOURCES = "Human Resources"
+    CUSTOMER_SUCCESS_SUPPORT = "Customer Success & Support"
+    PRODUCT_MANAGEMENT = "Product Management"
+    DATA_ANALYTICS = "Data & Analytics"
+    HEALTHCARE_MEDICAL = "Healthcare & Medical"
+    LEGAL_COMPLIANCE = "Legal & Compliance"
+    DESIGN_CREATIVE = "Design & Creative"
+    ADMINISTRATIVE_OFFICE = "Administrative & Office"
+    CONSULTING_STRATEGY = "Consulting & Strategy"
+    GENERAL_MANAGEMENT = "General Management"
+    OTHER = "Other"
+
+
+class Province(str, Enum):
+    SAN_JOSE = "San Jose"
+    ALAJUELA = "Alajuela"
+    HEREDIA = "Heredia"
+    GUANACASTE = "Guanacaste"
+    PUNTARENAS = "Puntarenas"
+    LIMON = "Limon"
+    CARTAGO = "Cartago"
+
+
 @dataclass
 class JobDetails:
     """Job details extracted from Stage 2 analysis."""
 
-    eligible: bool
     location: Location
     work_mode: WorkMode
     employment_type: EmploymentType
     experience_level: ExperienceLevel
+    job_function: JobFunction
+    province: str  # Province name or empty string for LATAM
+    city: str  # City name or empty string
     description: str
 
     def to_dict(self) -> dict[str, Any]:
         """Convert JobDetails to dictionary for JSON serialization."""
         return {
-            "eligible": self.eligible,
             "location": self.location.value,
             "work_mode": self.work_mode.value,
             "employment_type": self.employment_type.value,
             "experience_level": self.experience_level.value,
+            "job_function": self.job_function.value,
+            "province": self.province,
+            "city": self.city,
             "description": self.description,
         }
 
@@ -161,7 +194,6 @@ class JobDetails:
     def from_dict(cls, data: dict[str, Any]) -> "JobDetails":
         """Create JobDetails from dictionary."""
         return cls(
-            eligible=data.get("eligible", False),
             location=Location(data.get("location", Location.LATAM.value)),
             work_mode=WorkMode(data.get("work_mode", WorkMode.REMOTE.value)),
             employment_type=EmploymentType(
@@ -170,6 +202,9 @@ class JobDetails:
             experience_level=ExperienceLevel(
                 data.get("experience_level", ExperienceLevel.MID_LEVEL.value)
             ),
+            job_function=JobFunction(data.get("job_function", JobFunction.OTHER.value)),
+            province=data.get("province", ""),
+            city=data.get("city", ""),
             description=data.get("description", ""),
         )
 
@@ -291,8 +326,8 @@ class Job:
 
     @property
     def is_eligible(self) -> bool:
-        """Check if job is eligible (requires Stage 2 processing)."""
-        return self.details is not None and self.details.eligible
+        """Check if job has been processed and has details (Stage 2 processing complete)."""
+        return self.details is not None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert Job to dictionary for JSON serialization."""
