@@ -1,3 +1,4 @@
+import hashlib
 from typing import Any
 
 from prefect.logging import get_run_logger
@@ -5,11 +6,111 @@ from prefect.logging import get_run_logger
 from pipeline.core.models import (
     EmploymentType,
     ExperienceLevel,
+    Job,
     JobDetails,
-    JobSkills,
+    JobFunction,
+    JobRequirements,
+    JobTechnologies,
     Location,
+    Technology,
     WorkMode,
 )
+
+
+class JobMapper:
+    """Maps OpenAI response to Job model"""
+
+    def __init__(self):
+        self.logger = get_run_logger()
+
+    def map_from_openai_response(
+        self, response: dict[str, Any], company: str
+    ) -> list[Job]:
+        """
+        Transform OpenAI response containing multiple jobs to list of Job models.
+
+        Args:
+            response: Raw OpenAI response dictionary containing jobs
+
+        Returns:
+            List of validated Job objects
+
+        Raises:
+            ValueError: If response format is invalid or required fields are missing
+        """
+        try:
+            jobs = []
+            job_data = response.get("jobs", [])
+
+            if not isinstance(job_data, list):
+                raise ValueError(f"Invalid jobs data format: {job_data}")
+
+            for i, job_info in enumerate(job_data):
+                try:
+                    if not isinstance(job_info, dict):
+                        self.logger.warning(
+                            f"Skipping invalid job item at index {i}: not a dictionary"
+                        )
+                        continue
+
+                    # Map and validate each field
+                    title = self._extract_title(job_info)
+                    url = self._extract_url(job_info)
+
+                    # Generate a unique signature for a job URL.
+                    signature = hashlib.sha256(url.encode()).hexdigest()
+
+                    job = Job(
+                        title=title,
+                        url=url,
+                        signature=signature,
+                        company=company,
+                    )
+                    jobs.append(job)
+
+                except Exception as e:
+                    self.logger.warning(f"Skipping invalid job data at index {i}: {e}")
+                    continue
+
+            return jobs
+
+        except Exception as e:
+            self.logger.error(f"Failed to map OpenAI response to Job: {e}")
+            raise ValueError(f"Invalid OpenAI response format: {e}") from e
+
+    def _extract_title(self, job_data: dict[str, Any]) -> str:
+        """Extract and validate title field."""
+        title = job_data.get("title")
+        if not title:
+            raise ValueError("Missing title field")
+
+        if not isinstance(title, str):
+            raise ValueError(f"Invalid title value: {title}")
+
+        title_str = title.strip()
+        if not title_str:
+            raise ValueError("Title cannot be empty")
+
+        return title_str
+
+    def _extract_url(self, job_data: dict[str, Any]) -> str:
+        """Extract and validate URL field."""
+        url = job_data.get("url")
+        if not url:
+            raise ValueError("Missing url field")
+
+        if not isinstance(url, str):
+            raise ValueError(f"Invalid url value: {url}")
+
+        url_str = url.strip()
+        if not url_str:
+            raise ValueError("URL cannot be empty")
+
+        # Basic URL validation
+        if not (url_str.startswith("http://") or url_str.startswith("https://")):
+            raise ValueError(f"Invalid URL format: {url_str}")
+
+        return url_str
 
 
 class JobDetailsMapper:
@@ -33,32 +134,29 @@ class JobDetailsMapper:
         """
         try:
             # Map and validate each field
-            eligible = self._extract_eligible(response)
             location = self._extract_location(response)
             work_mode = self._extract_work_mode(response)
             employment_type = self._extract_employment_type(response)
             experience_level = self._extract_experience_level(response)
+            job_function = self._extract_job_function(response)
+            province = self._extract_province(response)
+            city = self._extract_city(response)
             description = self._extract_description(response)
 
             return JobDetails(
-                eligible=eligible,
                 location=location,
                 work_mode=work_mode,
                 employment_type=employment_type,
                 experience_level=experience_level,
+                job_function=job_function,
+                province=province,
+                city=city,
                 description=description,
             )
 
         except Exception as e:
             self.logger.error(f"Failed to map OpenAI response to JobDetails: {e}")
             raise ValueError(f"Invalid OpenAI response format: {e}") from e
-
-    def _extract_eligible(self, job_data: dict[str, Any]) -> bool:
-        """Extract and validate eligible field."""
-        eligible = job_data.get("eligible")
-        if not isinstance(eligible, bool):
-            raise ValueError(f"Invalid eligible value: {eligible}")
-        return eligible
 
     def _extract_location(self, job_data: dict[str, Any]) -> Location:
         """Extract and validate location field."""
@@ -108,6 +206,35 @@ class JobDetailsMapper:
                 f"Invalid experience_level value: {experience_level_str}"
             ) from err
 
+    def _extract_job_function(self, job_data: dict[str, Any]) -> JobFunction:
+        """Extract and validate job_function field."""
+        job_function_str = job_data.get("job_function")
+        if not job_function_str:
+            raise ValueError("Missing job_function field")
+
+        try:
+            return JobFunction(job_function_str)
+        except ValueError as err:
+            raise ValueError(f"Invalid job_function value: {job_function_str}") from err
+
+    def _extract_province(self, job_data: dict[str, Any]) -> str:
+        """Extract and validate province field."""
+        province = job_data.get("province", "")
+
+        if not isinstance(province, str):
+            raise ValueError(f"Invalid province value: {province}")
+
+        return province.strip()
+
+    def _extract_city(self, job_data: dict[str, Any]) -> str:
+        """Extract and validate city field."""
+        city = job_data.get("city", "")
+
+        if not isinstance(city, str):
+            raise ValueError(f"Invalid city value: {city}")
+
+        return city.strip()
+
     def _extract_description(self, job_data: dict[str, Any]) -> str:
         """Extract and validate description field."""
         description = job_data.get("description")
@@ -123,21 +250,21 @@ class JobDetailsMapper:
         return description.strip()
 
 
-class JobSkillsMapper:
-    """Maps OpenAI response to JobSkills model."""
+class JobRequirementsMapper:
+    """Maps OpenAI response to JobRequirements model."""
 
     def __init__(self):
         self.logger = get_run_logger()
 
-    def map_from_openai_response(self, response: dict[str, Any]) -> JobSkills:
+    def map_from_openai_response(self, response: dict[str, Any]) -> JobRequirements:
         """
-        Transform OpenAI response to JobSkills model.
+        Transform OpenAI response to JobRequirements model.
 
         Args:
             response: Raw OpenAI response dictionary
 
         Returns:
-            JobSkills: Validated and typed job skills
+            JobRequirements: Validated and typed job skills
 
         Raises:
             ValueError: If response format is invalid or required fields are missing
@@ -149,7 +276,7 @@ class JobSkillsMapper:
             skill_nice_to_have = self._extract_skill_nice_to_have(response)
             benefits = self._extract_benefits(response)
 
-            return JobSkills(
+            return JobRequirements(
                 responsibilities=responsibilities,
                 skill_must_have=skill_must_have,
                 skill_nice_to_have=skill_nice_to_have,
@@ -157,7 +284,7 @@ class JobSkillsMapper:
             )
 
         except Exception as e:
-            self.logger.error(f"Failed to map OpenAI response to JobSkills: {e}")
+            self.logger.error(f"Failed to map OpenAI response to JobRequirements: {e}")
             raise ValueError(f"Invalid OpenAI response format: {e}") from e
 
     def _extract_responsibilities(self, job_data: dict[str, Any]) -> list[str]:
@@ -213,3 +340,87 @@ class JobSkillsMapper:
                 raise ValueError(f"Invalid benefit item at index {i}: {item}")
 
         return [item.strip() for item in benefits if item.strip()]
+
+
+class JobTechnologiesMapper:
+    """Maps OpenAI response to JobTechnologies model."""
+
+    def __init__(self):
+        self.logger = get_run_logger()
+
+    def map_from_openai_response(self, response: dict[str, Any]) -> JobTechnologies:
+        """
+        Transform OpenAI response to JobTechnologies model.
+
+        Args:
+            response: Raw OpenAI response dictionary
+
+        Returns:
+            JobTechnologies: Validated and typed job technologies
+
+        Raises:
+            ValueError: If response format is invalid or required fields are missing
+        """
+        try:
+            # Map and validate each field
+            technologies = self._extract_technologies(response)
+            main_technologies = self._extract_main_technologies(response)
+
+            return JobTechnologies(
+                technologies=technologies,
+                main_technologies=main_technologies,
+            )
+
+        except Exception as e:
+            self.logger.error(f"Failed to map OpenAI response to JobTechnologies: {e}")
+            raise ValueError(f"Invalid OpenAI response format: {e}") from e
+
+    def _extract_technologies(self, job_data: dict[str, Any]) -> list[Technology]:
+        """Extract and validate technologies field."""
+        technologies_data = job_data.get("technologies")
+        if not isinstance(technologies_data, list):
+            raise ValueError(f"Invalid technologies value: {technologies_data}")
+
+        technologies = []
+        for i, tech_data in enumerate(technologies_data):
+            if not isinstance(tech_data, dict):
+                raise ValueError(f"Invalid technology item at index {i}: {tech_data}")
+
+            # Validate required fields
+            name = tech_data.get("name")
+            category = tech_data.get("category")
+            required = tech_data.get("required")
+
+            if not name or not isinstance(name, str):
+                raise ValueError(f"Invalid technology name at index {i}: {name}")
+            if not category or not isinstance(category, str):
+                raise ValueError(
+                    f"Invalid technology category at index {i}: {category}"
+                )
+            if not isinstance(required, bool):
+                raise ValueError(
+                    f"Invalid technology required field at index {i}: {required}"
+                )
+
+            technologies.append(
+                Technology(
+                    name=name.strip(),
+                    category=category.strip().lower(),
+                    required=required,
+                )
+            )
+
+        return technologies
+
+    def _extract_main_technologies(self, job_data: dict[str, Any]) -> list[str]:
+        """Extract and validate main_technologies field."""
+        main_technologies = job_data.get("main_technologies")
+        if not isinstance(main_technologies, list):
+            raise ValueError(f"Invalid main_technologies value: {main_technologies}")
+
+        # Validate each item is a string
+        for i, tech in enumerate(main_technologies):
+            if not isinstance(tech, str):
+                raise ValueError(f"Invalid main technology item at index {i}: {tech}")
+
+        return [tech.strip() for tech in main_technologies if tech.strip()]

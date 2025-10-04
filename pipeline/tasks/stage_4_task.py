@@ -24,9 +24,9 @@ from pipeline.utils.exceptions import (
 )
 async def process_job_technologies_task(
     company: CompanyData,
-    jobs_data: list[Job],
+    jobs: list[Job],
     config: PipelineConfig,
-) -> None:
+) -> list[Job]:
     """
     Prefect task to process a single job for technologies and tools extraction.
 
@@ -56,12 +56,14 @@ async def process_job_technologies_task(
         processor = Stage4Processor(config)
 
         # Process each job individually
-        for job_data in jobs_data:
-            await processor.process_single_job(job_data)
+        results = await processor.process_jobs(jobs, company.name)
+
+        return results
 
     except ValidationError as e:
         # Non-retryable errors - don't retry these
         logger.error(f"Validation error for {company.name}: {e}")
+        return []  # Return empty list instead of None
 
     except (WebExtractionError, OpenAIProcessingError, FileOperationError) as e:
         # Retryable errors - let Prefect handle retries

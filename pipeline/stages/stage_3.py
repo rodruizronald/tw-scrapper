@@ -1,10 +1,10 @@
 from prefect.logging import get_run_logger
 
 from pipeline.core.config import PipelineConfig
-from pipeline.core.mappers import JobSkillsMapper
+from pipeline.core.mappers import JobRequirementsMapper
 from pipeline.core.models import (
     Job,
-    JobSkills,
+    JobRequirements,
     WebParserConfig,
 )
 from pipeline.services.file_service import FileService
@@ -32,9 +32,9 @@ class Stage3Processor:
         )
 
         # Initialize mapper
-        self.job_skills_mapper = JobSkillsMapper()
+        self.job_requirments_mapper = JobRequirementsMapper()
 
-    async def process_jobs(self, jobs: list[Job], company_name: str) -> None:
+    async def process_jobs(self, jobs: list[Job], company_name: str) -> list[Job]:
         """
         Process multiple jobs for a company to extract skills and responsibilities.
 
@@ -74,8 +74,11 @@ class Stage3Processor:
             else:
                 self.logger.warning(f"No jobs to save for {company_name}")
 
+            return processed_jobs
+
         except Exception as e:
             self.logger.error(f"Error processing jobs for {company_name}: {e!s}")
+            return []  # Return empty list instead of None
 
     async def process_single_job(self, job: Job) -> Job:
         """
@@ -98,10 +101,10 @@ class Stage3Processor:
         html_content = await self._extract_job_skills_content(job)
 
         # Step 2: Use OpenAI service to parse job skills
-        job_skills = await self._parse_job_skills(html_content, job)
+        job_requirements = await self._parse_job_skills(html_content, job)
 
         # Step 3: Enrich job with skills
-        job.skills = job_skills
+        job.requirements = job_requirements
 
         return job
 
@@ -128,7 +131,7 @@ class Stage3Processor:
                 company_name=job.company,
             ) from e
 
-    async def _parse_job_skills(self, html_content: str, job: Job) -> JobSkills:
+    async def _parse_job_skills(self, html_content: str, job: Job) -> JobRequirements:
         """Parse job skills from HTML content using the OpenAI service."""
         try:
             prompt_template = self.config.stage_3.prompt_template
@@ -145,10 +148,12 @@ class Stage3Processor:
             # Get raw response from OpenAI
             raw_response = await self.openai_service.process_with_template(request)
 
-            # Transform to typed model
-            job_skills = self.job_skills_mapper.map_from_openai_response(raw_response)
+            # Process and validate job data using JobRequirementsMapper
+            job_requirements = self.job_requirments_mapper.map_from_openai_response(
+                raw_response
+            )
 
-            return job_skills
+            return job_requirements
 
         except Exception as e:
             raise OpenAIProcessingError(
