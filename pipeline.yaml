@@ -43,7 +43,7 @@ pipeline:
       description: >-
         Extract job titles and URLs from company career pages using web
         scraping and AI parsing
-      enabled: true
+      enabled: false
       openai_service:
         system_message: >-
           You are an AI assistant specialized in extracting job listings
@@ -79,7 +79,7 @@ pipeline:
       description: >-
         Analyze job postings to determine eligibility, extract metadata,
         and generate concise descriptions
-      enabled: true
+      enabled: false
       openai_service:
         system_message: >-
           You extract job descriptions, eligibility information, and basic
@@ -180,7 +180,7 @@ pipeline:
       description: >-
         Extract detailed job information including responsibilities, required
         and preferred skills, and benefits from job posting HTML content
-      enabled: false
+      enabled: true
       openai_service:
         system_message: >-
           You extract job skills and responsibilities from HTML content.

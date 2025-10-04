@@ -15,8 +15,9 @@ from pipeline.tasks.utils import (
     name="stage_3_skills_extraction",
     description="Extract skills and responsibilities from job postings",
     version="1.0.0",
-    retries=1,
+    retries=0,
     retry_delay_seconds=60,
+    timeout_seconds=None,
 )
 async def stage_3_flow(
     companies: list[CompanyData],

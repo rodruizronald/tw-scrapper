@@ -15,8 +15,9 @@ from pipeline.tasks.utils import (
     name="stage_4_technologies_extraction",
     description="Extract technologies and tools from job postings",
     version="1.0.0",
-    retries=1,
+    retries=0,
     retry_delay_seconds=60,
+    timeout_seconds=None,
 )
 async def stage_4_flow(
     companies: list[CompanyData],

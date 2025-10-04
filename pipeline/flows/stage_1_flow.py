@@ -16,8 +16,9 @@ from pipeline.tasks.utils import (
     name="stage_1_job_listing_extraction",
     description="Extract job listings from company career pages with concurrent processing",
     version="1.0.0",
-    retries=1,
+    retries=0,
     retry_delay_seconds=60,
+    timeout_seconds=None,
 )
 async def stage_1_flow(
     companies: list[CompanyData],

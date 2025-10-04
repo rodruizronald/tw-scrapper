@@ -15,8 +15,9 @@ from pipeline.tasks.utils import (
     name="stage_2_job_details_extraction",
     description="Extract job eligibility, metadata, and detailed descriptions from individual job postings",
     version="1.0.0",
-    retries=1,
+    retries=0,
     retry_delay_seconds=60,
+    timeout_seconds=None,
 )
 async def stage_2_flow(
     companies: list[CompanyData],
