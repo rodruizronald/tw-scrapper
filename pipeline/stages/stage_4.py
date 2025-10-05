@@ -1,3 +1,5 @@
+import json
+
 from prefect.logging import get_run_logger
 
 from pipeline.core.config import PipelineConfig
@@ -10,7 +12,7 @@ from pipeline.core.models import (
 from pipeline.services.file_service import FileService
 from pipeline.services.openai_service import OpenAIRequest, OpenAIService
 from pipeline.services.web_extraction_service import WebExtractionService
-from pipeline.utils.exceptions import OpenAIProcessingError, WebExtractionError
+from pipeline.utils.exceptions import OpenAIProcessingError
 
 
 class Stage4Processor:
@@ -97,51 +99,36 @@ class Stage4Processor:
         """
         self.logger.info(f"Processing job: {job.title}")
 
-        # Step 1: Extract job posting page content
-        html_content = await self._extract_job_technologies_content(job)
+        # Step 1: Use OpenAI service to parse job technologies
+        job_technologies = await self._parse_job_technologies(job)
 
-        # Step 2: Use OpenAI service to parse job technologies
-        job_technologies = await self._parse_job_technologies(html_content, job)
-
-        # Step 3: Enrich job with technologies
+        # Step 2: Enrich job with technologies
         job.technologies = job_technologies
 
         return job
 
-    async def _extract_job_technologies_content(self, job: Job) -> str:
-        """Extract HTML content from job posting page."""
-        try:
-            content = await self.web_extraction_service.extract_html_content(
-                url=job.url,
-                selectors=self.web_parser.job_card_selectors,
-                parser_type=self.web_parser.parser_type,
-                company_name=job.company,
-            )
-            if not content:
-                raise WebExtractionError(
-                    url=job.url,
-                    original_error=Exception(f"No content extracted from {job.url}"),
-                    company_name=job.company,
-                )
-            return content
-        except Exception as e:
-            raise WebExtractionError(
-                url=job.url,
-                original_error=e,
-                company_name=job.company,
-            ) from e
-
-    async def _parse_job_technologies(
-        self, html_content: str, job: Job
-    ) -> JobTechnologies:
+    async def _parse_job_technologies(self, job: Job) -> JobTechnologies:
         """Parse job technologies from HTML content using the OpenAI service."""
         try:
+            # Check if job has requirements from Stage 3
+            if not job.requirements:
+                raise ValueError(
+                    f"Job {job.title} has no requirements data from Stage 3"
+                )
+
             prompt_template = self.config.stage_4.prompt_template
+            job_requirements = {
+                "must_have": job.requirements.skill_must_have,
+                "nice_to_have": job.requirements.skill_nice_to_have,
+            }
+            # Convert requirements to JSON string for the prompt
+            requirements_json = json.dumps({"requirements": job_requirements}, indent=2)
+
             request = OpenAIRequest(
                 system_message=self.config.stage_4.system_message,
                 template_path=self.config.get_prompt_path(prompt_template),
                 template_variables={
-                    "html_content": html_content,
+                    "requirements_json": requirements_json,
                 },
                 response_format=self.config.stage_4.response_format,
                 context_name=job.company,
