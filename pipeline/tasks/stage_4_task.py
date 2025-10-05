@@ -53,7 +53,7 @@ async def process_job_technologies_task(
         logger.info(f"Starting task for company: {company.name}")
 
         # Initialize processor
-        processor = Stage4Processor(config)
+        processor = Stage4Processor(config, company.web_parser_config)
 
         # Process each job individually
         results = await processor.process_jobs(jobs, company.name)
