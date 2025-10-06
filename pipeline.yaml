@@ -22,7 +22,7 @@ pipeline:
       model: "gpt-5-mini"
       max_retries: 3
       # timeout in seconds
-      timeout: 300
+      timeout: 600
 
     # Playwright integration for web scraping
     web_extraction:
@@ -43,7 +43,7 @@ pipeline:
       description: >-
         Extract job titles and URLs from company career pages using web
         scraping and AI parsing
-      enabled: true
+      enabled: false
       openai_service:
         system_message: >-
           You are an AI assistant specialized in extracting job listings
@@ -79,7 +79,7 @@ pipeline:
       description: >-
         Analyze job postings to determine eligibility, extract metadata,
         and generate concise descriptions
-      enabled: true
+      enabled: false
       openai_service:
         system_message: >-
           You extract job descriptions, eligibility information, and basic
@@ -233,7 +233,7 @@ pipeline:
       description: >-
         Extract and categorize technologies from job requirements, determining
         their requirement status and identifying main technologies for each role
-      enabled: false
+      enabled: true
       openai_service:
         system_message: >-
           You extract and categorize technologies from structured job

@@ -64,23 +64,29 @@ Follow this step-by-step process to determine if a job posting is valid:
 
 ### Concise Description (Maximum 500 characters)
 
-Create a brief, professional description that focuses on role essence and context:
+Create a brief, professional description that synthesizes the role information into a single coherent paragraph:
 
+- Write as one continuous paragraph without line breaks or separate sections
 - Start with the exact job title and seniority level
 - Describe the primary function and scope of work
 - Include team context (size, structure) if mentioned
 - Mention the industry/domain or key business impact
-- Avoid listing specific technical requirements or soft skills (these belong in dedicated sections)
+- Do NOT include a "Notes" section or any annotations
+- Do NOT include raw extracts or quotes from the original posting
+- Do NOT include any HTML tags, code snippets, or formatting markers
+- Synthesize and paraphrase all information into professional narrative prose
 
 ### Description Style Guidelines:
 
 - Maximum 500 characters including spaces
+- Single paragraph format only - no line breaks, no sections, no notes
 - Focus on "what you'll do" and "where you'll fit" rather than "what you need"
 - Use straightforward, professional language
+- Clean text only - no HTML, no code, no special formatting
 - Structure: Role → Primary function → Team/company context → Business impact
-- Let applicants get excited about the role itself, not overwhelmed by requirements
+- All content must be paraphrased and synthesized, never copied verbatim
 
-Example Format: "We are looking for a [Level] [Title] to [primary function/responsibility]. You will [key activities] within [team/company context] focusing on [business area/impact]."
+Example Format: "Senior Software Engineer to develop scalable, robust .NET solutions. You will design and deliver high-quality software, make technical decisions, mentor engineers and contribute to strategic project direction within GAP's distributed engineering teams, supporting revenue-generating software and data engineering for client engagements and modernization efforts across industries."
 
 ## Field Value Guidelines
 

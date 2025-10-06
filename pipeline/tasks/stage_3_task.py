@@ -17,9 +17,9 @@ from pipeline.utils.exceptions import (
     name="Process Job Skills",
     description="Extract skills and responsibilities from a single job posting",
     tags=["stage-3", "job-processing"],
-    retries=2,
+    retries=0,
     retry_delay_seconds=30,
-    timeout_seconds=300,  # 5 minutes per job
+    timeout_seconds=None,
     task_run_name=company_task_run_name,  # type: ignore[arg-type]
 )
 async def process_job_skills_task(

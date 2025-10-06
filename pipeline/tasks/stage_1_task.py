@@ -17,9 +17,9 @@ from pipeline.utils.exceptions import (
     name="Process Company",
     description="Extract job listings from a single company's career page",
     tags=["stage-1", "company-processing"],
-    retries=2,
+    retries=0,
     retry_delay_seconds=30,
-    timeout_seconds=300,  # 5 minutes per company
+    timeout_seconds=None,
     task_run_name=company_task_run_name,  # type: ignore[arg-type]
 )
 async def process_job_listings_task(

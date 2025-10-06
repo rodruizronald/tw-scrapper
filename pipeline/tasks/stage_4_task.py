@@ -17,9 +17,9 @@ from pipeline.utils.exceptions import (
     name="Process Job Technologies",
     description="Extract technologies and tools from a single job posting",
     tags=["stage-4", "job-processing"],
-    retries=2,
+    retries=0,
     retry_delay_seconds=30,
-    timeout_seconds=180,  # 3 minutes per job
+    timeout_seconds=None,
     task_run_name=company_task_run_name,  # type: ignore[arg-type]
 )
 async def process_job_technologies_task(
@@ -53,7 +53,7 @@ async def process_job_technologies_task(
         logger.info(f"Starting task for company: {company.name}")
 
         # Initialize processor
-        processor = Stage4Processor(config)
+        processor = Stage4Processor(config, company.web_parser_config)
 
         # Process each job individually
         results = await processor.process_jobs(jobs, company.name)

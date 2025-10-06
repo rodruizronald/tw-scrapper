@@ -17,9 +17,9 @@ from pipeline.utils.exceptions import (
     name="Process Job",
     description="Extract eligibility and metadata from a single job posting",
     tags=["stage-2", "job-processing"],
-    retries=2,
+    retries=0,
     retry_delay_seconds=30,
-    timeout_seconds=300,
+    timeout_seconds=None,
     task_run_name=company_task_run_name,  # type: ignore[arg-type]
 )
 async def process_job_details_task(

@@ -22,6 +22,7 @@ Analyze the provided HTML content of the job posting and extract the following f
 - If responsibilities are mixed with requirements, be strict about only including action-oriented items
 - If no clear responsibilities are defined, create 5-10 responsibility statements based on the job requirements and role description
 - Keep items as they appear in the original posting, but remove bullet point characters
+- **STRICT LIMIT: Maximum 10 responsibilities. If more than 10 exist, select the most important and comprehensive ones that best represent the core role**
 
 ### 2. Must-Have Skills (skill_must_have)
 
@@ -29,13 +30,23 @@ Analyze the provided HTML content of the job posting and extract the following f
 - Look for language cues such as: "Required", "Must have", "Essential", "Minimum", "Mandatory", "Need", "Should have"
 - Include all types of skills: technical, professional experience, soft skills, qualifications, certifications
 - Extract items as they appear in the original posting, removing only bullet point characters
+- **STRICT LIMIT: 5-10 items (maximum 10)**
+- **PRIORITIZATION when more than 10 exist:**
+  1. **First priority:** Technical skills, professional experience, and qualifications
+  2. **Second priority:** Soft skills and certifications (include only if space remains)
+  3. **Selection criteria for technical skills:** Choose the most job-critical skills that are essential for performing the core functions of the role
 
 ### 3. Nice-to-Have Skills (skill_nice_to_have)
 
 - Extract skills that are presented as preferred, bonus, or optional
 - Look for language cues such as: "Preferred", "Nice to have", "Bonus", "Plus", "A plus if", "Would be great if", "Ideally"
-- Include all types of skills: technical, professional experience, soft skills, qualifications
+- Include all types of skills: technical, professional experience, soft skills, qualifications, certifications
 - Extract items as they appear in the original posting, removing only bullet point characters
+- **STRICT LIMIT: 5-10 items (maximum 10)**
+- **PRIORITIZATION when more than 10 exist:**
+  1. **First priority:** Technical skills, professional experience, and qualifications
+  2. **Second priority:** Soft skills and certifications (include only if space remains)
+  3. **Selection criteria for technical skills:** Choose skills that would provide the most value as additions to the must-have requirements
 
 ### 4. Benefits
 
@@ -45,6 +56,12 @@ Analyze the provided HTML content of the job posting and extract the following f
 - Do NOT add or modify benefits - only extract what is explicitly stated
 - If no benefits are mentioned, leave as empty array
 - Remove bullet point characters but keep original wording
+- **STRICT LIMIT: 5-10 items (maximum 10)**
+- **PRIORITIZATION when more than 10 exist:**
+  1. Remuneration and salary information
+  2. Holiday/vacation policies
+  3. Bonuses and monetary perks
+  4. Other benefits (include only if space remains after monetary benefits)
 
 ## Categorization Guidelines
 
@@ -53,13 +70,15 @@ Analyze the provided HTML content of the job posting and extract the following f
 - If the job posting doesn't clearly distinguish between must-have and nice-to-have skills, use the language cues provided above to categorize them
 - When in doubt, categorize as must-have if the language suggests it's important for the role
 - All skills mentioned in the job posting should be included - don't filter based on type
+- **Always respect the maximum limits for each category**
 
 ### Text Processing
 
 - Keep all extracted items exactly as they appear in the source
 - Remove bullet point characters (•, -, \*, etc.) but preserve the original text
+- **Capitalize the first letter of each extracted item to ensure proper formatting**
 - Maintain original punctuation and formatting within each item
-- Do not rephrase, summarize, or modify the content
+- Do not rephrase, summarize, or modify the content beyond capitalizing the first letter
 
 ## HTML Processing Guidelines
 
@@ -72,7 +91,7 @@ When parsing the HTML content:
 
 ## Required Output Format
 
-Return the extracted information as a JSON object with four arrays:
+Return the extracted information as a JSON object with four arrays. **Each item in the arrays must start with a capital letter:**
 
 ```json
 {
@@ -94,6 +113,14 @@ Return the extracted information as a JSON object with four arrays:
   ]
 }
 ```
+
+**IMPORTANT OUTPUT CONSTRAINTS:**
+
+- responsibilities: Maximum 10 items
+- skill_must_have: 5-10 items (never exceed 10)
+- skill_nice_to_have: 5-10 items (never exceed 10)
+- benefits: 5-10 items (never exceed 10)
+- All items must begin with a capital letter for proper formatting
 
 If any category is not present in the job posting, return an empty array for that category.
 
