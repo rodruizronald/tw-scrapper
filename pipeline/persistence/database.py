@@ -5,7 +5,6 @@ This module handles MongoDB connection management, configuration,
 and provides a centralized database controller following best practices.
 """
 
-import os
 from typing import Any, Optional
 
 from loguru import logger
@@ -13,6 +12,8 @@ from pymongo import MongoClient
 from pymongo.collection import Collection
 from pymongo.database import Database
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+
+from .config import get_database_config
 
 
 class DatabaseController:
@@ -32,45 +33,18 @@ class DatabaseController:
         return cls._instance
 
     def __init__(self) -> None:
-        """Initialize database controller with configuration from environment."""
+        """Initialize database controller with configuration from DatabaseConfig."""
         if hasattr(self, "_initialized"):
             return
 
         # Initialize instance variables
         self._client: MongoClient[Any] | None = None
-
-        self.connection_string: str = self._get_connection_string()
-        self.database_name: str = os.getenv("MONGO_DATABASE", "tw_scrapper")
-        self.connection_timeout: int = int(
-            os.getenv("MONGO_CONNECTION_TIMEOUT", "5000")
-        )
-        self.server_selection_timeout: int = int(
-            os.getenv("MONGO_SERVER_SELECTION_TIMEOUT", "5000")
-        )
+        self._config = get_database_config()
 
         self._initialized: bool = True
         logger.info(
-            f"Database controller initialized for database: {self.database_name}"
+            f"Database controller initialized for database: {self._config.database}"
         )
-
-    def _get_connection_string(self) -> str:
-        """Build MongoDB connection string from environment variables."""
-        # Check for full connection string first
-        connection_string = os.getenv("MONGO_CONNECTION_STRING")
-        if connection_string:
-            return connection_string
-
-        # Build from individual components
-        host = os.getenv("MONGO_HOST", "localhost")
-        port = int(os.getenv("MONGO_PORT", "27017"))
-        username = os.getenv("MONGO_USERNAME")
-        password = os.getenv("MONGO_PASSWORD")
-        auth_source = os.getenv("MONGO_AUTH_SOURCE", "admin")
-
-        if username and password:
-            return f"mongodb://{username}:{password}@{host}:{port}/?authSource={auth_source}"
-        else:
-            return f"mongodb://{host}:{port}/"
 
     def get_client(self) -> MongoClient[Any]:
         """
@@ -84,11 +58,18 @@ class DatabaseController:
         """
         if self._client is None:
             try:
+                # Use connection string from config or build it
+                connection_string = (
+                    self._config.connection_string
+                    if self._config.connection_string
+                    else self._config.build_connection_string()
+                )
+
                 # Explicit type annotation for clarity
                 client: MongoClient[Any] = MongoClient(
-                    self.connection_string,
-                    connectTimeoutMS=self.connection_timeout,
-                    serverSelectionTimeoutMS=self.server_selection_timeout,
+                    connection_string,
+                    connectTimeoutMS=self._config.connection_timeout,
+                    serverSelectionTimeoutMS=self._config.server_selection_timeout,
                 )
                 # Test connection
                 client.admin.command("ping")
@@ -108,7 +89,7 @@ class DatabaseController:
             Database: Database instance
         """
         client = self.get_client()
-        return client[self.database_name]
+        return client[self._config.database]
 
     def get_collection(self, collection_name: str) -> Collection[Any]:
         """
@@ -149,7 +130,7 @@ class DatabaseController:
         """Create database indexes for optimal performance."""
         try:
             db = self.get_database()
-            job_listings = db.job_listings
+            job_listings = db[self._config.job_listings_collection]
 
             # Create indexes with proper method calls
             try:
