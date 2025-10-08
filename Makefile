@@ -4,7 +4,8 @@
     install install-dev clean \
     prefect-server prefect-config prefect-reset \
     pre-commit-install pre-commit-run pre-commit-update \
-    help
+    help \
+    db-up db-down db-logs db-shell db-backup db-restore
 
 # Load environment variables from .env file if it exists
 ifneq (,$(wildcard ./.env))
@@ -127,6 +128,37 @@ pre-commit-update:
 	@pre-commit autoupdate
 	@echo "✅ Pre-commit hooks updated successfully"
 
+# Database commands
+db-up:
+	@echo "Starting MongoDB container..."
+	@docker-compose up -d mongodb
+	@echo "✅ MongoDB container started successfully"
+
+db-down:
+	@echo "Stopping MongoDB container..."
+	@docker-compose down
+	@echo "✅ MongoDB container stopped successfully"
+
+db-logs:
+	@echo "Showing MongoDB logs (Press Ctrl+C to exit)..."
+	@docker-compose logs -f mongodb
+
+db-shell:
+	@echo "Connecting to MongoDB shell..."
+	@docker exec -it tw-scrapper-mongodb mongosh -u admin -p password123
+
+db-backup:
+	@echo "Creating MongoDB backup..."
+	@docker exec tw-scrapper-mongodb mongodump --username admin --password password123 --authenticationDatabase admin --db tw_scrapper --out /backup
+	@docker cp tw-scrapper-mongodb:/backup ./backup
+	@echo "✅ MongoDB backup completed successfully"
+
+db-restore:
+	@echo "Restoring MongoDB from backup..."
+	@docker cp ./backup tw-scrapper-mongodb:/backup
+	@docker exec tw-scrapper-mongodb mongorestore --username admin --password password123 --authenticationDatabase admin --db tw_scrapper /backup/tw_scrapper
+	@echo "✅ MongoDB restore completed successfully"
+
 # Show help
 help:
 	@echo "╔══════════════════════════════════════════════════════════╗"
@@ -161,4 +193,12 @@ help:
 	@echo "  make pre-commit-install - Install pre-commit hooks"
 	@echo "  make pre-commit-run     - Run pre-commit on all files"
 	@echo "  make pre-commit-update  - Update pre-commit hooks"
+	@echo ""
+	@echo "🗄️ Database Commands:"
+	@echo "  make db-up              - Start MongoDB container"
+	@echo "  make db-down            - Stop MongoDB container"
+	@echo "  make db-logs            - View MongoDB logs"
+	@echo "  make db-shell           - Connect to MongoDB shell"
+	@echo "  make db-backup          - Backup MongoDB data"
+	@echo "  make db-restore         - Restore MongoDB data"
 	@echo ""
