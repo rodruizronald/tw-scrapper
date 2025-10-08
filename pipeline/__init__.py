@@ -11,6 +11,7 @@ Key Features:
 - Concurrent processing with rate limiting
 - Comprehensive error handling and logging
 - Modular architecture for easy extension
+- MongoDB persistence layer for data storage
 
 """
 
@@ -23,10 +24,20 @@ from .core.config import (
     WebExtractionConfig,
 )
 from .core.models import CompanyData, ParserType
-from .services.file_service import FileService
-from .services.openai_service import OpenAIService
+
+# Persistence layer
+from .persistence import (
+    DatabaseController,
+    JobListing,
+    JobListingRepository,
+    JobMapper,
+    db_controller,
+    job_listing_repository,
+)
 
 # Service layer
+from .services.file_service import FileService
+from .services.openai_service import OpenAIService
 from .services.web_extraction_service import WebExtractionService
 
 # Stage processors
@@ -45,7 +56,7 @@ from .utils.exceptions import (
 # Version information
 __version__ = "1.0.0"
 __author__ = "Job Pipeline Team"
-__description__ = "AI-powered job listing extraction pipeline"
+__description__ = "AI-powered job listing extraction pipeline with MongoDB persistence"
 
 # Public API
 __all__ = [
@@ -53,8 +64,12 @@ __all__ = [
     "CompanyData",
     "CompanyProcessingError",
     "ConfigurationError",
+    "DatabaseController",
     "FileOperationError",
     "FileService",
+    "JobListing",
+    "JobListingRepository",
+    "JobMapper",
     "OpenAIConfig",
     "OpenAIProcessingError",
     "OpenAIService",
@@ -69,4 +84,6 @@ __all__ = [
     "__author__",
     "__description__",
     "__version__",
+    "db_controller",
+    "job_listing_repository",
 ]
