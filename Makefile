@@ -5,7 +5,7 @@
     prefect-server prefect-config prefect-reset \
     pre-commit-install pre-commit-run pre-commit-update \
     help \
-    db-up db-down db-logs db-shell db-backup db-restore
+    db-up db-down db-logs db-shell db-backup db-restore db-recreate db-verify-indexes
 
 # Load environment variables from .env file if it exists
 ifneq (,$(wildcard ./.env))
@@ -159,6 +159,19 @@ db-restore:
 	@docker exec tw-scrapper-mongodb mongorestore --username admin --password password123 --authenticationDatabase admin --db tw_scrapper /backup/tw_scrapper
 	@echo "✅ MongoDB restore completed successfully"
 
+db-recreate:
+	@echo "Recreating MongoDB container with fresh data..."
+	@docker-compose down -v
+	@docker-compose up -d mongodb
+	@echo "⏳ Waiting for MongoDB to initialize..."
+	@sleep 5
+	@echo "✅ MongoDB container recreated successfully"
+
+db-verify-indexes:
+	@echo "Verifying MongoDB indexes..."
+	@docker exec -it tw-scrapper-mongodb mongosh -u admin -p admin --eval "db.getSiblingDB('tw_scrapper').job_listings.getIndexes()" --quiet
+	@echo "✅ Index verification completed"
+
 # Show help
 help:
 	@echo "╔══════════════════════════════════════════════════════════╗"
@@ -201,4 +214,6 @@ help:
 	@echo "  make db-shell           - Connect to MongoDB shell"
 	@echo "  make db-backup          - Backup MongoDB data"
 	@echo "  make db-restore         - Restore MongoDB data"
+	@echo "  make db-recreate        - Recreate MongoDB container with fresh data"
+	@echo "  make db-verify-indexes  - Verify MongoDB indexes"
 	@echo ""
