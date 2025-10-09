@@ -185,49 +185,34 @@ REPO_CLEANUP_DAYS=30
 
 ### Collection: `job_listings`
 
-```javascript
+```json
 {
   "_id": ObjectId,
+  "signature": String,  // Unique index
+  "active": Boolean,
   "title": String,
   "url": String,
-  "signature": String,  // Unique index
   "company": String,
+  "location": String,
+  "work_mode": String,
+  "employment_type": String,
+  "experience_level": String,
+  "job_function": String,
+  "province": String,
+  "city": String,
+  "description": String,
+  "responsibilities": [String],
+  "skill_must_have": [String],
+  "skill_nice_to_have": [String],
+  "benefits": [String],
+  "technologies": [{
+    "name": String,
+    "category": String,
+    "required": Boolean
+  }],
+  "main_technologies": [String],
   "created_at": Date,
-  "updated_at": Date,
-  "stage_1_completed": Boolean,
-  "stage_2_completed": Boolean,
-  "stage_3_completed": Boolean,
-  "stage_4_completed": Boolean,
-  "processing_errors": [String],
-  "version": Number,
-
-  // Optional enriched data
-  "details": {
-    "location": String,
-    "work_mode": String,
-    "employment_type": String,
-    "experience_level": String,
-    "job_function": String,
-    "province": String,
-    "city": String,
-    "description": String
-  },
-
-  "requirements": {
-    "responsibilities": [String],
-    "skill_must_have": [String],
-    "skill_nice_to_have": [String],
-    "benefits": [String]
-  },
-
-  "technologies": {
-    "technologies": [{
-      "name": String,
-      "category": String,
-      "required": Boolean
-    }],
-    "main_technologies": [String]
-  }
+  "updated_at": Date
 }
 ```
 

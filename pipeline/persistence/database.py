@@ -126,48 +126,6 @@ class DatabaseController:
             logger.error(f"Database connection test failed: {e}")
             return False
 
-    def create_indexes(self) -> None:
-        """Create database indexes for optimal performance."""
-        try:
-            db = self.get_database()
-            job_listings = db[self._config.job_listings_collection]
-
-            # Create indexes with proper method calls
-            try:
-                # Unique signature index for deduplication
-                job_listings.create_index("signature", unique=True)
-                logger.debug("Created unique index for signature")
-            except Exception as e:
-                logger.warning(f"Failed to create index for signature: {e}")
-
-            # Regular indexes
-            regular_indexes = [
-                "company",
-                "url",
-                "active",
-                "created_at",
-                "updated_at",
-                "location",
-                "work_mode",
-                "employment_type",
-                "experience_level",
-                "job_function",
-                "main_technologies",
-                "province",
-            ]
-
-            for field in regular_indexes:
-                try:
-                    job_listings.create_index(field)
-                    logger.debug(f"Created index for {field}")
-                except Exception as e:
-                    logger.warning(f"Failed to create index for {field}: {e}")
-
-            logger.info("Database indexes created successfully")
-
-        except Exception as e:
-            logger.error(f"Failed to create database indexes: {e}")
-
     def get_database_stats(self) -> dict[str, Any]:
         """
         Get database statistics.
