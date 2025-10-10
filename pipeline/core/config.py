@@ -1,6 +1,5 @@
 import os
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -114,48 +113,17 @@ class StagesConfig:
 
 
 @dataclass
-class StageOutputPatterns:
-    """Configuration for stage output patterns."""
-
-    output_dir: str
-    output_file: str
-
-
-@dataclass
 class PathsConfig:
     """Configuration for file paths."""
 
-    output_dir: Path
     prompts_dir: Path
     companies_file: Path
-    stage_output_patterns: StageOutputPatterns
     project_root: Path = field(default_factory=lambda: Path.cwd())
 
-    def initialize_paths(self, timestamp: str) -> None:
+    def initialize_paths(self) -> None:
         """Convert relative paths to absolute paths using project_root."""
-        self.output_dir = self.project_root / self.output_dir
         self.prompts_dir = self.project_root / self.prompts_dir
         self.companies_file = self.project_root / self.companies_file
-
-        # Create the timestamped output directory (this will be the base for FileService)
-        timestamped_output_dir = self.project_root / self.output_dir / timestamp
-        timestamped_output_dir.mkdir(parents=True, exist_ok=True)
-
-        # Update the output_dir to include timestamp for FileService compatibility
-        self.output_dir = timestamped_output_dir
-
-    def get_stage_output_filename(self, stage_tag: str) -> str:
-        """
-        Get the full path to a stage's output file.
-
-        Args:
-            stage_tag: The stage tag (e.g., "stage_1")
-            timestamp: The timestamp string (e.g., "20241201")
-
-        Returns:
-            Full path to the stage's output file
-        """
-        return self.stage_output_patterns.output_file.format(stage_tag=stage_tag)
 
 
 ##
@@ -275,14 +243,10 @@ class PipelineConfig:
         """Create configuration from dictionary with proper type conversion."""
         # Convert paths
         paths_data = config_dict.get("paths", {})
-        stage_output_patterns_data = paths_data.get("stage_output_patterns", {})
-        stage_output_patterns = StageOutputPatterns(**stage_output_patterns_data)
 
         paths = PathsConfig(
-            output_dir=Path(paths_data.get("output_dir", "data")),
             prompts_dir=Path(paths_data.get("prompts_dir", "prompts")),
             companies_file=Path(paths_data.get("companies_file", "companies.yaml")),
-            stage_output_patterns=stage_output_patterns,
         )
 
         # Convert integrations
@@ -352,14 +316,9 @@ class PipelineConfig:
             "version": self.version,
             "description": self.description,
             "paths": {
-                "output_dir": str(self.paths.output_dir),
                 "prompts_dir": str(self.paths.prompts_dir),
                 "companies_file": str(self.paths.companies_file),
                 "project_root": str(self.paths.project_root),
-                "stage_output_patterns": {
-                    "output_dir": self.paths.stage_output_patterns.output_dir,
-                    "output_file": self.paths.stage_output_patterns.output_file,
-                },
             },
             "integrations": {
                 "openai": {
@@ -490,9 +449,8 @@ class PipelineConfig:
 
     def initialize_paths(self) -> None:
         """Initialize all paths using the project root and stages configuration."""
-        timestamp = datetime.now(UTC).strftime("%Y%m%d")
         # Initialize paths with stages configuration
-        self.paths.initialize_paths(timestamp)
+        self.paths.initialize_paths()
 
     @property
     def companies_file_path(self) -> Path:

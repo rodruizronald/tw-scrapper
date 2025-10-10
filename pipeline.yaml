@@ -7,14 +7,8 @@ pipeline:
 
   # Directory structure and file paths
   paths:
-    output_dir: "data"
     prompts_dir: "prompts"
     companies_file: "companies.yaml"
-
-    # Output patterns for stages
-    stage_output_patterns:
-      output_dir: "pipeline_{stage_tag}"
-      output_file: "{stage_tag}_results.json"
 
   # Integration configurations
   integrations:
@@ -43,7 +37,7 @@ pipeline:
       description: >-
         Extract job titles and URLs from company career pages using web
         scraping and AI parsing
-      enabled: false
+      enabled: true
       openai_service:
         system_message: >-
           You are an AI assistant specialized in extracting job listings
@@ -233,7 +227,7 @@ pipeline:
       description: >-
         Extract and categorize technologies from job requirements, determining
         their requirement status and identifying main technologies for each role
-      enabled: true
+      enabled: false
       openai_service:
         system_message: >-
           You extract and categorize technologies from structured job

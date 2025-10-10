@@ -36,7 +36,6 @@ from .persistence import (
 )
 
 # Service layer
-from .services.file_service import FileService
 from .services.openai_service import OpenAIService
 from .services.web_extraction_service import WebExtractionService
 
@@ -66,7 +65,6 @@ __all__ = [
     "ConfigurationError",
     "DatabaseController",
     "FileOperationError",
-    "FileService",
     "JobListing",
     "JobListingRepository",
     "JobMapper",

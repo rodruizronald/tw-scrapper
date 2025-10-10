@@ -4,7 +4,7 @@ from prefect import flow, get_run_logger
 
 from pipeline.core.config import PipelineConfig
 from pipeline.core.models import CompanyData, Job
-from pipeline.services.file_service import FileService
+from pipeline.services.database_service import DatabaseService
 from pipeline.tasks.stage_2_task import process_job_details_task
 from pipeline.tasks.utils import (
     filter_enabled_companies,
@@ -33,12 +33,12 @@ async def stage_2_flow(
     Args:
         companies: List of companies to process
         config: Pipeline configuration
-        stage_1_results: Results from stage 1 or None to load from files
+        stage_1_results: Results from stage 1 or None to load from database
     """
     logger = get_run_logger()
     logger.info("Stage 2: Job Details Extraction")
 
-    file_service = FileService(config.paths)
+    db_service = DatabaseService()
 
     # Filter enabled companies
     enabled_companies = filter_enabled_companies(companies)
@@ -55,13 +55,13 @@ async def stage_2_flow(
         """Process a company with semaphore to limit concurrency."""
         async with semaphore:
             try:
-                # Get jobs data from stage 1 results or fallback to file loading
+                # Get jobs data from stage 1 results or fallback to database loading
                 jobs_data = None
                 if stage_1_results and company.name in stage_1_results:
                     jobs_data = stage_1_results[company.name]
                 else:
-                    # Fallback to loading from file if stage 1 results not available
-                    jobs_data = file_service.load_stage_results(
+                    # Fallback to loading from database if stage 1 results not available
+                    jobs_data = db_service.load_stage_results(
                         company.name, config.stage_1.tag
                     )
 

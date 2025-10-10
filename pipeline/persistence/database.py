@@ -65,6 +65,16 @@ class DatabaseController:
                     else self._config.build_connection_string()
                 )
 
+                # DEBUG: Log the connection string (mask password)
+                masked_conn_str = (
+                    connection_string.replace(self._config.password or "", "****")
+                    if self._config.password
+                    else connection_string
+                )
+                logger.info(f"Connecting with: {masked_conn_str}")
+                logger.info(f"Target database: {self._config.database}")
+                logger.info(f"Auth source: {self._config.auth_source}")
+
                 # Explicit type annotation for clarity
                 client: MongoClient[Any] = MongoClient(
                     connection_string,
@@ -73,6 +83,17 @@ class DatabaseController:
                 )
                 # Test connection
                 client.admin.command("ping")
+
+                # DEBUG: Test database access
+                try:
+                    db = client[self._config.database]
+                    # Try to list collections to verify database access
+                    collections = db.list_collection_names()
+                    logger.info(f"Database access verified. Collections: {collections}")
+                except Exception as e:
+                    logger.error(f"Database access test failed: {e}")
+                    raise
+
                 self._client = client
                 logger.info("Successfully connected to MongoDB")
             except (ConnectionFailure, ServerSelectionTimeoutError) as e:

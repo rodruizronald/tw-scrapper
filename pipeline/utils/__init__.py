@@ -10,6 +10,7 @@ This module contains utility functions and classes used throughout the pipeline:
 from .exceptions import (
     CompanyProcessingError,
     ConfigurationError,
+    DatabaseOperationError,
     FileOperationError,
     OpenAIProcessingError,
     PipelineError,
@@ -20,6 +21,7 @@ from .exceptions import (
 __all__ = [
     "CompanyProcessingError",
     "ConfigurationError",
+    "DatabaseOperationError",
     "FileOperationError",
     "OpenAIProcessingError",
     "PipelineError",
