@@ -102,6 +102,11 @@ class JobMapper:
             benefits=benefits,
             technologies=technologies,
             main_technologies=main_technologies,
+            # Set stage completion based on data presence
+            stage_1_completed=True,  # Always true if Job exists
+            stage_2_completed=job.details is not None,
+            stage_3_completed=job.requirements is not None,
+            stage_4_completed=job.technologies is not None,
         )
 
         return job_listing
@@ -265,6 +270,7 @@ class JobMapper:
             job_listing.province = job.details.province
             job_listing.city = job.details.city
             job_listing.description = job.details.description
+            job_listing.stage_2_completed = True
 
         # Update requirements if present in job
         if job.requirements:
@@ -272,6 +278,7 @@ class JobMapper:
             job_listing.skill_must_have = job.requirements.skill_must_have.copy()
             job_listing.skill_nice_to_have = job.requirements.skill_nice_to_have.copy()
             job_listing.benefits = job.requirements.benefits.copy()
+            job_listing.stage_3_completed = True
 
         # Update technologies if present in job
         if job.technologies:
@@ -284,6 +291,7 @@ class JobMapper:
                 for tech in job.technologies.technologies
             ]
             job_listing.main_technologies = job.technologies.main_technologies.copy()
+            job_listing.stage_4_completed = True
 
         # Update timestamp
         job_listing.update_timestamp()

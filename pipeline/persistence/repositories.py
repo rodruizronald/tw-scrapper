@@ -499,6 +499,123 @@ class JobListingRepository:
             logger.error(f"Error getting technology statistics: {e}")
             return {}
 
+    def find_jobs_for_stage(self, stage: int, limit: int = 100) -> list[JobListing]:
+        """
+        Find jobs that need processing for a specific stage.
+
+        Args:
+            stage: Stage number (2, 3, or 4)
+            limit: Maximum number of results
+
+        Returns:
+            list[JobListing]: List of jobs ready for the specified stage
+        """
+        try:
+            query: dict[str, Any] = {"active": True}
+
+            if stage == 2:
+                query["stage_1_completed"] = True
+                query["stage_2_completed"] = False
+            elif stage == 3:
+                query["stage_1_completed"] = True
+                query["stage_2_completed"] = True
+                query["stage_3_completed"] = False
+            elif stage == 4:
+                query["stage_1_completed"] = True
+                query["stage_2_completed"] = True
+                query["stage_3_completed"] = True
+                query["stage_4_completed"] = False
+            else:
+                logger.warning(f"Invalid stage number: {stage}")
+                return []
+
+            cursor = self.collection.find(query).limit(limit)
+            jobs = [JobListing.from_dict(doc) for doc in cursor]
+            logger.info(f"Found {len(jobs)} jobs ready for stage {stage}")
+            return jobs
+
+        except PyMongoError as e:
+            logger.error(f"Error finding jobs for stage {stage}: {e}")
+            return []
+
+    def find_jobs_by_company_for_stage(
+        self, company: str, stage: int, limit: int = 100
+    ) -> list[JobListing]:
+        """
+        Find jobs for a specific company that need processing for a specific stage.
+
+        Args:
+            company: Company name
+            stage: Stage number (2, 3, or 4)
+            limit: Maximum number of results
+
+        Returns:
+            list[JobListing]: List of jobs ready for the specified stage
+        """
+        try:
+            query: dict[str, Any] = {"active": True, "company": company}
+
+            if stage == 2:
+                query["stage_1_completed"] = True
+                query["stage_2_completed"] = False
+            elif stage == 3:
+                query["stage_1_completed"] = True
+                query["stage_2_completed"] = True
+                query["stage_3_completed"] = False
+            elif stage == 4:
+                query["stage_1_completed"] = True
+                query["stage_2_completed"] = True
+                query["stage_3_completed"] = True
+                query["stage_4_completed"] = False
+            else:
+                logger.warning(f"Invalid stage number: {stage}")
+                return []
+
+            cursor = self.collection.find(query).limit(limit)
+            jobs = [JobListing.from_dict(doc) for doc in cursor]
+            logger.info(f"Found {len(jobs)} jobs for {company} ready for stage {stage}")
+            return jobs
+
+        except PyMongoError as e:
+            logger.error(f"Error finding jobs for {company} at stage {stage}: {e}")
+            return []
+
+    def count_by_stage(self) -> dict[str, int]:
+        """
+        Count jobs by stage completion.
+
+        Returns:
+            dict[str, int]: Dictionary with stage completion statistics
+        """
+        try:
+            return {
+                "stage_1_only": self.collection.count_documents(
+                    {
+                        "stage_1_completed": True,
+                        "stage_2_completed": False,
+                    }
+                ),
+                "stage_2_completed": self.collection.count_documents(
+                    {"stage_2_completed": True, "stage_3_completed": False}
+                ),
+                "stage_3_completed": self.collection.count_documents(
+                    {"stage_3_completed": True, "stage_4_completed": False}
+                ),
+                "stage_4_completed": self.collection.count_documents(
+                    {"stage_4_completed": True}
+                ),
+                "fully_processed": self.collection.count_documents(
+                    {
+                        "stage_2_completed": True,
+                        "stage_3_completed": True,
+                        "stage_4_completed": True,
+                    }
+                ),
+            }
+        except PyMongoError as e:
+            logger.error(f"Error counting jobs by stage: {e}")
+            return {}
+
     def cleanup_old_entries(self, days: int = 30) -> int:
         """
         Delete job listings older than specified days.
