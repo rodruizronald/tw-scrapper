@@ -7,10 +7,14 @@ from pipeline.core.models import (
     JobRequirements,
     WebParserConfig,
 )
-from pipeline.services.file_service import FileService
+from pipeline.services.database_service import DatabaseService
 from pipeline.services.openai_service import OpenAIRequest, OpenAIService
 from pipeline.services.web_extraction_service import WebExtractionService
-from pipeline.utils.exceptions import OpenAIProcessingError, WebExtractionError
+from pipeline.utils.exceptions import (
+    DatabaseOperationError,
+    OpenAIProcessingError,
+    WebExtractionError,
+)
 
 
 class Stage3Processor:
@@ -26,7 +30,7 @@ class Stage3Processor:
 
         # Initialize services
         self.openai_service = OpenAIService(config.openai)
-        self.file_service = FileService(config.paths)
+        self.database_service = DatabaseService()
         self.web_extraction_service = WebExtractionService(
             config.web_extraction, logger
         )
@@ -62,19 +66,31 @@ class Stage3Processor:
                     failed_jobs.append((job, e))
                     self.logger.error(f"Failed to process {job.title}: {e}")
 
-            # Save all processed jobs (including previously processed ones)
+            # Save all processed jobs to database
             if processed_jobs:
-                self.file_service.save_stage_results(
-                    processed_jobs, company_name, self.config.stage_3.tag
-                )
-                self.logger.info(
-                    f"Saved {len(processed_jobs)} processed jobs for {company_name}. "
-                    f"Failed to process {len(failed_jobs)} jobs."
-                )
+                try:
+                    saved_count = self.database_service.save_stage_results(
+                        processed_jobs, company_name, self.config.stage_3.tag
+                    )
+                    self.logger.info(
+                        f"Saved {saved_count} processed jobs for {company_name}. "
+                        f"Failed to process {len(failed_jobs)} jobs."
+                    )
+                except Exception as e:
+                    raise DatabaseOperationError(
+                        operation="save_stage_results",
+                        message=str(e),
+                        company_name=company_name,
+                        stage=self.config.stage_3.tag,
+                    ) from e
             else:
                 self.logger.warning(f"No jobs to save for {company_name}")
 
             return processed_jobs
+
+        except DatabaseOperationError:
+            # Re-raise database errors for retry mechanism
+            raise
 
         except Exception as e:
             self.logger.error(f"Error processing jobs for {company_name}: {e!s}")

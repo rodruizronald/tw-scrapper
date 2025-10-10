@@ -8,7 +8,7 @@ This module contains service classes that handle specific aspects of the pipelin
 - Database operations for pipeline stages
 """
 
-from .database_service import DatabaseService, database_service
+from .database_service import DatabaseService
 from .file_service import FileService
 from .openai_service import OpenAIService
 from .web_extraction_service import WebExtractionService
@@ -18,5 +18,4 @@ __all__ = [
     "FileService",
     "OpenAIService",
     "WebExtractionService",
-    "database_service",
 ]

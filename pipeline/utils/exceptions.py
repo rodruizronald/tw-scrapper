@@ -98,3 +98,24 @@ class WebExtractionError(PipelineError):
         message += f" - {original_error!s}"
 
         super().__init__(message, company_name)
+
+
+class DatabaseOperationError(PipelineError):
+    """Error performing database operations."""
+
+    def __init__(
+        self,
+        operation: str,
+        message: str,
+        company_name: str | None = None,
+        stage: str | None = None,
+    ):
+        self.operation = operation
+        self.stage = stage
+
+        full_message = f"Database operation '{operation}' failed: {message}"
+
+        if stage:
+            full_message += f" (Stage: {stage})"
+
+        super().__init__(full_message, company_name)

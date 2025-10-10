@@ -33,8 +33,6 @@ class JobListingRepository:
     and business logic encapsulation.
     """
 
-    COLLECTION_NAME = "job_listings"
-
     def __init__(self, db_controller: DatabaseController | None = None) -> None:
         """
         Initialize repository with database controller.
@@ -44,6 +42,8 @@ class JobListingRepository:
         """
         self.db_controller = db_controller or global_db_controller
         self._collection: Collection | None = None
+        # Get collection name from config
+        self.collection_name = self.db_controller._config.job_listings_collection
 
     @property
     def collection(self) -> Collection:
@@ -51,7 +51,7 @@ class JobListingRepository:
         if self._collection is None:
             # Use the simplified database method to get a proper Collection type
             db = self.db_controller.get_database()
-            self._collection = db[self.COLLECTION_NAME]
+            self._collection = db[self.collection_name]
         return self._collection
 
     def create(self, job_listing: JobListing) -> JobListing | None:

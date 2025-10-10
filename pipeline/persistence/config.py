@@ -7,7 +7,19 @@ and persistence layer settings.
 
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
+
+from dotenv import load_dotenv
+
+# Load environment variables when this module is imported
+# Try to find .env file in current directory or parent directories
+current_dir = Path.cwd()
+for parent in [current_dir, *list(current_dir.parents)]:
+    env_path = parent / ".env"
+    if env_path.exists():
+        load_dotenv(env_path)
+        break
 
 
 @dataclass
@@ -52,9 +64,10 @@ class DatabaseConfig:
             return self.connection_string
 
         if self.username and self.password:
-            return f"mongodb://{self.username}:{self.password}@{self.host}:{self.port}/?authSource={self.auth_source}"
+            # Include the database name in the connection string
+            return f"mongodb://{self.username}:{self.password}@{self.host}:{self.port}/{self.database}?authSource={self.auth_source}"
         else:
-            return f"mongodb://{self.host}:{self.port}/"
+            return f"mongodb://{self.host}:{self.port}/{self.database}"
 
     def to_dict(self) -> dict[str, Any]:
         """Convert configuration to dictionary."""

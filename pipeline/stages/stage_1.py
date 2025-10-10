@@ -3,12 +3,12 @@ from prefect.logging import get_run_logger
 from pipeline.core.config import PipelineConfig
 from pipeline.core.mappers import JobMapper
 from pipeline.core.models import CompanyData, Job
-from pipeline.services.file_service import FileService
+from pipeline.services.database_service import DatabaseService
 from pipeline.services.openai_service import OpenAIRequest, OpenAIService
 from pipeline.services.web_extraction_service import WebExtractionService
 from pipeline.utils.exceptions import (
     CompanyProcessingError,
-    FileOperationError,
+    DatabaseOperationError,
     OpenAIProcessingError,
     ValidationError,
     WebExtractionError,
@@ -33,7 +33,7 @@ class Stage1Processor:
 
         # Initialize services
         self.openai_service = OpenAIService(config.openai)
-        self.file_service = FileService(config.paths)
+        self.database_service = DatabaseService()
         self.web_extraction_service = WebExtractionService(
             config.web_extraction, logger
         )
@@ -74,9 +74,9 @@ class Stage1Processor:
             # Re-raise these for Prefect retry mechanism
             raise
 
-        except FileOperationError as e:
-            # File system errors - usually retryable
-            self.logger.error(f"File operation failed - {e}")
+        except DatabaseOperationError as e:
+            # Database errors - usually retryable
+            self.logger.error(f"Database operation failed - {e}")
             # Re-raise these for Prefect retry mechanism
             raise
 
@@ -106,11 +106,20 @@ class Stage1Processor:
             f"Duplicate filtering complete: {len(unique_jobs)} unique jobs"
         )
 
-        # Save jobs to file
+        # Save jobs to database
         if unique_jobs:
-            self.file_service.save_stage_results(
-                unique_jobs, company.name, self.config.stage_1.tag
-            )
+            try:
+                saved_count = self.database_service.save_stage_results(
+                    unique_jobs, company.name, self.config.stage_1.tag
+                )
+                self.logger.info(f"Saved {saved_count} jobs to database")
+            except Exception as e:
+                raise DatabaseOperationError(
+                    operation="save_stage_results",
+                    message=str(e),
+                    company_name=company.name,
+                    stage=self.config.stage_1.tag,
+                ) from e
 
         return jobs, unique_jobs
 
@@ -172,14 +181,21 @@ class Stage1Processor:
     async def _filter_duplicate_jobs(
         self, company: CompanyData, jobs: list[Job]
     ) -> list[Job]:
-        """Filter out duplicate jobs based on historical data."""
+        """Filter out duplicate jobs based on historical data from database."""
         if not jobs:
             return jobs
 
-        # Load historical signatures
-        historical_signatures = self.file_service.load_previous_day_signatures(
-            company.name
-        )
+        try:
+            # Load historical signatures from database
+            historical_signatures = self.database_service.get_existing_signatures(
+                company.name
+            )
+        except Exception as e:
+            self.logger.warning(
+                f"Failed to load historical signatures from database: {e}. "
+                "Treating all jobs as unique."
+            )
+            historical_signatures = set()
 
         # Filter out duplicates
         current_signatures = {job.signature for job in jobs}
@@ -191,10 +207,5 @@ class Stage1Processor:
                 f"Filtered out {len(duplicate_signatures)} duplicate jobs. "
                 f"Keeping {len(unique_jobs)} unique jobs."
             )
-
-        # Save current signatures for future duplicate detection
-        self.file_service.save_signatures(
-            current_signatures, company.name, "unfiltered_signatures.json"
-        )
 
         return unique_jobs

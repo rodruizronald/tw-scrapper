@@ -297,7 +297,3 @@ class DatabaseService:
             return int(stage_tag)
         except (ValueError, IndexError):
             return None
-
-
-# Global database service instance
-database_service = DatabaseService()
