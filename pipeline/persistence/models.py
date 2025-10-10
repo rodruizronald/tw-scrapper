@@ -44,7 +44,7 @@ class JobListing:
     Database model for job listings optimized for MongoDB storage.
 
     This model represents the complete job data structure as stored in the database,
-    following the exact flat structure specified.
+    following the exact flat structure specified with stage tracking.
     """
 
     # Core job identification
@@ -53,7 +53,7 @@ class JobListing:
     url: str
     company: str
 
-    # Job details (flat structure)
+    # Job details (flat structure) - Stage 2 data
     location: str
     work_mode: str
     employment_type: str
@@ -63,15 +63,21 @@ class JobListing:
     city: str
     description: str
 
-    # Job requirements (flat lists)
+    # Job requirements (flat lists) - Stage 3 data
     responsibilities: list[str]
     skill_must_have: list[str]
     skill_nice_to_have: list[str]
     benefits: list[str]
 
-    # Technologies
+    # Technologies - Stage 4 data
     technologies: list[TechnologyInfo]
     main_technologies: list[str]
+
+    # Stage completion tracking
+    stage_1_completed: bool = True  # Always true if job exists
+    stage_2_completed: bool = False  # Details extraction completed
+    stage_3_completed: bool = False  # Requirements extraction completed
+    stage_4_completed: bool = False  # Technologies extraction completed
 
     # Database metadata
     _id: ObjectId | None = None
@@ -104,6 +110,51 @@ class JobListing:
         self.active = True
         self.update_timestamp()
 
+    def mark_stage_2_completed(self) -> None:
+        """Mark Stage 2 (details extraction) as completed."""
+        self.stage_2_completed = True
+        self.update_timestamp()
+
+    def mark_stage_3_completed(self) -> None:
+        """Mark Stage 3 (requirements extraction) as completed."""
+        self.stage_3_completed = True
+        self.update_timestamp()
+
+    def mark_stage_4_completed(self) -> None:
+        """Mark Stage 4 (technologies extraction) as completed."""
+        self.stage_4_completed = True
+        self.update_timestamp()
+
+    @property
+    def completed_stages(self) -> list[int]:
+        """Get list of completed stage numbers."""
+        stages = [1]  # Stage 1 always completed if job exists
+        if self.stage_2_completed:
+            stages.append(2)
+        if self.stage_3_completed:
+            stages.append(3)
+        if self.stage_4_completed:
+            stages.append(4)
+        return stages
+
+    @property
+    def next_stage(self) -> int | None:
+        """Get the next stage to process, or None if all stages completed."""
+        if not self.stage_2_completed:
+            return 2
+        if not self.stage_3_completed:
+            return 3
+        if not self.stage_4_completed:
+            return 4
+        return None
+
+    @property
+    def is_fully_processed(self) -> bool:
+        """Check if all stages are completed."""
+        return (
+            self.stage_2_completed and self.stage_3_completed and self.stage_4_completed
+        )
+
     def to_dict(self) -> dict[str, Any]:
         """
         Convert JobListing to dictionary for MongoDB storage.
@@ -131,6 +182,10 @@ class JobListing:
             "benefits": self.benefits,
             "technologies": [tech.to_dict() for tech in self.technologies],
             "main_technologies": self.main_technologies,
+            "stage_1_completed": self.stage_1_completed,
+            "stage_2_completed": self.stage_2_completed,
+            "stage_3_completed": self.stage_3_completed,
+            "stage_4_completed": self.stage_4_completed,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }
@@ -178,6 +233,10 @@ class JobListing:
             benefits=data.get("benefits", []),
             technologies=technologies,
             main_technologies=data.get("main_technologies", []),
+            stage_1_completed=data.get("stage_1_completed", True),
+            stage_2_completed=data.get("stage_2_completed", False),
+            stage_3_completed=data.get("stage_3_completed", False),
+            stage_4_completed=data.get("stage_4_completed", False),
         )
 
         # Set MongoDB metadata
@@ -194,11 +253,16 @@ class JobListing:
 
     def __str__(self) -> str:
         """String representation of JobListing."""
-        return f"JobListing(title='{self.title}', company='{self.company}', active={self.active})"
+        stages = ", ".join(str(s) for s in self.completed_stages)
+        return (
+            f"JobListing(title='{self.title}', company='{self.company}', "
+            f"active={self.active}, completed_stages=[{stages}])"
+        )
 
     def __repr__(self) -> str:
         """Detailed string representation of JobListing."""
         return (
             f"JobListing(signature='{self.signature}', title='{self.title}', "
-            f"company='{self.company}', active={self.active})"
+            f"company='{self.company}', active={self.active}, "
+            f"next_stage={self.next_stage})"
         )

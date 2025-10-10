@@ -5,14 +5,18 @@ This module contains service classes that handle specific aspects of the pipelin
 - HTML extraction from web pages
 - OpenAI API interactions
 - File operations and data persistence
+- Database operations for pipeline stages
 """
 
+from .database_service import DatabaseService, database_service
 from .file_service import FileService
 from .openai_service import OpenAIService
 from .web_extraction_service import WebExtractionService
 
 __all__ = [
+    "DatabaseService",
     "FileService",
     "OpenAIService",
     "WebExtractionService",
+    "database_service",
 ]
