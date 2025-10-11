@@ -22,7 +22,6 @@ from pipeline.tasks.utils import (
 async def stage_2_flow(
     companies: list[CompanyData],
     config: PipelineConfig,
-    stage_1_results: dict[str, list[Job]] | None,
 ) -> dict[str, list[Job]]:
     """
     Main flow for Stage 2: Extract job eligibility, metadata, and detailed descriptions from individual job postings.
@@ -55,15 +54,10 @@ async def stage_2_flow(
         """Process a company with semaphore to limit concurrency."""
         async with semaphore:
             try:
-                # Get jobs data from stage 1 results or fallback to database loading
-                jobs_data = None
-                if stage_1_results and company.name in stage_1_results:
-                    jobs_data = stage_1_results[company.name]
-                else:
-                    # Fallback to loading from database if stage 1 results not available
-                    jobs_data = db_service.load_stage_results(
-                        company.name, config.stage_1.tag
-                    )
+                # Get jobs data from stage 1 results
+                jobs_data = db_service.load_stage_results(
+                    company.name, config.stage_1.tag
+                )
 
                 if not jobs_data:
                     logger.info(f"No jobs data found for {company.name}")

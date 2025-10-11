@@ -55,13 +55,9 @@ class Stage1Processor:
 
         try:
             # Process the company
-            jobs, unique_jobs = await self._execute_company_processing(company)
+            new_jobs = await self._execute_company_processing(company)
 
-            self.logger.info(
-                f"Found {len(jobs)} jobs, saved {len(unique_jobs)} unique jobs "
-            )
-
-            return unique_jobs
+            return new_jobs
 
         except ValidationError as e:
             # Non-retryable error - bad company data
@@ -89,30 +85,28 @@ class Stage1Processor:
                 company_name, e, self.config.stage_1.tag
             ) from e
 
-    async def _execute_company_processing(
-        self, company: CompanyData
-    ) -> tuple[list[Job], list[Job]]:
+    async def _execute_company_processing(self, company: CompanyData) -> list[Job]:
         """Execute the main processing logic for a company."""
         # Extract HTML content from career page
         html_content = await self._extract_career_page_content(company)
 
         # Parse job listings using OpenAI
-        jobs = await self._parse_job_listings(company, html_content)
-        self.logger.info(f"Job data processed: {len(jobs)} jobs found")
+        found_jobs = await self._parse_job_listings(company, html_content)
+        self.logger.info(f"Job data processed: {len(found_jobs)} jobs found")
 
-        # Filter out duplicate jobs
-        unique_jobs = await self._filter_duplicate_jobs(company, jobs)
-        self.logger.info(
-            f"Duplicate filtering complete: {len(unique_jobs)} unique jobs"
-        )
+        # Deactivate jobs that are no longer on the career page
+        self._deactivate_missing_jobs(company, found_jobs)
+
+        # Filter out existing jobs
+        new_jobs = self._filter_existing_jobs(company, found_jobs)
 
         # Save jobs to database
-        if unique_jobs:
+        if new_jobs:
             try:
                 saved_count = self.database_service.save_stage_results(
-                    unique_jobs, company.name, self.config.stage_1.tag
+                    new_jobs, company.name, self.config.stage_1.tag
                 )
-                self.logger.info(f"Saved {saved_count} jobs to database")
+                self.logger.info(f"Saved {saved_count} new jobs to database")
             except Exception as e:
                 raise DatabaseOperationError(
                     operation="save_stage_results",
@@ -121,7 +115,7 @@ class Stage1Processor:
                     stage=self.config.stage_1.tag,
                 ) from e
 
-        return jobs, unique_jobs
+        return new_jobs
 
     async def _extract_career_page_content(self, company: CompanyData) -> str:
         """Extract HTML content from company career page."""
@@ -178,34 +172,52 @@ class Stage1Processor:
                 company_name=company.name,
             ) from e
 
-    async def _filter_duplicate_jobs(
-        self, company: CompanyData, jobs: list[Job]
-    ) -> list[Job]:
-        """Filter out duplicate jobs based on historical data from database."""
+    def _filter_existing_jobs(self, company: CompanyData, jobs: list[Job]) -> list[Job]:
+        """Filter out existing jobs and return only new ones."""
         if not jobs:
             return jobs
 
         try:
-            # Load historical signatures from database
-            historical_signatures = self.database_service.get_existing_signatures(
+            # Load existing signatures from database
+            existing_job_signatures = self.database_service.get_existing_signatures(
                 company.name
             )
         except Exception as e:
-            self.logger.warning(
-                f"Failed to load historical signatures from database: {e}. "
-                "Treating all jobs as unique."
-            )
-            historical_signatures = set()
+            raise DatabaseOperationError(
+                operation="get_existing_signatures",
+                message=str(e),
+                company_name=company.name,
+                stage=self.config.stage_1.tag,
+            ) from e
 
-        # Filter out duplicates
+        # Filter out existing jobs
         current_signatures = {job.signature for job in jobs}
-        duplicate_signatures = current_signatures.intersection(historical_signatures)
-        unique_jobs = [job for job in jobs if job.signature not in duplicate_signatures]
+        duplicate_signatures = current_signatures.intersection(existing_job_signatures)
+        new_jobs = [job for job in jobs if job.signature not in duplicate_signatures]
 
         if duplicate_signatures:
             self.logger.info(
-                f"Filtered out {len(duplicate_signatures)} duplicate jobs. "
-                f"Keeping {len(unique_jobs)} unique jobs."
+                f"Filtered out {len(duplicate_signatures)} existing jobs. "
+                f"Found {len(new_jobs)} new jobs."
             )
 
-        return unique_jobs
+        return new_jobs
+
+    def _deactivate_missing_jobs(self, company: CompanyData, jobs: list[Job]) -> None:
+        """Deactivate jobs that are no longer on the career page."""
+        current_signatures = {job.signature for job in jobs}
+        try:
+            deactivated_count = self.database_service.deactivate_missing_jobs(
+                company.name, current_signatures
+            )
+            if deactivated_count > 0:
+                self.logger.info(
+                    f"Deactivated {deactivated_count} jobs no longer on career page"
+                )
+        except Exception as e:
+            raise DatabaseOperationError(
+                operation="deactivate_missing_jobs",
+                message=str(e),
+                company_name=company.name,
+                stage=self.config.stage_1.tag,
+            ) from e
