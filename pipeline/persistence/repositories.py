@@ -10,7 +10,6 @@ from .database import db_controller as global_db_controller
 from .models import JobListing
 
 if TYPE_CHECKING:
-    from bson import ObjectId
     from pymongo.collection import Collection
     from pymongo.results import DeleteResult, InsertOneResult, UpdateResult
 
@@ -95,25 +94,6 @@ class JobListingRepository:
             logger.error(f"Error creating job listing {job_listing.signature}: {e}")
             return None
 
-    def get_by_id(self, job_id: ObjectId) -> JobListing | None:
-        """
-        Retrieve job listing by MongoDB ObjectId.
-
-        Args:
-            job_id: MongoDB ObjectId
-
-        Returns:
-            JobListing: Found job listing or None
-        """
-        try:
-            doc = self.collection.find_one({"_id": job_id})
-            if doc:
-                return JobListing.from_dict(doc)
-            return None
-        except PyMongoError as e:
-            logger.error(f"Error retrieving job listing by id {job_id}: {e}")
-            return None
-
     def get_by_signature(self, signature: str) -> JobListing | None:
         """
         Retrieve job listing by unique signature.
@@ -131,25 +111,6 @@ class JobListingRepository:
             return None
         except PyMongoError as e:
             logger.error(f"Error retrieving job listing by signature {signature}: {e}")
-            return None
-
-    def get_by_url(self, url: str) -> JobListing | None:
-        """
-        Retrieve job listing by URL.
-
-        Args:
-            url: Job listing URL
-
-        Returns:
-            JobListing: Found job listing or None
-        """
-        try:
-            doc = self.collection.find_one({"url": url})
-            if doc:
-                return JobListing.from_dict(doc)
-            return None
-        except PyMongoError as e:
-            logger.error(f"Error retrieving job listing by URL {url}: {e}")
             return None
 
     def update(self, job_listing: JobListing) -> bool:
@@ -190,69 +151,6 @@ class JobListingRepository:
 
         except PyMongoError as e:
             logger.error(f"Error updating job listing {job_listing.signature}: {e}")
-            return False
-
-    def upsert_by_signature(self, job_listing: JobListing) -> JobListing:
-        """
-        Create or update job listing based on signature.
-
-        Args:
-            job_listing: JobListing instance to upsert
-
-        Returns:
-            JobListing: Created or updated job listing
-        """
-        existing = self.get_by_signature(job_listing.signature)
-
-        if existing:
-            # Update existing job listing with new data
-            existing.title = job_listing.title
-            existing.url = job_listing.url
-            existing.company = job_listing.company
-            existing.location = job_listing.location
-            existing.work_mode = job_listing.work_mode
-            existing.employment_type = job_listing.employment_type
-            existing.experience_level = job_listing.experience_level
-            existing.job_function = job_listing.job_function
-            existing.province = job_listing.province
-            existing.city = job_listing.city
-            existing.description = job_listing.description
-            existing.responsibilities = job_listing.responsibilities
-            existing.skill_must_have = job_listing.skill_must_have
-            existing.skill_nice_to_have = job_listing.skill_nice_to_have
-            existing.benefits = job_listing.benefits
-            existing.technologies = job_listing.technologies
-            existing.main_technologies = job_listing.main_technologies
-
-            self.update(existing)
-            return existing
-        else:
-            # Create new job listing
-            created = self.create(job_listing)
-            return created or job_listing
-
-    def delete_by_id(self, job_id: ObjectId) -> bool:
-        """
-        Delete job listing by MongoDB ObjectId.
-
-        Args:
-            job_id: MongoDB ObjectId
-
-        Returns:
-            bool: True if deletion successful, False otherwise
-        """
-        try:
-            result: DeleteResult = self.collection.delete_one({"_id": job_id})
-
-            if result.deleted_count > 0:
-                logger.info(f"Deleted job listing with id: {job_id}")
-                return True
-            else:
-                logger.warning(f"No job listing found with id: {job_id}")
-                return False
-
-        except PyMongoError as e:
-            logger.error(f"Error deleting job listing with id {job_id}: {e}")
             return False
 
     def delete_by_signature(self, signature: str) -> bool:
@@ -450,53 +348,6 @@ class JobListingRepository:
             return result
         except PyMongoError as e:
             logger.error(f"Error getting company statistics: {e}")
-            return {}
-
-    def get_location_stats(self) -> dict[str, int]:
-        """
-        Get job count statistics by location.
-
-        Returns:
-            dict[str, int]: Dictionary with location as key and count as value
-        """
-        try:
-            pipeline: list[dict[str, Any]] = [
-                {"$group": {"_id": "$location", "count": {"$sum": 1}}},
-                {"$sort": {"count": -1}},
-            ]
-
-            result = {}
-            for doc in self.collection.aggregate(pipeline):
-                if doc["_id"]:  # Only include non-empty locations
-                    result[doc["_id"]] = doc["count"]
-
-            return result
-        except PyMongoError as e:
-            logger.error(f"Error getting location statistics: {e}")
-            return {}
-
-    def get_technology_stats(self) -> dict[str, int]:
-        """
-        Get job count statistics by main technologies.
-
-        Returns:
-            dict[str, int]: Dictionary with technology as key and count as value
-        """
-        try:
-            pipeline: list[dict[str, Any]] = [
-                {"$unwind": "$main_technologies"},
-                {"$group": {"_id": "$main_technologies", "count": {"$sum": 1}}},
-                {"$sort": {"count": -1}},
-            ]
-
-            result = {}
-            for doc in self.collection.aggregate(pipeline):
-                if doc["_id"]:  # Only include non-empty technologies
-                    result[doc["_id"]] = doc["count"]
-
-            return result
-        except PyMongoError as e:
-            logger.error(f"Error getting technology statistics: {e}")
             return {}
 
     def find_jobs_for_stage(self, stage: int, limit: int = 100) -> list[JobListing]:
