@@ -2,7 +2,7 @@
 Database service for pipeline stage operations.
 
 This service handles saving and loading jobs to/from MongoDB for each pipeline stage,
-replacing the file-based approach with database persistence.
+replacing the file-based approach with database.
 """
 
 from typing import Any
@@ -10,12 +10,12 @@ from typing import Any
 from prefect import get_run_logger
 
 from pipeline.core.models import Job
-from pipeline.persistence import (
+from pipeline.data import (
     job_listing_repository as global_repository,
 )
-from pipeline.persistence.database import db_controller as global_db_controller
-from pipeline.persistence.job_listing.mapper import JobMapper
-from pipeline.persistence.job_listing.repository import (
+from pipeline.data.database import db_controller as global_db_controller
+from pipeline.data.job_listing.mapper import JobMapper
+from pipeline.data.job_listing.repository import (
     JobListingRepository,
 )
 
