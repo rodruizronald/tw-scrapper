@@ -1,8 +1,8 @@
 """
-Database service for pipeline stage operations.
+Service for managing job data operations across pipeline stages.
 
-This service handles saving and loading jobs to/from MongoDB for each pipeline stage,
-replacing the file-based approach with database persistence.
+Provides database-backed persistence for job listings, handling CRUD operations,
+stage tracking, deduplication, and statistics for the multi-stage job processing pipeline.
 """
 
 from typing import Any
@@ -10,18 +10,18 @@ from typing import Any
 from prefect import get_run_logger
 
 from pipeline.core.models import Job
-from pipeline.persistence.database import db_controller as global_db_controller
-from pipeline.persistence.mappers import JobMapper
-from pipeline.persistence.repositories import (
-    JobListingRepository,
-)
-from pipeline.persistence.repositories import (
+from pipeline.data import (
     job_listing_repository as global_repository,
 )
+from pipeline.data.database import db_controller as global_db_controller
+from pipeline.data.job_listing.mapper import JobMapper
+from pipeline.data.job_listing.repository import (
+    JobListingRepository,
+)
 
 
-class DatabaseService:
-    """Service for handling database operations in the pipeline."""
+class JobDataService:
+    """Service for handling job data operations in the pipeline."""
 
     def __init__(
         self,
@@ -29,7 +29,7 @@ class DatabaseService:
         db_controller: Any | None = None,
     ):
         """
-        Initialize database service.
+        Initialize job data service.
 
         Args:
             repository: Job listing repository (uses global if None)

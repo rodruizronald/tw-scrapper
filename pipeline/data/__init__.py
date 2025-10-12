@@ -1,14 +1,15 @@
 """
-Persistence layer for MongoDB storage.
+Data layer for MongoDB storage.
 
 This module provides database connectivity, models, repositories, and mappers
 for storing and retrieving job data.
 """
 
 from .database import DatabaseController, db_controller
-from .mappers import JobMapper, job_listing_to_job, job_to_job_listing
-from .models import JobListing, TechnologyInfo
-from .repositories import JobListingRepository, job_listing_repository
+from .job_listing import JobListing, JobListingRepository, JobMapper, TechnologyInfo
+
+# Initialize global repository
+job_listing_repository = JobListingRepository(db_controller)
 
 __all__ = [
     "DatabaseController",
@@ -18,6 +19,4 @@ __all__ = [
     "TechnologyInfo",
     "db_controller",
     "job_listing_repository",
-    "job_listing_to_job",
-    "job_to_job_listing",
 ]
