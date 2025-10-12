@@ -9,7 +9,6 @@ from typing import Any, Optional
 
 from loguru import logger
 from pymongo import MongoClient
-from pymongo.collection import Collection
 from pymongo.database import Database
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 
@@ -91,80 +90,12 @@ class DatabaseController:
         client = self.get_client()
         return client[self._config.database]
 
-    def get_collection(self, collection_name: str) -> Collection[Any]:
-        """
-        Get collection instance.
-
-        Args:
-            collection_name: Name of the collection
-
-        Returns:
-            Collection: Collection instance
-        """
-        db = self.get_database()
-        return db[collection_name]
-
     def close_connections(self) -> None:
         """Close all database connections."""
         if self._client:
             self._client.close()
             self._client = None
             logger.info("MongoDB connection closed")
-
-    def test_connection(self) -> bool:
-        """
-        Test database connection.
-
-        Returns:
-            bool: True if connection successful, False otherwise
-        """
-        try:
-            client = self.get_client()
-            client.admin.command("ping")
-            return True
-        except Exception as e:
-            logger.error(f"Database connection test failed: {e}")
-            return False
-
-    def get_database_stats(self) -> dict[str, Any]:
-        """
-        Get database statistics.
-
-        Returns:
-            dict: Database statistics
-        """
-        try:
-            db = self.get_database()
-            stats = db.command("dbStats")
-
-            # Get collection-specific stats
-            collections_stats = {}
-            for collection_name in db.list_collection_names():
-                try:
-                    coll_stats = db.command("collStats", collection_name)
-                    collections_stats[collection_name] = {
-                        "count": coll_stats.get("count", 0),
-                        "size": coll_stats.get("size", 0),
-                        "avgObjSize": coll_stats.get("avgObjSize", 0),
-                    }
-                except Exception as e:
-                    logger.warning(
-                        f"Failed to get stats for collection {collection_name}: {e}"
-                    )
-
-            return {
-                "database": {
-                    "collections": stats.get("collections", 0),
-                    "dataSize": stats.get("dataSize", 0),
-                    "storageSize": stats.get("storageSize", 0),
-                    "indexes": stats.get("indexes", 0),
-                    "indexSize": stats.get("indexSize", 0),
-                },
-                "collections": collections_stats,
-            }
-        except Exception as e:
-            logger.error(f"Failed to get database statistics: {e}")
-            return {}
 
 
 # Global database controller instance
