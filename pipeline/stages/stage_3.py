@@ -7,7 +7,7 @@ from pipeline.core.models import (
     JobRequirements,
     WebParserConfig,
 )
-from pipeline.services.database_service import DatabaseService
+from pipeline.services.job_data_service import JobDataService
 from pipeline.services.openai_service import OpenAIRequest, OpenAIService
 from pipeline.services.web_extraction_service import WebExtractionService
 from pipeline.utils.exceptions import (
@@ -30,7 +30,7 @@ class Stage3Processor:
 
         # Initialize services
         self.openai_service = OpenAIService(config.openai)
-        self.database_service = DatabaseService()
+        self.database_service = JobDataService()
         self.web_extraction_service = WebExtractionService(
             config.web_extraction, logger
         )

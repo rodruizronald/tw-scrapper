@@ -1,8 +1,8 @@
 """
-Configuration settings for the persistence layer.
+Configuration settings for the data layer.
 
 This module provides configuration management for database connections
-and persistence layer settings.
+and data layer settings.
 """
 
 import os
