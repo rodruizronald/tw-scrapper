@@ -10,13 +10,13 @@ from typing import Any
 from prefect import get_run_logger
 
 from pipeline.core.models import Job
-from pipeline.persistence.database import db_controller as global_db_controller
-from pipeline.persistence.mappers import JobMapper
-from pipeline.persistence.repositories import (
-    JobListingRepository,
-)
-from pipeline.persistence.repositories import (
+from pipeline.persistence import (
     job_listing_repository as global_repository,
+)
+from pipeline.persistence.database import db_controller as global_db_controller
+from pipeline.persistence.job_listing.mapper import JobMapper
+from pipeline.persistence.job_listing.repository import (
+    JobListingRepository,
 )
 
 
