@@ -4,16 +4,15 @@ Service layer for the job pipeline.
 This module contains service classes that handle specific aspects of the pipeline:
 - HTML extraction from web pages
 - OpenAI API interactions
-- File operations and data persistence
 - Database operations for pipeline stages
 """
 
-from .database_service import DatabaseService
+from .job_data_service import JobDataService
 from .openai_service import OpenAIService
 from .web_extraction_service import WebExtractionService
 
 __all__ = [
-    "DatabaseService",
+    "JobDataService",
     "OpenAIService",
     "WebExtractionService",
 ]

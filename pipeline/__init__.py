@@ -11,7 +11,7 @@ Key Features:
 - Concurrent processing with rate limiting
 - Comprehensive error handling and logging
 - Modular architecture for easy extension
-- MongoDB persistence layer for data storage
+- MongoDB data layer for storage
 
 """
 
@@ -25,8 +25,8 @@ from .core.config import (
 )
 from .core.models import CompanyData, ParserType
 
-# Persistence layer
-from .persistence import (
+# Data layer
+from .data import (
     DatabaseController,
     JobListing,
     JobListingRepository,
@@ -55,7 +55,7 @@ from .utils.exceptions import (
 # Version information
 __version__ = "1.0.0"
 __author__ = "Job Pipeline Team"
-__description__ = "AI-powered job listing extraction pipeline with MongoDB persistence"
+__description__ = "AI-powered job listing extraction pipeline with MongoDB integration"
 
 # Public API
 __all__ = [
