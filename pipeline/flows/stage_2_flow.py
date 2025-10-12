@@ -4,7 +4,7 @@ from prefect import flow, get_run_logger
 
 from pipeline.core.config import PipelineConfig
 from pipeline.core.models import CompanyData, Job
-from pipeline.services.database_service import DatabaseService
+from pipeline.services.job_data_service import JobDataService
 from pipeline.tasks.stage_2_task import process_job_details_task
 from pipeline.tasks.utils import (
     filter_enabled_companies,
@@ -37,7 +37,7 @@ async def stage_2_flow(
     logger = get_run_logger()
     logger.info("Stage 2: Job Details Extraction")
 
-    db_service = DatabaseService()
+    db_service = JobDataService()
 
     # Filter enabled companies
     enabled_companies = filter_enabled_companies(companies)

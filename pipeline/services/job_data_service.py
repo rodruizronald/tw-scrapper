@@ -1,8 +1,8 @@
 """
-Database service for pipeline stage operations.
+Service for managing job data operations across pipeline stages.
 
-This service handles saving and loading jobs to/from MongoDB for each pipeline stage,
-replacing the file-based approach with database.
+Provides database-backed persistence for job listings, handling CRUD operations,
+stage tracking, deduplication, and statistics for the multi-stage job processing pipeline.
 """
 
 from typing import Any
@@ -20,8 +20,8 @@ from pipeline.data.job_listing.repository import (
 )
 
 
-class DatabaseService:
-    """Service for handling database operations in the pipeline."""
+class JobDataService:
+    """Service for handling job data operations in the pipeline."""
 
     def __init__(
         self,
@@ -29,7 +29,7 @@ class DatabaseService:
         db_controller: Any | None = None,
     ):
         """
-        Initialize database service.
+        Initialize job data service.
 
         Args:
             repository: Job listing repository (uses global if None)
