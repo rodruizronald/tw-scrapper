@@ -124,7 +124,7 @@ class JobDailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
         """
         Update specific stage fields within daily document.
 
-        Uses dot notation for field updates (e.g., stage_1_status).
+        Uses flat field names for direct MongoDB updates.
         Thread-safe atomic update operation.
 
         Args:
