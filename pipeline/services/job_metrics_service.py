@@ -12,6 +12,7 @@ from typing import Any
 
 from prefect import get_run_logger
 
+from pipeline.core.models import CompanySummaryInput, StageMetricsInput
 from pipeline.data.database import db_controller as global_db_controller
 from pipeline.data.job_aggregate_metrics import (
     DailyAggregateMetrics,
@@ -20,8 +21,8 @@ from pipeline.data.job_aggregate_metrics import (
 from pipeline.data.job_daily_metrics import (
     CompanyDailyMetrics,
     JobDailyMetricsRepository,
-    StageMetrics,
 )
+from pipeline.data.job_daily_metrics.mapper import MetricsMapper
 
 
 class JobMetricsService:
@@ -45,40 +46,31 @@ class JobMetricsService:
         Initialize job metrics service.
 
         Args:
-            daily_repository: Daily metrics repository (creates new if None)
-            aggregate_repository: Aggregate metrics repository (creates new if None)
             db_controller: Database controller (uses global if None)
         """
         self.db_controller = db_controller or global_db_controller
         self.logger = get_run_logger()
         self.daily_repository = JobDailyMetricsRepository(self.db_controller)
         self.aggregate_repository = JobAggregateMetricsRepository(self.db_controller)
+        self.mapper = MetricsMapper()
 
     def record_stage_metrics(
         self,
         company_name: str,
         stage: str,
-        metrics_data: dict[str, Any],
+        metrics_input: StageMetricsInput,
         date: str | None = None,
     ) -> None:
         """
         Record metrics for a specific stage completion.
 
-        Converts stage data to flat structure before repository call.
+        Converts stage input to repository model before storage.
         Includes retry logic with exponential backoff.
 
         Args:
             company_name: Company name
             stage: Stage identifier (e.g., "stage_1", "stage_2", or "1", "2")
-            metrics_data: Stage metrics data containing:
-                - status: str (success|failed|skipped)
-                - jobs_processed: int
-                - jobs_completed: int
-                - jobs_failed: int
-                - execution_seconds: float
-                - started_at: datetime (optional)
-                - completed_at: datetime (optional)
-                - error_message: str (optional)
+            metrics_input: StageMetricsInput model object
             date: Optional date override (default: today)
         """
         if date is None:
@@ -90,26 +82,14 @@ class JobMetricsService:
             self.logger.error(f"Invalid stage identifier: {stage}")
             return
 
-        # Create StageMetrics object for validation
         try:
-            stage_metrics = StageMetrics(
-                status=metrics_data.get("status", "unknown"),
-                jobs_processed=metrics_data.get("jobs_processed", 0),
-                jobs_completed=metrics_data.get("jobs_completed", 0),
-                jobs_failed=metrics_data.get("jobs_failed", 0),
-                execution_seconds=metrics_data.get("execution_seconds", 0.0),
-                started_at=metrics_data.get("started_at"),
-                completed_at=metrics_data.get("completed_at"),
-                error_message=metrics_data.get("error_message"),
-            )
-
-            # Convert to dict for repository
-            stage_dict = stage_metrics.to_dict()
+            # Map input model to repository model
+            stage_metrics = self.mapper.stage_input_to_stage_metrics(metrics_input)
 
             # Attempt to update with retries
             success = self._retry_operation(
                 lambda: self.daily_repository.update_stage_metrics(
-                    date, company_name, stage_number, stage_dict
+                    date, company_name, stage_number, stage_metrics
                 ),
                 operation_name=f"record_stage_metrics for {company_name} stage {stage_number}",
             )
@@ -117,7 +97,7 @@ class JobMetricsService:
             if success:
                 self.logger.info(
                     f"Recorded stage {stage_number} metrics for {company_name}: "
-                    f"{stage_metrics.jobs_completed}/{stage_metrics.jobs_processed} jobs completed"
+                    f"{metrics_input.jobs_completed}/{metrics_input.jobs_processed} jobs completed"
                 )
             else:
                 self.logger.warning(
@@ -132,7 +112,7 @@ class JobMetricsService:
     def record_company_completion(
         self,
         company_name: str,
-        summary_metrics: dict[str, Any],
+        summary_input: CompanySummaryInput,
         date: str | None = None,
     ) -> None:
         """
@@ -142,40 +122,22 @@ class JobMetricsService:
 
         Args:
             company_name: Company name
-            summary_metrics: Summary metrics containing:
-                - new_jobs_found: int
-                - total_active_jobs: int
-                - total_inactive_jobs: int
-                - jobs_deactivated_today: int
-                - overall_status: str (success|partial|failed)
-                - prefect_flow_run_id: str (optional)
-                - pipeline_version: str (optional)
+            summary_input: CompanySummaryInput model object
             date: Optional date override (default: today)
         """
         if date is None:
             date = datetime.now(UTC).strftime("%Y-%m-%d")
 
         try:
-            # Validate required fields
-            required_fields = [
-                "new_jobs_found",
-                "total_active_jobs",
-                "overall_status",
-            ]
-
-            for field in required_fields:
-                if field not in summary_metrics:
-                    self.logger.warning(
-                        f"Missing required field '{field}' in summary metrics for {company_name}"
-                    )
-                    summary_metrics[field] = (
-                        0 if field != "overall_status" else "unknown"
-                    )
+            # Map input model to repository model
+            company_metrics = self.mapper.summary_input_to_company_metrics(
+                summary_input, date, company_name
+            )
 
             # Attempt to update with retries
             success = self._retry_operation(
                 lambda: self.daily_repository.update_company_summary(
-                    date, company_name, summary_metrics
+                    date, company_name, company_metrics
                 ),
                 operation_name=f"record_company_completion for {company_name}",
             )
@@ -183,8 +145,8 @@ class JobMetricsService:
             if success:
                 self.logger.info(
                     f"Recorded company completion for {company_name}: "
-                    f"status={summary_metrics['overall_status']}, "
-                    f"new_jobs={summary_metrics['new_jobs_found']}"
+                    f"status={summary_input.overall_status}, "
+                    f"new_jobs={summary_input.new_jobs_found}"
                 )
             else:
                 self.logger.warning(

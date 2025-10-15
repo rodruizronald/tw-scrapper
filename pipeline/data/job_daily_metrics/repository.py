@@ -15,7 +15,7 @@ from pymongo.errors import PyMongoError
 from pipeline.data.base import BaseRepository
 from pipeline.data.database import DatabaseController
 
-from .models import CompanyDailyMetrics
+from .models import CompanyDailyMetrics, StageMetrics
 
 
 class JobDailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
@@ -119,7 +119,7 @@ class JobDailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
         date: str,
         company_name: str,
         stage_number: int,
-        stage_data: dict[str, Any],
+        stage_metrics: StageMetrics,
     ) -> bool:
         """
         Update specific stage fields within daily document.
@@ -131,12 +131,15 @@ class JobDailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
             date: Date in YYYY-MM-DD format
             company_name: Company name
             stage_number: Stage number (1-4)
-            stage_data: Stage metrics data
+            stage_metrics: StageMetrics model object
 
         Returns:
             True if successful, False otherwise
         """
         try:
+            # Convert StageMetrics to dict
+            stage_data = stage_metrics.to_dict()
+
             # Build update document with flat field names
             update_fields = {}
             for key, value in stage_data.items():
@@ -177,7 +180,7 @@ class JobDailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
             return False
 
     def update_company_summary(
-        self, date: str, company_name: str, summary_data: dict[str, Any]
+        self, date: str, company_name: str, summary_metrics: CompanyDailyMetrics
     ) -> bool:
         """
         Update company-level summary fields.
@@ -185,14 +188,29 @@ class JobDailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
         Args:
             date: Date in YYYY-MM-DD format
             company_name: Company name
-            summary_data: Summary metrics data
+            summary_metrics: CompanyDailyMetrics model object
 
         Returns:
             True if successful, False otherwise
         """
         try:
-            # Add updated timestamp
-            summary_data["updated_at"] = datetime.now(UTC)
+            # Extract only the summary fields we want to update
+            summary_data = {
+                "new_jobs_found": summary_metrics.new_jobs_found,
+                "total_active_jobs": summary_metrics.total_active_jobs,
+                "total_inactive_jobs": summary_metrics.total_inactive_jobs,
+                "jobs_deactivated_today": summary_metrics.jobs_deactivated_today,
+                "overall_status": summary_metrics.overall_status,
+                "updated_at": datetime.now(UTC),
+            }
+
+            # Add optional fields if present
+            if summary_metrics.prefect_flow_run_id:
+                summary_data["prefect_flow_run_id"] = (
+                    summary_metrics.prefect_flow_run_id
+                )
+            if summary_metrics.pipeline_version:
+                summary_data["pipeline_version"] = summary_metrics.pipeline_version
 
             result = self.collection.update_one(
                 {"date": date, "company_name": company_name},
