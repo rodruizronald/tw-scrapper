@@ -11,32 +11,22 @@ from prefect import get_run_logger
 
 from pipeline.core.models import Job
 from pipeline.data import (
-    job_listing_repository as global_repository,
+    job_listing_repository,
 )
-from pipeline.data.database import db_controller as global_db_controller
 from pipeline.data.job_listing.mapper import JobMapper
-from pipeline.data.job_listing.repository import (
-    JobListingRepository,
-)
 
 
 class JobDataService:
     """Service for handling job database operations in the pipeline."""
 
-    def __init__(
-        self,
-        repository: JobListingRepository | None = None,
-        db_controller: Any | None = None,
-    ):
+    def __init__(self):
         """
         Initialize job data service.
 
         Args:
             repository: Job listing repository (uses global if None)
-            db_controller: Database controller (uses global if None)
         """
-        self.repository = repository or global_repository
-        self.db_controller = db_controller or global_db_controller
+        self.repository = job_listing_repository
         self.mapper = JobMapper()
         self.logger = get_run_logger()
 

@@ -8,19 +8,19 @@ Handles business logic for metric calculation, aggregation, and validation.
 import time
 from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Any
 
 from prefect import get_run_logger
 
 from pipeline.core.models import CompanySummaryInput, StageMetricsInput
-from pipeline.data.database import db_controller as global_db_controller
+from pipeline.data import (
+    job_aggregate_metrics_repository,
+    job_daily_metrics_repository,
+)
 from pipeline.data.job_aggregate_metrics import (
     DailyAggregateMetrics,
-    JobAggregateMetricsRepository,
 )
 from pipeline.data.job_daily_metrics import (
     CompanyDailyMetrics,
-    JobDailyMetricsRepository,
 )
 from pipeline.data.job_daily_metrics.mapper import MetricsMapper
 
@@ -38,20 +38,13 @@ class JobMetricsService:
     INITIAL_RETRY_DELAY = 1.0  # seconds
     BACKOFF_FACTOR = 2.0
 
-    def __init__(
-        self,
-        db_controller: Any = None,
-    ):
+    def __init__(self):
         """
         Initialize job metrics service.
-
-        Args:
-            db_controller: Database controller (uses global if None)
         """
-        self.db_controller = db_controller or global_db_controller
         self.logger = get_run_logger()
-        self.daily_repository = JobDailyMetricsRepository(self.db_controller)
-        self.aggregate_repository = JobAggregateMetricsRepository(self.db_controller)
+        self.daily_repository = job_daily_metrics_repository
+        self.aggregate_repository = job_aggregate_metrics_repository
         self.mapper = MetricsMapper()
 
     def record_stage_metrics(
@@ -289,8 +282,10 @@ class JobMetricsService:
             List of daily metric documents
         """
         try:
-            metrics = self.daily_repository.find_by_date_range(
-                start_date, end_date, company_name
+            metrics: list[CompanyDailyMetrics] = (
+                self.daily_repository.find_by_date_range(
+                    start_date, end_date, company_name
+                )
             )
 
             self.logger.debug(
@@ -314,7 +309,9 @@ class JobMetricsService:
             Daily aggregate document or None
         """
         try:
-            aggregate = self.aggregate_repository.find_daily_aggregate(date)
+            aggregate: DailyAggregateMetrics | None = (
+                self.aggregate_repository.find_daily_aggregate(date)
+            )
 
             if aggregate:
                 self.logger.debug(f"Retrieved pipeline health metrics for {date}")

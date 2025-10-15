@@ -13,6 +13,7 @@ from loguru import logger
 from pymongo.errors import PyMongoError
 
 from pipeline.data.base import BaseRepository
+from pipeline.data.config import db_config
 from pipeline.data.database import DatabaseController
 
 from .models import CompanyDailyMetrics, StageMetrics
@@ -29,7 +30,6 @@ class JobDailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
     def __init__(
         self,
         db_controller: DatabaseController,
-        collection_name: str = "job_metrics_daily",
     ):
         """
         Initialize daily metrics repository.
@@ -38,8 +38,7 @@ class JobDailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
             db_controller: Database controller instance
             collection_name: Name of daily metrics collection
         """
-        super().__init__(db_controller, collection_name)
-        self._indexes_created = False
+        super().__init__(db_controller, db_config.job_metrics_daily_collection)
 
     # Implement abstract methods from BaseRepository
     def _to_dict(self, model: CompanyDailyMetrics) -> dict[str, Any]:

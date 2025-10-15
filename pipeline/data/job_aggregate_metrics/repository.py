@@ -11,6 +11,7 @@ from loguru import logger
 from pymongo.errors import PyMongoError
 
 from pipeline.data.base import BaseRepository
+from pipeline.data.config import db_config
 from pipeline.data.database import DatabaseController
 
 from .models import DailyAggregateMetrics
@@ -26,7 +27,6 @@ class JobAggregateMetricsRepository(BaseRepository[DailyAggregateMetrics]):
     def __init__(
         self,
         db_controller: DatabaseController,
-        collection_name: str = "job_metrics_aggregates",
     ):
         """
         Initialize aggregate metrics repository.
@@ -35,8 +35,7 @@ class JobAggregateMetricsRepository(BaseRepository[DailyAggregateMetrics]):
             db_controller: Database controller instance
             collection_name: Name of aggregates collection
         """
-        super().__init__(db_controller, collection_name)
-        self._indexes_created = False
+        super().__init__(db_controller, db_config.job_metrics_aggregates_collection)
 
     # Implement abstract methods from BaseRepository
     def _to_dict(self, model: DailyAggregateMetrics) -> dict[str, Any]:
@@ -148,34 +147,3 @@ class JobAggregateMetricsRepository(BaseRepository[DailyAggregateMetrics]):
         except PyMongoError as e:
             logger.error(f"Error querying aggregate metrics by date range: {e}")
             return []
-
-    def create_indexes(self) -> None:
-        """
-        Create required indexes for optimal query performance.
-
-        This method is idempotent and can be called multiple times.
-        Indexes are created in the background to avoid blocking.
-        """
-        if self._indexes_created:
-            return
-
-        try:
-            logger.info("Creating indexes for job aggregate metrics collection...")
-
-            # Aggregate metrics indexes
-            self.collection.create_index(
-                [("date", -1)], unique=True, background=True, name="date_unique"
-            )
-
-            self.collection.create_index(
-                [("document_type", 1), ("date", -1)],
-                background=True,
-                name="type_date",
-            )
-
-            self._indexes_created = True
-            logger.info("Successfully created all job aggregate metrics indexes")
-
-        except PyMongoError as e:
-            logger.error(f"Error creating indexes: {e}")
-            # Don't raise - index creation failure shouldn't stop the application
