@@ -1,21 +1,18 @@
-from __future__ import annotations
-
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
+from bson import ObjectId
 from loguru import logger
 from pymongo.errors import PyMongoError
 
 from pipeline.data.base import BaseRepository
 from pipeline.data.config import db_config
+from pipeline.data.database import DatabaseController
 
 from .models import JobListing
 
 if TYPE_CHECKING:
-    from bson import ObjectId
     from pymongo.results import DeleteResult
-
-    from pipeline.data.database import DatabaseController
 
 
 """
