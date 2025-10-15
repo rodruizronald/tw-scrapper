@@ -62,8 +62,11 @@ class StageMetrics:
 class CompanyDailyMetrics:
     """Daily metrics for a single company's pipeline run."""
 
+    # Required fields (no defaults) - must come first
     date: str  # YYYY-MM-DD
     company_name: str
+
+    # Optional fields with defaults
     document_type: str = "company_daily"
 
     # MongoDB unique identifier
@@ -123,7 +126,7 @@ class CompanyDailyMetrics:
     updated_at: datetime = field(default_factory=datetime.utcnow)
     last_updated_stage: str | None = None
 
-    def to_flat_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Convert to flat dictionary structure for MongoDB storage.
 
@@ -192,14 +195,14 @@ class CompanyDailyMetrics:
         return doc
 
     @classmethod
-    def from_flat_dict(cls, data: dict[str, Any]) -> "CompanyDailyMetrics":
+    def from_dict(cls, data: dict[str, Any]) -> "CompanyDailyMetrics":
         """
         Create from flat dictionary structure.
 
         Since the model is now flat, this directly maps fields from the dict.
         """
-        # Extract stage metrics fields
-        stage_fields = {}
+        # Extract stage metrics fields with proper type handling
+        stage_fields: dict[str, Any] = {}
         for stage_num in range(1, 5):
             stage_fields[f"stage_{stage_num}_status"] = data.get(
                 f"stage_{stage_num}_status"
@@ -243,59 +246,3 @@ class CompanyDailyMetrics:
             last_updated_stage=data.get("last_updated_stage"),
             **stage_fields,
         )
-
-    def get_stage_metrics(self, stage_number: int) -> StageMetrics | None:
-        """
-        Helper method to get StageMetrics object for a specific stage.
-
-        This method provides backward compatibility and convenience by
-        reconstructing a StageMetrics object from the flat fields.
-
-        Args:
-            stage_number: Stage number (1-4)
-
-        Returns:
-            StageMetrics object if stage has data, None otherwise
-        """
-        if stage_number not in range(1, 5):
-            return None
-
-        status = getattr(self, f"stage_{stage_number}_status")
-        if status is None:
-            return None
-
-        return StageMetrics(
-            status=status,
-            jobs_processed=getattr(self, f"stage_{stage_number}_jobs_processed"),
-            jobs_completed=getattr(self, f"stage_{stage_number}_jobs_completed"),
-            jobs_failed=getattr(self, f"stage_{stage_number}_jobs_failed"),
-            execution_seconds=getattr(self, f"stage_{stage_number}_execution_seconds"),
-            started_at=getattr(self, f"stage_{stage_number}_started_at"),
-            completed_at=getattr(self, f"stage_{stage_number}_completed_at"),
-            error_message=getattr(self, f"stage_{stage_number}_error_message"),
-        )
-
-    def set_stage_metrics(self, stage_number: int, metrics: StageMetrics) -> None:
-        """
-        Helper method to set stage metrics from a StageMetrics object.
-
-        This method provides convenience for updating stage data using
-        the StageMetrics helper class.
-
-        Args:
-            stage_number: Stage number (1-4)
-            metrics: StageMetrics object
-        """
-        if stage_number not in range(1, 5):
-            return
-
-        setattr(self, f"stage_{stage_number}_status", metrics.status)
-        setattr(self, f"stage_{stage_number}_jobs_processed", metrics.jobs_processed)
-        setattr(self, f"stage_{stage_number}_jobs_completed", metrics.jobs_completed)
-        setattr(self, f"stage_{stage_number}_jobs_failed", metrics.jobs_failed)
-        setattr(
-            self, f"stage_{stage_number}_execution_seconds", metrics.execution_seconds
-        )
-        setattr(self, f"stage_{stage_number}_started_at", metrics.started_at)
-        setattr(self, f"stage_{stage_number}_completed_at", metrics.completed_at)
-        setattr(self, f"stage_{stage_number}_error_message", metrics.error_message)

@@ -445,9 +445,9 @@ class CompanySummaryInput:
 
     new_jobs_found: int
     total_active_jobs: int
+    overall_status: CompanyStatus | str
     total_inactive_jobs: int = 0
     jobs_deactivated_today: int = 0
-    overall_status: CompanyStatus | str
     prefect_flow_run_id: str | None = None
     pipeline_version: str | None = None
 

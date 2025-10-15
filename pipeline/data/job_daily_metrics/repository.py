@@ -44,11 +44,11 @@ class JobDailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
     # Implement abstract methods from BaseRepository
     def _to_dict(self, model: CompanyDailyMetrics) -> dict[str, Any]:
         """Convert model to dictionary for storage."""
-        return model.to_flat_dict()
+        return model.to_dict()
 
     def _from_dict(self, data: dict[str, Any]) -> CompanyDailyMetrics:
         """Convert dictionary to model."""
-        return CompanyDailyMetrics.from_flat_dict(data)
+        return CompanyDailyMetrics.from_dict(data)
 
     def _get_unique_key(self, model: CompanyDailyMetrics) -> str:
         """Get unique identifier for logging."""
@@ -85,7 +85,7 @@ class JobDailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
             metrics.updated_at = datetime.now(UTC)
 
             # Convert to flat dictionary
-            metrics_dict = metrics.to_flat_dict()
+            metrics_dict = metrics.to_dict()
             metrics_dict.pop("_id", None)
 
             # Use upsert to create or update
@@ -263,7 +263,7 @@ class JobDailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
 
             cursor = self.collection.find(query).sort("date", -1)
 
-            results = [CompanyDailyMetrics.from_flat_dict(doc) for doc in cursor]
+            results = [CompanyDailyMetrics(**doc) for doc in cursor]
 
             logger.debug(
                 f"Found {len(results)} metrics between {start_date} and {end_date}"
@@ -292,7 +292,7 @@ class JobDailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
             doc = self.collection.find_one({"date": date, "company_name": company_name})
 
             if doc:
-                return CompanyDailyMetrics.from_flat_dict(doc)
+                return CompanyDailyMetrics(**doc)
 
             return None
 
