@@ -1,17 +1,15 @@
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
+from bson import ObjectId
 from loguru import logger
+from pymongo.collection import Collection
 from pymongo.errors import DuplicateKeyError, PyMongoError
 
-if TYPE_CHECKING:
-    from bson import ObjectId
-    from pymongo.collection import Collection
-    from pymongo.results import DeleteResult, InsertOneResult, UpdateResult
+from pipeline.data.database import DatabaseController
 
-    from pipeline.data.database import DatabaseController
+if TYPE_CHECKING:
+    from pymongo.results import DeleteResult, InsertOneResult, UpdateResult
 
 
 class BaseRepository[T](ABC):

@@ -58,6 +58,18 @@ class DatabaseConfig:
         )
     )
 
+    # Job metrics collections
+    job_metrics_daily_collection: str = field(
+        default_factory=lambda: os.getenv(
+            "MONGO_JOB_METRICS_DAILY_COLLECTION", "job_metrics_daily"
+        )
+    )
+    job_metrics_aggregates_collection: str = field(
+        default_factory=lambda: os.getenv(
+            "MONGO_JOB_METRICS_AGGREGATES_COLLECTION", "job_metrics_aggregates"
+        )
+    )
+
     def build_connection_string(self) -> str:
         """Build MongoDB connection string from configuration."""
         if self.connection_string:
@@ -79,6 +91,8 @@ class DatabaseConfig:
             "connection_timeout": self.connection_timeout,
             "server_selection_timeout": self.server_selection_timeout,
             "job_listings_collection": self.job_listings_collection,
+            "job_metrics_daily_collection": self.job_metrics_daily_collection,
+            "job_metrics_aggregates_collection": self.job_metrics_aggregates_collection,
         }
 
 
