@@ -273,7 +273,8 @@ class JobDataService:
                 stats["new_jobs"] = sum(
                     1
                     for j in company_jobs
-                    if j.created_at >= today_start and j.created_at <= today_end
+                    if j.created_at.replace(tzinfo=UTC) >= today_start
+                    and j.created_at.replace(tzinfo=UTC) <= today_end
                 )
                 stats["active_jobs"] = sum(1 for j in company_jobs if j.active)
                 stats["inactive_jobs"] = sum(1 for j in company_jobs if not j.active)
@@ -281,8 +282,8 @@ class JobDataService:
                     1
                     for j in company_jobs
                     if not j.active
-                    and j.updated_at >= today_start
-                    and j.updated_at <= today_end
+                    and j.updated_at.replace(tzinfo=UTC) >= today_start
+                    and j.updated_at.replace(tzinfo=UTC) <= today_end
                 )
 
             return stats

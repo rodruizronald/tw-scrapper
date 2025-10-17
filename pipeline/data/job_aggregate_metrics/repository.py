@@ -60,42 +60,48 @@ class JobAggregateMetricsRepository(BaseRepository[DailyAggregateMetrics]):
         model._id = object_id
 
     # Domain-specific methods
-    def upsert_daily_aggregate(
-        self, date: str, aggregate_metrics: DailyAggregateMetrics
-    ) -> bool:
+    def upsert_daily_aggregate(self, date: str, metrics: DailyAggregateMetrics) -> bool:
         """
-        Create or update daily aggregate metrics document.
+        Insert or update daily aggregate metrics.
 
         Args:
             date: Date in YYYY-MM-DD format
-            aggregate_metrics: Daily aggregate metrics object
+            metrics: DailyAggregateMetrics object
 
         Returns:
-            True if successful, False otherwise
+            bool: True if successful, False otherwise
         """
         try:
-            metrics_dict = aggregate_metrics.to_dict()
+            # Convert to dict
+            metrics_dict = metrics.to_dict()
+
+            # Remove _id if present (MongoDB will handle it)
             metrics_dict.pop("_id", None)
 
+            # Separate created_at from other fields
+            created_at = metrics_dict.pop("created_at", datetime.now(UTC))
+
+            # Update updated_at to current time
+            metrics_dict["updated_at"] = datetime.now(UTC)
+
+            # Use update_one with upsert=True
             result = self.collection.update_one(
-                {"date": date},
+                {"date": date, "document_type": "daily_aggregate"},
                 {
-                    "$set": {
-                        **metrics_dict,
-                        "updated_at": datetime.now(UTC),
-                    },
-                    "$setOnInsert": {
-                        "created_at": datetime.now(UTC),
-                    },
+                    "$set": metrics_dict,  # Update these fields
+                    "$setOnInsert": {"created_at": created_at},  # Only set on creation
                 },
                 upsert=True,
             )
 
-            if result.upserted_id or result.modified_count > 0:
-                logger.info(f"Upserted daily aggregate metrics for {date}")
-                return True
+            if result.upserted_id:
+                logger.info(f"Created new daily aggregate for {date}")
+            elif result.modified_count > 0:
+                logger.info(f"Updated daily aggregate for {date}")
+            else:
+                logger.debug(f"No changes to daily aggregate for {date}")
 
-            return False
+            return True
 
         except PyMongoError as e:
             logger.error(f"Error upserting daily aggregate for {date}: {e}")
