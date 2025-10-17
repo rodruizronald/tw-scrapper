@@ -6,6 +6,7 @@ from pipeline.flows.stage_1_flow import stage_1_flow
 from pipeline.flows.stage_2_flow import stage_2_flow
 from pipeline.flows.stage_3_flow import stage_3_flow
 from pipeline.flows.stage_4_flow import stage_4_flow
+from pipeline.flows.stage_5_flow import stage_5_flow
 from pipeline.flows.utils import (
     load_companies_from_file,
     validate_flow_inputs,
@@ -28,6 +29,7 @@ async def main_pipeline_flow() -> None:
     - Stage 2: Extract detailed job descriptions
     - Stage 3: Extract skills and responsibilities
     - Stage 4: Extract technologies and tools
+    - Stage 5: Record company completion metrics and calculate daily aggregates
 
     Returns:
         Complete pipeline execution results
@@ -110,6 +112,13 @@ async def _execute_stages(
             companies,
             logger,
         )
+
+    # Stage 5: Company Completion Metrics and Daily Aggregates
+    await _execute_stage_5(
+        config,
+        companies,
+        logger,
+    )
 
 
 async def _execute_stage_1(
@@ -205,3 +214,25 @@ async def _execute_stage_4(
 
         logger.error("Critical failure in Stage 4 - stopping pipeline")
         raise
+
+
+async def _execute_stage_5(
+    config: PipelineConfig,
+    companies: list[CompanyData],
+    logger,
+) -> None:
+    """Execute Stage 5: Company Completion Metrics and Daily Aggregates."""
+    logger.info("Stage 5 starting...")
+
+    try:
+        await stage_5_flow(
+            companies=companies,
+            config=config,
+        )
+
+        logger.info("Stage 5 completed successfully")
+
+    except Exception as e:
+        logger.error(f"Stage 5 failed: {e}")
+        # Don't raise - we don't want metrics recording failure to stop the pipeline
+        logger.warning("Stage 5 failed but pipeline will continue")

@@ -5,6 +5,7 @@ Provides database-backed persistence for job listings, handling CRUD operations,
 stage tracking, deduplication, and statistics for the multi-stage job processing pipeline.
 """
 
+from datetime import UTC, datetime
 from typing import Any
 
 from prefect import get_run_logger
@@ -103,7 +104,7 @@ class JobDataService:
             self.logger.error(error_msg)
             raise
 
-    def load_stage_results(
+    def load_jobs_for_stage(
         self,
         company_name: str,
         stage_tag: str,
@@ -259,10 +260,30 @@ class JobDataService:
                 company_jobs = self.repository.find_by_company(
                     company_name, limit=10000
                 )
+
+                # Get today's date range for filtering
+                today_start = datetime.now(UTC).replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                )
+                today_end = datetime.now(UTC).replace(
+                    hour=23, minute=59, second=59, microsecond=999999
+                )
+
                 stats["company"] = company_name
-                stats["total_jobs"] = len(company_jobs)
+                stats["new_jobs"] = sum(
+                    1
+                    for j in company_jobs
+                    if j.created_at >= today_start and j.created_at <= today_end
+                )
                 stats["active_jobs"] = sum(1 for j in company_jobs if j.active)
                 stats["inactive_jobs"] = sum(1 for j in company_jobs if not j.active)
+                stats["jobs_deactivated"] = sum(
+                    1
+                    for j in company_jobs
+                    if not j.active
+                    and j.updated_at >= today_start
+                    and j.updated_at <= today_end
+                )
 
             return stats
 

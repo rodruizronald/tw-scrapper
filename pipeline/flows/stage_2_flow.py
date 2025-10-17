@@ -54,9 +54,8 @@ async def stage_2_flow(
         """Process a company with semaphore to limit concurrency."""
         async with semaphore:
             try:
-                # Get jobs data from stage 1 results
-                jobs_data = db_service.load_stage_results(
-                    company.name, config.stage_1.tag
+                jobs_data = db_service.load_jobs_for_stage(
+                    company.name, config.stage_2.tag
                 )
 
                 if not jobs_data:

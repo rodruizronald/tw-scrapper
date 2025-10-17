@@ -313,10 +313,13 @@ class JobListingRepository(BaseRepository[JobListing]):
             if stage == 2:
                 query["stage_1_completed"] = True
                 query["stage_2_completed"] = False
+                query["stage_3_completed"] = False
+                query["stage_4_completed"] = False
             elif stage == 3:
                 query["stage_1_completed"] = True
                 query["stage_2_completed"] = True
                 query["stage_3_completed"] = False
+                query["stage_4_completed"] = False
             elif stage == 4:
                 query["stage_1_completed"] = True
                 query["stage_2_completed"] = True

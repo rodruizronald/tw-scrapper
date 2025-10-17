@@ -1,3 +1,6 @@
+import time
+from datetime import UTC, datetime
+
 from prefect.logging import get_run_logger
 
 from pipeline.core.config import PipelineConfig
@@ -5,9 +8,12 @@ from pipeline.core.mappers import JobDetailsMapper
 from pipeline.core.models import (
     Job,
     JobDetails,
+    StageMetricsInput,
+    StageStatus,
     WebParserConfig,
 )
 from pipeline.services.job_data_service import JobDataService
+from pipeline.services.job_metrics_service import JobMetricsService
 from pipeline.services.openai_service import OpenAIRequest, OpenAIService
 from pipeline.services.web_extraction_service import WebExtractionService
 from pipeline.utils.exceptions import (
@@ -31,6 +37,7 @@ class Stage2Processor:
         # Initialize services
         self.openai_service = OpenAIService(config.openai)
         self.database_service = JobDataService()
+        self.metrics_service = JobMetricsService()
         self.web_extraction_service = WebExtractionService(
             config.web_extraction, logger
         )
@@ -49,6 +56,13 @@ class Stage2Processor:
         """
         self.logger.info(f"Processing {len(jobs)} jobs for {company_name}")
 
+        start_time = time.time()
+        started_at = datetime.now(UTC)
+        jobs_processed = len(jobs)
+        jobs_completed = 0
+        status = StageStatus.FAILED
+        error_message = None
+
         try:
             processed_jobs = []
             failed_jobs = []
@@ -64,6 +78,8 @@ class Stage2Processor:
                     failed_jobs.append((job, e))
                     self.logger.error(f"Failed to process {job.title}: {e}")
 
+            jobs_completed = len(processed_jobs)
+
             # Save processed jobs to database
             if processed_jobs:
                 try:
@@ -74,7 +90,10 @@ class Stage2Processor:
                         f"Saved {saved_count} processed jobs for {company_name}. "
                         f"Failed to process {len(failed_jobs)} jobs."
                     )
+                    status = StageStatus.SUCCESS
                 except Exception as e:
+                    error_message = str(e)
+                    status = StageStatus.FAILED
                     raise DatabaseOperationError(
                         operation="save_stage_results",
                         message=str(e),
@@ -85,6 +104,8 @@ class Stage2Processor:
                 self.logger.warning(
                     f"No jobs were successfully processed for {company_name}"
                 )
+                status = StageStatus.FAILED
+                error_message = "No jobs successfully processed"
 
             return processed_jobs
 
@@ -94,7 +115,31 @@ class Stage2Processor:
 
         except Exception as e:
             self.logger.error(f"Error processing jobs for {company_name}: {e!s}")
+            error_message = str(e)
+            status = StageStatus.FAILED
             return []  # Return empty list instead of None
+
+        finally:
+            # Record stage metrics
+            execution_time = time.time() - start_time
+            completed_at = datetime.now(UTC)
+
+            metrics_input = StageMetricsInput(
+                status=status,
+                jobs_processed=jobs_processed,
+                jobs_completed=jobs_completed,
+                jobs_failed=jobs_processed - jobs_completed,
+                execution_seconds=execution_time,
+                started_at=started_at,
+                completed_at=completed_at,
+                error_message=error_message,
+            )
+
+            self.metrics_service.record_stage_metrics(
+                company_name=company_name,
+                stage=self.config.stage_2.tag,
+                metrics_input=metrics_input,
+            )
 
     async def process_single_job(self, job: Job) -> Job:
         """

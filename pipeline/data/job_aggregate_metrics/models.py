@@ -53,9 +53,9 @@ class DailyAggregateMetrics:
     stage_4_avg_execution_seconds: float = 0.0
 
     # Metadata
-    calculation_timestamp: datetime = field(default_factory=datetime.utcnow)
+    calculation_timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     pipeline_run_count: int = 0
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for storage."""

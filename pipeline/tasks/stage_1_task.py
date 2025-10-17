@@ -16,7 +16,6 @@ from pipeline.utils.exceptions import (
 @task(
     name="Process Company",
     description="Extract job listings from a single company's career page",
-    tags=["stage-1", "company-processing"],
     retries=0,
     retry_delay_seconds=30,
     timeout_seconds=None,
