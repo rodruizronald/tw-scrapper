@@ -104,7 +104,7 @@ class JobDataService:
             self.logger.error(error_msg)
             raise
 
-    def load_stage_results(
+    def load_jobs_for_stage(
         self,
         company_name: str,
         stage_tag: str,

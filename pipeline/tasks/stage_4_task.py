@@ -16,7 +16,6 @@ from pipeline.utils.exceptions import (
 @task(
     name="Process Job Technologies",
     description="Extract technologies and tools from a single job posting",
-    tags=["stage-4", "job-processing"],
     retries=0,
     retry_delay_seconds=30,
     timeout_seconds=None,

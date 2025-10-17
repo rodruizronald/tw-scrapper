@@ -16,7 +16,6 @@ from pipeline.utils.exceptions import (
 @task(
     name="Process Job",
     description="Extract eligibility and metadata from a single job posting",
-    tags=["stage-2", "job-processing"],
     retries=0,
     retry_delay_seconds=30,
     timeout_seconds=None,

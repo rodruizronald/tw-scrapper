@@ -4,6 +4,7 @@ Repository for aggregate job metrics persistence.
 Handles database operations for daily aggregate metrics without business logic.
 """
 
+from datetime import UTC, datetime
 from typing import Any
 
 from bson import ObjectId
@@ -79,8 +80,13 @@ class JobAggregateMetricsRepository(BaseRepository[DailyAggregateMetrics]):
             result = self.collection.update_one(
                 {"date": date},
                 {
-                    "$set": metrics_dict,
-                    "$setOnInsert": {"created_at": aggregate_metrics.created_at},
+                    "$set": {
+                        **metrics_dict,
+                        "updated_at": datetime.now(UTC),
+                    },
+                    "$setOnInsert": {
+                        "created_at": datetime.now(UTC),
+                    },
                 },
                 upsert=True,
             )

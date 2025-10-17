@@ -16,7 +16,6 @@ from pipeline.utils.exceptions import (
 @task(
     name="Process Job Skills",
     description="Extract skills and responsibilities from a single job posting",
-    tags=["stage-3", "job-processing"],
     retries=0,
     retry_delay_seconds=30,
     timeout_seconds=None,
