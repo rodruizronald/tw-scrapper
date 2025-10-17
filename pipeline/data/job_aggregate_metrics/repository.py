@@ -4,7 +4,6 @@ Repository for aggregate job metrics persistence.
 Handles database operations for daily aggregate metrics without business logic.
 """
 
-from datetime import UTC, datetime
 from typing import Any
 
 from bson import ObjectId
@@ -14,6 +13,7 @@ from pymongo.errors import PyMongoError
 from pipeline.data.base import BaseRepository
 from pipeline.data.config import db_config
 from pipeline.data.database import DatabaseController
+from pipeline.utils.timezone import now_local
 
 from .models import DailyAggregateMetrics
 
@@ -79,10 +79,10 @@ class JobAggregateMetricsRepository(BaseRepository[DailyAggregateMetrics]):
             metrics_dict.pop("_id", None)
 
             # Separate created_at from other fields
-            created_at = metrics_dict.pop("created_at", datetime.now(UTC))
+            created_at = metrics_dict.pop("created_at", now_local())
 
             # Update updated_at to current time
-            metrics_dict["updated_at"] = datetime.now(UTC)
+            metrics_dict["updated_at"] = now_local()
 
             # Use update_one with upsert=True
             result = self.collection.update_one(

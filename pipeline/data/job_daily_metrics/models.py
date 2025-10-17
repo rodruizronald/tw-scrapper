@@ -5,10 +5,12 @@ These models represent daily metrics for individual companies in the job scrapin
 """
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 from bson import ObjectId
+
+from pipeline.utils.timezone import now_local
 
 
 @dataclass
@@ -122,8 +124,8 @@ class CompanyDailyMetrics:
     # Metadata
     prefect_flow_run_id: str | None = None
     pipeline_version: str | None = None
-    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
-    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = field(default_factory=now_local)
+    updated_at: datetime = field(default_factory=now_local)
     last_updated_stage: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -241,8 +243,8 @@ class CompanyDailyMetrics:
             overall_status=data.get("overall_status", "pending"),
             prefect_flow_run_id=data.get("prefect_flow_run_id"),
             pipeline_version=data.get("pipeline_version"),
-            created_at=data.get("created_at", datetime.now(UTC)),
-            updated_at=data.get("updated_at", datetime.now(UTC)),
+            created_at=data.get("created_at", now_local()),
+            updated_at=data.get("updated_at", now_local()),
             last_updated_stage=data.get("last_updated_stage"),
             **stage_fields,
         )

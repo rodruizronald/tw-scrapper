@@ -5,10 +5,12 @@ These models represent pipeline-wide daily aggregated metrics.
 """
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 from bson import ObjectId
+
+from pipeline.utils.timezone import now_local
 
 
 @dataclass
@@ -53,9 +55,9 @@ class DailyAggregateMetrics:
     stage_4_avg_execution_seconds: float = 0.0
 
     # Metadata
-    calculation_timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
+    calculation_timestamp: datetime = field(default_factory=now_local)
     pipeline_run_count: int = 0
-    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = field(default_factory=now_local)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for storage."""
@@ -132,7 +134,7 @@ class DailyAggregateMetrics:
             stage_4_avg_execution_seconds=data.get(
                 "stage_4_avg_execution_seconds", 0.0
             ),
-            calculation_timestamp=data.get("calculation_timestamp", datetime.now(UTC)),
+            calculation_timestamp=data.get("calculation_timestamp", now_local()),
             pipeline_run_count=data.get("pipeline_run_count", 0),
-            created_at=data.get("created_at", datetime.now(UTC)),
+            created_at=data.get("created_at", now_local()),
         )

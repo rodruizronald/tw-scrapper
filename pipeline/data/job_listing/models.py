@@ -6,10 +6,12 @@ following the exact structure specified for job data.
 """
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 from bson import ObjectId
+
+from pipeline.utils.timezone import now_local
 
 
 @dataclass
@@ -82,8 +84,8 @@ class JobListing:
     # Database metadata
     _id: ObjectId | None = None
     active: bool = True
-    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
-    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = field(default_factory=now_local)
+    updated_at: datetime = field(default_factory=now_local)
 
     def __post_init__(self) -> None:
         """Validate required fields after initialization."""
@@ -98,7 +100,7 @@ class JobListing:
 
     def update_timestamp(self) -> None:
         """Update the updated_at timestamp."""
-        self.updated_at = datetime.now(UTC)
+        self.updated_at = now_local()
 
     def deactivate(self) -> None:
         """Mark job listing as inactive."""

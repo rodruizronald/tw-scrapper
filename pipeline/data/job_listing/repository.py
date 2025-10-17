@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from bson import ObjectId
@@ -8,6 +8,7 @@ from pymongo.errors import PyMongoError
 from pipeline.data.base import BaseRepository
 from pipeline.data.config import db_config
 from pipeline.data.database import DatabaseController
+from pipeline.utils.timezone import LOCAL_TZ, now_local
 
 from .models import JobListing
 
@@ -385,11 +386,11 @@ class JobListingRepository(BaseRepository[JobListing]):
             int: Number of deleted job listings
         """
         try:
-            cutoff_date = datetime.now(UTC).replace(
+            cutoff_date = now_local().replace(
                 hour=0, minute=0, second=0, microsecond=0
             ).timestamp() - (days * 24 * 60 * 60)
 
-            cutoff_datetime = datetime.fromtimestamp(cutoff_date, UTC)
+            cutoff_datetime = datetime.fromtimestamp(cutoff_date, LOCAL_TZ)
 
             result: DeleteResult = self.collection.delete_many(
                 {"created_at": {"$lt": cutoff_datetime}}
