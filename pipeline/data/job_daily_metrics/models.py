@@ -122,8 +122,8 @@ class CompanyDailyMetrics:
     # Metadata
     prefect_flow_run_id: str | None = None
     pipeline_version: str | None = None
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     last_updated_stage: str | None = None
 
     def to_dict(self) -> dict[str, Any]:

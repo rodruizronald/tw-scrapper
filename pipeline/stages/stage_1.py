@@ -1,9 +1,13 @@
+import time
+from datetime import UTC, datetime
+
 from prefect.logging import get_run_logger
 
 from pipeline.core.config import PipelineConfig
 from pipeline.core.mappers import JobMapper
-from pipeline.core.models import CompanyData, Job
+from pipeline.core.models import CompanyData, Job, StageMetricsInput, StageStatus
 from pipeline.services.job_data_service import JobDataService
+from pipeline.services.job_metrics_service import JobMetricsService
 from pipeline.services.openai_service import OpenAIRequest, OpenAIService
 from pipeline.services.web_extraction_service import WebExtractionService
 from pipeline.utils.exceptions import (
@@ -34,6 +38,7 @@ class Stage1Processor:
         # Initialize services
         self.openai_service = OpenAIService(config.openai)
         self.database_service = JobDataService()
+        self.metrics_service = JobMetricsService()
         self.web_extraction_service = WebExtractionService(
             config.web_extraction, logger
         )
@@ -52,38 +57,78 @@ class Stage1Processor:
 
         """
         company_name = company.name
+        start_time = time.time()
+        started_at = datetime.now(UTC)
+        jobs_processed = 0
+        jobs_completed = 0
+        status = StageStatus.FAILED
+        error_message = None
 
         try:
             # Process the company
             new_jobs = await self._execute_company_processing(company)
+
+            jobs_processed = len(new_jobs)
+            jobs_completed = len(new_jobs)
+            status = StageStatus.SUCCESS
 
             return new_jobs
 
         except ValidationError as e:
             # Non-retryable error - bad company data
             self.logger.error(f"Validation failed - {e}")
+            error_message = str(e)
+            status = StageStatus.FAILED
             return []  # Return empty list instead of None
 
         except (WebExtractionError, OpenAIProcessingError) as e:
             # Potentially retryable errors - network/API issues
             self.logger.error(f"{type(e).__name__} - {e}")
+            error_message = str(e)
+            status = StageStatus.FAILED
             # Re-raise these for Prefect retry mechanism
             raise
 
         except DatabaseOperationError as e:
             # Database errors - usually retryable
             self.logger.error(f"Database operation failed - {e}")
+            error_message = str(e)
+            status = StageStatus.FAILED
             # Re-raise these for Prefect retry mechanism
             raise
 
         except Exception as e:
             # Unexpected errors
             self.logger.error(f"Unexpected error - {e}")
+            error_message = str(e)
+            status = StageStatus.FAILED
 
             # Still raise CompanyProcessingError for upstream handling if needed
             raise CompanyProcessingError(
                 company_name, e, self.config.stage_1.tag
             ) from e
+
+        finally:
+            # Record stage metrics
+            execution_time = time.time() - start_time
+            completed_at = datetime.now(UTC)
+
+            metrics_input = StageMetricsInput(
+                status=status,
+                jobs_processed=jobs_processed,
+                jobs_completed=jobs_completed,
+                jobs_failed=jobs_processed - jobs_completed,
+                execution_seconds=execution_time,
+                started_at=started_at,
+                completed_at=completed_at,
+                error_message=error_message,
+            )
+
+            self.metrics_service.record_stage_metrics(
+                company_name=company_name,
+                stage=self.config.stage_1.tag,
+                metrics_input=metrics_input,
+            )
 
     async def _execute_company_processing(self, company: CompanyData) -> list[Job]:
         """Execute the main processing logic for a company."""

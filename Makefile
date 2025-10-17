@@ -145,18 +145,18 @@ db-logs:
 
 db-shell:
 	@echo "Connecting to MongoDB shell..."
-	@docker exec -it tw-scrapper-mongodb mongosh -u admin -p password123
+	@docker exec -it tw-mongodb mongosh -u admin -p password123
 
 db-backup:
 	@echo "Creating MongoDB backup..."
-	@docker exec tw-scrapper-mongodb mongodump --username admin --password password123 --authenticationDatabase admin --db tw_scrapper --out /backup
-	@docker cp tw-scrapper-mongodb:/backup ./backup
+	@docker exec tw-mongodb mongodump --username admin --password password123 --authenticationDatabase admin --db tw_scrapper --out /backup
+	@docker cp tw-mongodb:/backup ./backup
 	@echo "✅ MongoDB backup completed successfully"
 
 db-restore:
 	@echo "Restoring MongoDB from backup..."
-	@docker cp ./backup tw-scrapper-mongodb:/backup
-	@docker exec tw-scrapper-mongodb mongorestore --username admin --password password123 --authenticationDatabase admin --db tw_scrapper /backup/tw_scrapper
+	@docker cp ./backup tw-mongodb:/backup
+	@docker exec tw-mongodb mongorestore --username admin --password password123 --authenticationDatabase admin --db tw_scrapper /backup/tw_scrapper
 	@echo "✅ MongoDB restore completed successfully"
 
 db-recreate:
@@ -169,7 +169,7 @@ db-recreate:
 
 db-verify-indexes:
 	@echo "Verifying MongoDB indexes..."
-	@docker exec -it tw-scrapper-mongodb mongosh -u admin -p admin --eval "db.getSiblingDB('tw_scrapper').job_listings.getIndexes()" --quiet
+	@docker exec -it tw-mongodb mongosh -u admin -p admin --eval "db.getSiblingDB('tw_scrapper').job_listings.getIndexes()" --quiet
 	@echo "✅ Index verification completed"
 
 # Show help

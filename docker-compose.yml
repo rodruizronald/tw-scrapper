@@ -1,7 +1,7 @@
 services:
   mongodb:
     image: mongo:7.0
-    container_name: tw-scrapper-mongodb
+    container_name: tw-mongodb
     restart: unless-stopped
     ports:
       - "27017:27017"
@@ -13,11 +13,11 @@ services:
       - mongodb_data:/data/db
       - ./mongo-init:/docker-entrypoint-initdb.d
     networks:
-      - tw-scrapper-network
+      - tw-network
 
 volumes:
   mongodb_data:
 
 networks:
-  tw-scrapper-network:
+  tw-network:
     driver: bridge
