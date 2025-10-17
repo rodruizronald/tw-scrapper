@@ -1,5 +1,4 @@
 import time
-from datetime import UTC, datetime
 
 from prefect.logging import get_run_logger
 
@@ -17,6 +16,7 @@ from pipeline.utils.exceptions import (
     ValidationError,
     WebExtractionError,
 )
+from pipeline.utils.timezone import now_local
 
 
 class Stage1Processor:
@@ -58,7 +58,7 @@ class Stage1Processor:
         """
         company_name = company.name
         start_time = time.time()
-        started_at = datetime.now(UTC)
+        started_at = now_local()
         jobs_processed = 0
         jobs_completed = 0
         status = StageStatus.FAILED
@@ -111,7 +111,7 @@ class Stage1Processor:
         finally:
             # Record stage metrics
             execution_time = time.time() - start_time
-            completed_at = datetime.now(UTC)
+            completed_at = now_local()
 
             metrics_input = StageMetricsInput(
                 status=status,

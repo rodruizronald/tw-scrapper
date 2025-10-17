@@ -7,7 +7,6 @@ Handles business logic for metric calculation, aggregation, and validation.
 
 import time
 from collections.abc import Callable
-from datetime import UTC, datetime
 
 from prefect import get_run_logger
 
@@ -23,6 +22,7 @@ from pipeline.data.job_daily_metrics import (
     CompanyDailyMetrics,
 )
 from pipeline.data.job_daily_metrics.mapper import MetricsMapper
+from pipeline.utils.timezone import now_local
 
 
 class JobMetricsService:
@@ -67,7 +67,7 @@ class JobMetricsService:
             date: Optional date override (default: today)
         """
         if date is None:
-            date = datetime.now(UTC).strftime("%Y-%m-%d")
+            date = now_local().strftime("%Y-%m-%d")
 
         # Extract stage number
         stage_number = self._get_stage_number(stage)
@@ -119,7 +119,7 @@ class JobMetricsService:
             date: Optional date override (default: today)
         """
         if date is None:
-            date = datetime.now(UTC).strftime("%Y-%m-%d")
+            date = now_local().strftime("%Y-%m-%d")
 
         try:
             # Map input model to repository model
@@ -162,7 +162,7 @@ class JobMetricsService:
             date: Date in YYYY-MM-DD format (default: today)
         """
         if date is None:
-            date = datetime.now(UTC).strftime("%Y-%m-%d")
+            date = now_local().strftime("%Y-%m-%d")
 
         try:
             self.logger.info(f"Calculating daily aggregates for {date}...")
@@ -239,7 +239,7 @@ class JobMetricsService:
                     "stage_4_avg_execution_seconds", 0.0
                 ),
                 pipeline_run_count=total_companies,
-                calculation_timestamp=datetime.now(UTC),
+                calculation_timestamp=now_local(),
             )
 
             # Store aggregate metrics

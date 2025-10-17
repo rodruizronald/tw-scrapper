@@ -5,14 +5,13 @@ This flow records company completion metrics for each company after all stages
 have been processed, and calculates daily aggregates for the entire pipeline.
 """
 
-from datetime import UTC, datetime
-
 from prefect import flow, get_run_logger
 
 from pipeline.core.config import PipelineConfig
 from pipeline.core.models import CompanyData, CompanyStatus, CompanySummaryInput
 from pipeline.services.job_data_service import JobDataService
 from pipeline.services.job_metrics_service import JobMetricsService
+from pipeline.utils.timezone import now_local
 
 
 @flow(
@@ -46,8 +45,8 @@ async def stage_5_flow(
     db_service = JobDataService()
     metrics_service = JobMetricsService()
 
-    # Get today's date
-    today = datetime.now(UTC).strftime("%Y-%m-%d")
+    # Get today's date using timezone utility
+    today = now_local().strftime("%Y-%m-%d")
 
     # Process each company to record completion metrics
     for company in companies:

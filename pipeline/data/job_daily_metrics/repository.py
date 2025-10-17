@@ -5,7 +5,6 @@ Handles database operations for company daily metrics without business logic.
 Provides thread-safe access to MongoDB for concurrent company processing.
 """
 
-from datetime import UTC, datetime
 from typing import Any
 
 from bson import ObjectId
@@ -15,6 +14,7 @@ from pymongo.errors import PyMongoError
 from pipeline.data.base import BaseRepository
 from pipeline.data.config import db_config
 from pipeline.data.database import DatabaseController
+from pipeline.utils.timezone import now_local
 
 from .models import CompanyDailyMetrics, StageMetrics
 
@@ -81,7 +81,7 @@ class JobDailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
         """
         try:
             # Update the timestamps
-            metrics.updated_at = datetime.now(UTC)
+            metrics.updated_at = now_local()
 
             # Convert to flat dictionary
             metrics_dict = metrics.to_dict()
@@ -146,7 +146,7 @@ class JobDailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
                 update_fields[flat_key] = value
 
             # Always update the updated_at and last_updated_stage
-            update_fields["updated_at"] = datetime.now(UTC)
+            update_fields["updated_at"] = now_local()
             update_fields["last_updated_stage"] = f"stage_{stage_number}"
 
             # Perform atomic update with upsert
@@ -158,7 +158,7 @@ class JobDailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
                         "date": date,
                         "company_name": company_name,
                         "document_type": "company_daily",
-                        "created_at": datetime.now(UTC),
+                        "created_at": now_local(),
                     },
                 },
                 upsert=True,
@@ -200,7 +200,7 @@ class JobDailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
                 "total_inactive_jobs": summary_metrics.total_inactive_jobs,
                 "jobs_deactivated_today": summary_metrics.jobs_deactivated_today,
                 "overall_status": summary_metrics.overall_status,
-                "updated_at": datetime.now(UTC),
+                "updated_at": now_local(),
             }
 
             # Add optional fields if present
@@ -219,7 +219,7 @@ class JobDailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
                         "date": date,
                         "company_name": company_name,
                         "document_type": "company_daily",
-                        "created_at": datetime.now(UTC),
+                        "created_at": now_local(),
                     },
                 },
                 upsert=True,

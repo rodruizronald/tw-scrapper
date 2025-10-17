@@ -1,5 +1,4 @@
 import time
-from datetime import UTC, datetime
 
 from prefect.logging import get_run_logger
 
@@ -21,6 +20,7 @@ from pipeline.utils.exceptions import (
     OpenAIProcessingError,
     WebExtractionError,
 )
+from pipeline.utils.timezone import now_local
 
 
 class Stage3Processor:
@@ -57,7 +57,7 @@ class Stage3Processor:
         self.logger.info(f"Processing {len(jobs)} jobs for {company_name}")
 
         start_time = time.time()
-        started_at = datetime.now(UTC)
+        started_at = now_local()
         jobs_processed = len(jobs)
         jobs_completed = 0
         status = StageStatus.FAILED
@@ -122,7 +122,7 @@ class Stage3Processor:
         finally:
             # Record stage metrics
             execution_time = time.time() - start_time
-            completed_at = datetime.now(UTC)
+            completed_at = now_local()
 
             metrics_input = StageMetricsInput(
                 status=status,

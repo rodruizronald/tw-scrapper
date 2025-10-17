@@ -5,7 +5,6 @@ Provides database-backed persistence for job listings, handling CRUD operations,
 stage tracking, deduplication, and statistics for the multi-stage job processing pipeline.
 """
 
-from datetime import UTC, datetime
 from typing import Any
 
 from prefect import get_run_logger
@@ -15,6 +14,7 @@ from pipeline.data import (
     job_listing_repository,
 )
 from pipeline.data.job_listing.mapper import JobMapper
+from pipeline.utils.timezone import LOCAL_TZ, now_local
 
 
 class JobDataService:
@@ -261,11 +261,11 @@ class JobDataService:
                     company_name, limit=10000
                 )
 
-                # Get today's date range for filtering
-                today_start = datetime.now(UTC).replace(
+                # Get today's date range for filtering (in local timezone)
+                today_start = now_local().replace(
                     hour=0, minute=0, second=0, microsecond=0
                 )
-                today_end = datetime.now(UTC).replace(
+                today_end = now_local().replace(
                     hour=23, minute=59, second=59, microsecond=999999
                 )
 
@@ -273,7 +273,8 @@ class JobDataService:
                 stats["new_jobs"] = sum(
                     1
                     for j in company_jobs
-                    if j.created_at >= today_start and j.created_at <= today_end
+                    if j.created_at.replace(tzinfo=LOCAL_TZ) >= today_start
+                    and j.created_at.replace(tzinfo=LOCAL_TZ) <= today_end
                 )
                 stats["active_jobs"] = sum(1 for j in company_jobs if j.active)
                 stats["inactive_jobs"] = sum(1 for j in company_jobs if not j.active)
@@ -281,8 +282,8 @@ class JobDataService:
                     1
                     for j in company_jobs
                     if not j.active
-                    and j.updated_at >= today_start
-                    and j.updated_at <= today_end
+                    and j.updated_at.replace(tzinfo=LOCAL_TZ) >= today_start
+                    and j.updated_at.replace(tzinfo=LOCAL_TZ) <= today_end
                 )
 
             return stats
