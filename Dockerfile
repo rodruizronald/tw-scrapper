@@ -28,26 +28,15 @@ ENV PYTHONUNBUFFERED=1 \
 # Create app directory and set it as working directory
 WORKDIR /app
 
-# Install only Playwright's system dependencies
-RUN apt-get update \
-    && playwright install-deps chromium \
-    && rm -rf /var/lib/apt/lists/*
-
 # Stage 2: Dependencies (Python packages)
 # Has: Everything from base + your pip packages (playwright, openai, prefect, etc.)
 FROM base AS dependencies
 
 # Copy only dependency files first (better layer caching)
 COPY pyproject.toml ./
-COPY README.md ./  # If referenced in pyproject.toml
 
 # Install Python dependencies
-RUN pip install --upgrade pip && \
-    pip install . && \
-    # Now playwright CLI is available - install system dependencies
-    playwright install-deps chromium && \
-    # Clean up apt cache
-    rm -rf /var/lib/apt/lists/* && \
+RUN pip install . && \
     # Verify Playwright installation
     python -c "from playwright.sync_api import sync_playwright; print('Playwright OK')"
 
