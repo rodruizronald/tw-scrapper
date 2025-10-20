@@ -1,4 +1,6 @@
+---
 services:
+  # MongoDB Database
   mongodb:
     image: mongo:7.0
     container_name: tw-mongodb
@@ -11,12 +13,78 @@ services:
       MONGO_INITDB_DATABASE: tw_scrapper
     volumes:
       - mongodb_data:/data/db
-      - ./mongo-init:/docker-entrypoint-initdb.d
+      - ./mongo:/docker-entrypoint-initdb.d
     networks:
       - tw-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Prefect Server
+  prefect-server:
+    image: prefecthq/prefect:3.4.14-python3.12
+    container_name: tw-prefect-server
+    restart: unless-stopped
+    command: ["server", "start"]
+    ports:
+      - "4200:4200"
+    environment:
+      - PREFECT_API_URL=http://0.0.0.0:4200/api
+      - PREFECT_SERVER_API_HOST=0.0.0.0
+    volumes:
+      - prefect_data:/root/.prefect
+    networks:
+      - tw-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4200/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Prefect Worker
+  prefect-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tw-prefect-worker
+    restart: unless-stopped
+    depends_on:
+      prefect-server:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    environment:
+      # Prefect Configuration
+      - PREFECT_API_URL=http://prefect-server:4200/api
+
+      # MongoDB Configuration
+      - MONGODB_HOST=mongodb
+      - MONGODB_PORT=27017
+      - MONGODB_USERNAME=admin
+      - MONGODB_PASSWORD=admin
+      - MONGODB_DATABASE=tw_scrapper
+      - MONGODB_AUTH_SOURCE=admin
+
+      # OpenAI Configuration (from .env file)
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+
+      # Pipeline Configuration
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./data:/app/data
+      - ./pipeline:/app/pipeline # Mount for development
+      - ./prompts:/app/prompts
+      - ./input:/app/input
+    networks:
+      - tw-network
+    command: ["/app/scripts/start-worker.sh"]
 
 volumes:
   mongodb_data:
+  prefect_data:
 
 networks:
   tw-network:

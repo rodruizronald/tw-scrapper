@@ -4,8 +4,10 @@
     install install-dev clean \
     prefect-server prefect-config prefect-reset \
     pre-commit-install pre-commit-run pre-commit-update \
-    help \
-    db-up db-down db-logs db-shell db-backup db-restore db-recreate db-verify-indexes
+    up down restart logs logs-worker logs-server logs-db \
+    rebuild rebuild-worker status shell-db shell-worker \
+    backup restore clean-data verify-indexes \
+    help
 
 # Load environment variables from .env file if it exists
 ifneq (,$(wildcard ./.env))
@@ -41,7 +43,6 @@ lint:
 	@ruff check . --statistics
 	@echo "✅ Linting completed successfully"
 
-# YAML linting
 yaml-check:
 	@echo "Checking YAML files with yamllint..."
 	@yamllint pipeline.yaml companies.yaml .pre-commit-config.yaml
@@ -66,7 +67,6 @@ fix-lint:
 	@ruff check --fix .
 	@echo "✅ Linting issues fixed successfully"
 
-# Combined fix command (most commonly used)
 fix-all: format fix-lint fix-imports
 	@echo "✅ All formatting and linting fixes completed applied!"
 
@@ -95,7 +95,7 @@ clean:
 	@find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
 	@echo "✅ Cleanup completed successfully"
 
-# Prefect server management
+# Prefect server management (local development without Docker)
 prefect-server:
 	@echo "Starting Prefect server..."
 	@echo "🚀 Server will be available at http://127.0.0.1:4200"
@@ -128,92 +128,207 @@ pre-commit-update:
 	@pre-commit autoupdate
 	@echo "✅ Pre-commit hooks updated successfully"
 
-# Database commands
-db-up:
-	@echo "Starting MongoDB container..."
-	@docker-compose up -d mongodb
-	@echo "✅ MongoDB container started successfully"
+# ═══════════════════════════════════════════════════════════
+# Docker Compose Commands (Treat as Single Unit)
+# ═══════════════════════════════════════════════════════════
 
-db-down:
-	@echo "Stopping MongoDB container..."
+up:
+	@echo "🚀 Starting all services..."
+	@docker-compose up -d
+	@echo ""
+	@echo "✅ All services started successfully!"
+	@echo ""
+	@echo "📊 Prefect UI:  http://localhost:4200"
+	@echo "🗄️  MongoDB:    localhost:27017"
+	@echo ""
+	@echo "💡 Useful commands:"
+	@echo "   make logs        - View all logs"
+	@echo "   make logs-worker - View worker logs"
+	@echo "   make status      - Check service status"
+	@echo "   make down        - Stop all services"
+
+down:
+	@echo "Stopping all services..."
 	@docker-compose down
-	@echo "✅ MongoDB container stopped successfully"
+	@echo "✅ All services stopped"
 
-db-logs:
-	@echo "Showing MongoDB logs (Press Ctrl+C to exit)..."
+restart:
+	@echo "Restarting all services..."
+	@docker-compose restart
+	@echo "✅ All services restarted"
+
+# ═══════════════════════════════════════════════════════════
+# Logs (View individual service logs)
+# ═══════════════════════════════════════════════════════════
+
+logs:
+	@echo "📋 Showing all logs (Press Ctrl+C to exit)..."
+	@docker-compose logs -f
+
+logs-worker:
+	@echo "📋 Showing worker logs (Press Ctrl+C to exit)..."
+	@docker-compose logs -f prefect-worker
+
+logs-server:
+	@echo "📋 Showing Prefect server logs (Press Ctrl+C to exit)..."
+	@docker-compose logs -f prefect-server
+
+logs-db:
+	@echo "📋 Showing MongoDB logs (Press Ctrl+C to exit)..."
 	@docker-compose logs -f mongodb
 
-db-shell:
-	@echo "Connecting to MongoDB shell..."
-	@docker exec -it tw-mongodb mongosh -u admin -p password123
+# ═══════════════════════════════════════════════════════════
+# Rebuild Commands
+# ═══════════════════════════════════════════════════════════
 
-db-backup:
-	@echo "Creating MongoDB backup..."
-	@docker exec tw-mongodb mongodump --username admin --password password123 --authenticationDatabase admin --db tw_scrapper --out /backup
-	@docker cp tw-mongodb:/backup ./backup
-	@echo "✅ MongoDB backup completed successfully"
+rebuild:
+	@echo "🔨 Rebuilding and restarting all services..."
+	@docker-compose up -d --build
+	@echo "✅ All services rebuilt and restarted"
+	@echo "💡 Run 'make logs' to view logs"
 
-db-restore:
-	@echo "Restoring MongoDB from backup..."
-	@docker cp ./backup tw-mongodb:/backup
-	@docker exec tw-mongodb mongorestore --username admin --password password123 --authenticationDatabase admin --db tw_scrapper /backup/tw_scrapper
-	@echo "✅ MongoDB restore completed successfully"
+rebuild-worker:
+	@echo "🔨 Rebuilding and restarting worker only..."
+	@docker-compose up -d --build --no-deps prefect-worker
+	@echo "✅ Worker rebuilt and restarted"
+	@echo "💡 Run 'make logs-worker' to view logs"
 
-db-recreate:
-	@echo "Recreating MongoDB container with fresh data..."
-	@docker-compose down -v
-	@docker-compose up -d mongodb
-	@echo "⏳ Waiting for MongoDB to initialize..."
-	@sleep 5
-	@echo "✅ MongoDB container recreated successfully"
+# ═══════════════════════════════════════════════════════════
+# Status & Shell Access
+# ═══════════════════════════════════════════════════════════
 
-db-verify-indexes:
-	@echo "Verifying MongoDB indexes..."
-	@docker exec -it tw-mongodb mongosh -u admin -p admin --eval "db.getSiblingDB('tw_scrapper').job_listings.getIndexes()" --quiet
+status:
+	@echo "📊 Service Status:"
+	@echo ""
+	@docker-compose ps
+	@echo ""
+	@echo "🏥 Health Checks:"
+	@docker exec tw-mongodb mongosh -u admin -p admin --authenticationDatabase admin --eval "db.adminCommand('ping')" --quiet 2>/dev/null && echo "✅ MongoDB: Healthy" || echo "❌ MongoDB: Unhealthy"
+	@curl -sf http://localhost:4200/api/health > /dev/null && echo "✅ Prefect Server: Healthy" || echo "❌ Prefect Server: Unhealthy"
+
+shell-db:
+	@echo "🐚 Connecting to MongoDB shell..."
+	@docker exec -it tw-mongodb mongosh -u admin -p admin --authenticationDatabase admin
+
+shell-worker:
+	@echo "🐚 Connecting to worker container..."
+	@docker exec -it tw-prefect-worker bash
+
+# ═══════════════════════════════════════════════════════════
+# Database Operations (MongoDB-specific)
+# ═══════════════════════════════════════════════════════════
+
+backup:
+	@echo "💾 Creating MongoDB backup..."
+	@mkdir -p ./backups
+	@docker exec tw-mongodb mongodump \
+		--username admin \
+		--password admin \
+		--authenticationDatabase admin \
+		--db tw_scrapper \
+		--out /tmp/backup
+	@docker cp tw-mongodb:/tmp/backup/tw_scrapper ./backups/backup-$(shell date +%Y%m%d-%H%M%S)
+	@echo "✅ Backup saved to ./backups/backup-$(shell date +%Y%m%d-%H%M%S)"
+
+restore:
+	@echo "📂 Available backups:"
+	@ls -1 ./backups/ 2>/dev/null || echo "No backups found"
+	@echo ""
+	@read -p "Enter backup folder name: " backup; \
+	if [ -d "./backups/$backup" ]; then \
+		docker cp ./backups/$backup tw-mongodb:/tmp/restore && \
+		docker exec tw-mongodb mongorestore \
+			--username admin \
+			--password admin \
+			--authenticationDatabase admin \
+			--db tw_scrapper \
+			--drop \
+			/tmp/restore && \
+		echo "✅ MongoDB restore completed successfully"; \
+	else \
+		echo "❌ Backup folder not found"; \
+		exit 1; \
+	fi
+
+verify-indexes:
+	@echo "🔍 Verifying MongoDB indexes..."
+	@docker exec tw-mongodb mongosh \
+		-u admin \
+		-p admin \
+		--authenticationDatabase admin \
+		--eval "db.getSiblingDB('tw_scrapper').job_listings.getIndexes()" \
+		--quiet
 	@echo "✅ Index verification completed"
 
-# Show help
+clean-data:
+	@echo "⚠️  WARNING: This will delete ALL data (MongoDB + Prefect)!"
+	@echo "This action cannot be undone."
+	@echo ""
+	@read -p "Type 'DELETE' to confirm: " confirm; \
+	if [ "$confirm" = "DELETE" ]; then \
+		echo "🗑️  Removing all containers and volumes..."; \
+		docker-compose down -v; \
+		echo "✅ All data deleted"; \
+		echo "💡 Run 'make up' to start fresh"; \
+	else \
+		echo "❌ Operation cancelled"; \
+	fi
+
+# ═══════════════════════════════════════════════════════════
+# Help
+# ═══════════════════════════════════════════════════════════
+
 help:
 	@echo "╔══════════════════════════════════════════════════════════╗"
-	@echo "║                   Available Commands                     ║"
+	@echo "║            Job Processing Pipeline - Makefile            ║"
 	@echo "╚══════════════════════════════════════════════════════════╝"
 	@echo ""
-	@echo "📋 Code Quality Checks:"
-	@echo "  make format-check       - Check code formatting with Ruff"
-	@echo "  make import-check       - Check import sorting with Ruff"
-	@echo "  make lint               - Run linting with Ruff"
-	@echo "  make type-check         - Run type checking with mypy"
-	@echo "  make yaml-check         - Check YAML files with yamllint"
-	@echo "  make check-all          - Run ALL quality checks"
+	@echo "🐳 Docker Compose (Main Commands):"
+	@echo "  make up              - Start all services (MongoDB + Prefect)"
+	@echo "  make down            - Stop all services"
+	@echo "  make restart         - Restart all services"
+	@echo "  make status          - Show service status & health"
+	@echo "  make rebuild         - Rebuild and restart all services"
+	@echo "  make rebuild-worker  - Rebuild worker only (faster)"
 	@echo ""
-	@echo "🔧 Code Formatting & Fixes:"
-	@echo "  make format             - Auto-format code with Ruff"
-	@echo "  make fix-imports        - Fix import sorting"
-	@echo "  make fix-lint           - Fix linting issues"
-	@echo "  make fix-all            - Apply ALL auto-fixes (recommended)"
+	@echo "📋 Logs:"
+	@echo "  make logs            - View all logs"
+	@echo "  make logs-worker     - View worker logs only"
+	@echo "  make logs-server     - View Prefect server logs"
+	@echo "  make logs-db         - View MongoDB logs"
+	@echo ""
+	@echo "🐚 Shell Access:"
+	@echo "  make shell-db        - MongoDB shell"
+	@echo "  make shell-worker    - Worker container bash"
+	@echo ""
+	@echo "💾 Database Operations:"
+	@echo "  make backup          - Backup MongoDB data"
+	@echo "  make restore         - Restore MongoDB data"
+	@echo "  make verify-indexes  - Verify MongoDB indexes"
+	@echo "  make clean-data      - Delete all data (⚠️  destructive)"
+	@echo ""
+	@echo "📋 Code Quality:"
+	@echo "  make check-all       - Run all quality checks"
+	@echo "  make fix-all         - Apply all auto-fixes"
+	@echo "  make format          - Auto-format code"
+	@echo "  make lint            - Run linting"
+	@echo "  make type-check      - Run type checking"
 	@echo ""
 	@echo "📦 Environment Setup:"
-	@echo "  make install            - Install production dependencies"
-	@echo "  make install-dev        - Install development dependencies"
-	@echo "  make clean              - Clean up cache files"
+	@echo "  make install         - Install production dependencies"
+	@echo "  make install-dev     - Install development dependencies"
+	@echo "  make clean           - Clean cache files"
 	@echo ""
-	@echo "🔮 Prefect Management:"
-	@echo "  make prefect-server     - Start Prefect server locally"
-	@echo "  make prefect-config     - Configure Prefect to use local server"
-	@echo "  make prefect-reset      - Reset Prefect to default configuration"
-	@echo ""
-	@echo "🪝 Pre-commit Hooks:"
+	@echo "🪝 Pre-commit:"
 	@echo "  make pre-commit-install - Install pre-commit hooks"
-	@echo "  make pre-commit-run     - Run pre-commit on all files"
-	@echo "  make pre-commit-update  - Update pre-commit hooks"
+	@echo "  make pre-commit-run     - Run pre-commit checks"
 	@echo ""
-	@echo "🗄️ Database Commands:"
-	@echo "  make db-up              - Start MongoDB container"
-	@echo "  make db-down            - Stop MongoDB container"
-	@echo "  make db-logs            - View MongoDB logs"
-	@echo "  make db-shell           - Connect to MongoDB shell"
-	@echo "  make db-backup          - Backup MongoDB data"
-	@echo "  make db-restore         - Restore MongoDB data"
-	@echo "  make db-recreate        - Recreate MongoDB container with fresh data"
-	@echo "  make db-verify-indexes  - Verify MongoDB indexes"
+	@echo "🔮 Local Prefect (without Docker):"
+	@echo "  make prefect-server  - Start Prefect server locally"
+	@echo "  make prefect-config  - Configure for local server"
+	@echo ""
+	@echo "💡 Quick Start:"
+	@echo "  1. make up           - Start all services"
+	@echo "  2. make logs-worker  - Watch pipeline execution"
+	@echo "  3. Open http://localhost:4200 to view Prefect UI"
 	@echo ""
