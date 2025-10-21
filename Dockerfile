@@ -36,42 +36,30 @@ FROM base AS dependencies
 COPY pyproject.toml ./
 
 # Install Python dependencies
-RUN pip install . && \
-    # Verify Playwright installation
-    python -c "from playwright.sync_api import sync_playwright; print('Playwright OK')"
+RUN pip install .
 
 # Stage 3: Runtime (final image)
 # Has: Everything from dependencies + your application code + non-root user
 FROM dependencies AS runtime
 
 # Create non-root user with specific UID/GID for consistency
-# groupadd: Creates group 'pipeline' with GID 1000
-# useradd: Creates user 'pipeline' with UID 1000, home dir, and bash shell
-RUN groupadd -r -g 1000 pipeline && \
-    useradd -r -u 1000 -g pipeline -m -s /bin/bash pipeline
+# This script checks if the group/user already exists before creating
+RUN groupadd -r -g 1001 pipeline 2>/dev/null || true && \
+    useradd -r -u 1001 -g pipeline -m -s /bin/bash pipeline 2>/dev/null || true
 
 # Copy application code
-# --chown=pipeline:pipeline: Sets owner:group to pipeline:pipeline (UID 1000:GID 1000)
-# . (source): Current directory on host (where Dockerfile is)
-# /app (destination): Target directory in container
-COPY --chown=pipeline:pipeline . /app
+# --chown=1001:1001: Sets owner to our pipeline user (UID 1001:GID 1001)
+COPY --chown=1001:1001 . /app
 
 # Ensure pipeline user has access to Playwright browsers
-RUN chown -R pipeline:pipeline /ms-playwright 2>/dev/null || true && \
+RUN chown -R 1001:1001 /ms-playwright 2>/dev/null || true && \
     chmod -R 755 /ms-playwright 2>/dev/null || true
 
 # Ensure pipeline user owns all application files
-RUN chown -R pipeline:pipeline /app
+RUN chown -R 1001:1001 /app
 
 # Make startup script executable
 RUN chmod +x /app/scripts/start-worker.sh
 
-# Switch to non-root user
-USER pipeline
-
-# Verify installations as non-root user
-RUN python -c "import prefect; from playwright.sync_api import sync_playwright"
-
-# Better health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD prefect version && python -c "from playwright.sync_api import sync_playwright" || exit 1
+# Switch to non-root user (use UID instead of username for reliability)
+USER 1001

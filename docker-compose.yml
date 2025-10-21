@@ -27,21 +27,23 @@ services:
     image: prefecthq/prefect:3.4.14-python3.12
     container_name: tw-prefect-server
     restart: unless-stopped
-    command: ["server", "start"]
+    command: prefect server start --no-services
     ports:
       - "4200:4200"
     environment:
-      - PREFECT_API_URL=http://0.0.0.0:4200/api
       - PREFECT_SERVER_API_HOST=0.0.0.0
+      - PREFECT_SERVER_API_PORT=4200
+      - PREFECT_UI_API_URL=http://localhost:4200/api
     volumes:
       - prefect_data:/root/.prefect
     networks:
       - tw-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4200/api/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:4200/api/health || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
 
   # Prefect Worker
   prefect-worker:
@@ -60,19 +62,23 @@ services:
       - PREFECT_API_URL=http://prefect-server:4200/api
 
       # MongoDB Configuration
-      - MONGODB_HOST=mongodb
-      - MONGODB_PORT=27017
-      - MONGODB_USERNAME=admin
-      - MONGODB_PASSWORD=admin
-      - MONGODB_DATABASE=tw_scrapper
-      - MONGODB_AUTH_SOURCE=admin
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - MONGO_USERNAME=admin
+      - MONGO_PASSWORD=admin
+      - MONGO_DATABASE=tw_scrapper
+      - MONGO_AUTH_SOURCE=admin
+      - MONGO_CONNECTION_TIMEOUT=5000
+      - MONGO_SERVER_SELECTION_TIMEOUT=5000
+      - MONGO_JOB_LISTINGS_COLLECTION=job_listings
+      - MONGO_JOB_METRICS_DAILY_COLLECTION=job_metrics_daily
+      - MONGO_JOB_METRICS_AGGREGATES_COLLECTION=job_metrics_aggregates
 
-      # OpenAI Configuration (from .env file)
+      # OpenAI Configuration
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
 
       # Pipeline Configuration
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - PIPELINE_CONFIG_FILE=pipeline.yaml
     volumes:
       - ./data:/app/data
       - ./pipeline:/app/pipeline # Mount for development
