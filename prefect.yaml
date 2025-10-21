@@ -25,5 +25,7 @@ deployments:
       work_queue_name: null
       job_variables: {}
 
-    # Schedule already defined - no prompt needed
-    schedule: null # Explicitly set to null (no schedule)
+    # Schedule - runs daily at 6 AM Costa Rica time
+    schedule:
+      cron: "0 6 * * *"
+      timezone: "America/Costa_Rica"

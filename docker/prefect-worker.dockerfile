@@ -65,5 +65,5 @@ RUN chmod +x /app/scripts/start-worker.sh
 # Switch to non-root user (use UID instead of username for reliability)
 USER 1001
 
-# Set the default command
-CMD ["/app/scripts/start-worker.sh"]
+# Use ENTRYPOINT with explicit bash interpreter instead of CMD
+ENTRYPOINT ["/bin/bash", "/app/scripts/start-worker.sh"]
