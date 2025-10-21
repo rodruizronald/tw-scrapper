@@ -134,7 +134,7 @@ pre-commit-update:
 
 up:
 	@echo "🚀 Starting all services..."
-	@docker-compose up -d
+	@docker-compose -f docker/docker-compose.yml up -d
 	@echo ""
 	@echo "✅ All services started successfully!"
 	@echo ""
@@ -149,12 +149,12 @@ up:
 
 down:
 	@echo "Stopping all services..."
-	@docker-compose down
+	@docker-compose -f docker/docker-compose.yml down
 	@echo "✅ All services stopped"
 
 restart:
 	@echo "Restarting all services..."
-	@docker-compose restart
+	@docker-compose -f docker/docker-compose.yml restart
 	@echo "✅ All services restarted"
 
 # ═══════════════════════════════════════════════════════════
@@ -163,19 +163,19 @@ restart:
 
 logs:
 	@echo "📋 Showing all logs (Press Ctrl+C to exit)..."
-	@docker-compose logs -f
+	@docker-compose -f docker/docker-compose.yml logs -f
 
 logs-worker:
 	@echo "📋 Showing worker logs (Press Ctrl+C to exit)..."
-	@docker-compose logs -f prefect-worker
+	@docker-compose -f docker/docker-compose.yml logs -f prefect-worker
 
 logs-server:
 	@echo "📋 Showing Prefect server logs (Press Ctrl+C to exit)..."
-	@docker-compose logs -f prefect-server
+	@docker-compose -f docker/docker-compose.yml logs -f prefect-server
 
 logs-db:
 	@echo "📋 Showing MongoDB logs (Press Ctrl+C to exit)..."
-	@docker-compose logs -f mongodb
+	@docker-compose -f docker/docker-compose.yml logs -f mongodb
 
 # ═══════════════════════════════════════════════════════════
 # Rebuild Commands
@@ -183,13 +183,13 @@ logs-db:
 
 rebuild:
 	@echo "🔨 Rebuilding and restarting all services..."
-	@docker-compose up -d --build
+	@docker-compose -f docker/docker-compose.yml up -d --build
 	@echo "✅ All services rebuilt and restarted"
 	@echo "💡 Run 'make logs' to view logs"
 
 rebuild-worker:
 	@echo "🔨 Rebuilding and restarting worker only..."
-	@docker-compose up -d --build --no-deps prefect-worker
+	@docker-compose -f docker/docker-compose.yml up -d --build --no-deps prefect-worker
 	@echo "✅ Worker rebuilt and restarted"
 	@echo "💡 Run 'make logs-worker' to view logs"
 
@@ -200,7 +200,7 @@ rebuild-worker:
 status:
 	@echo "📊 Service Status:"
 	@echo ""
-	@docker-compose ps
+	@docker-compose -f docker/docker-compose.yml ps
 	@echo ""
 	@echo "🏥 Health Checks:"
 	@docker exec tw-mongodb mongosh -u admin -p admin --authenticationDatabase admin --eval "db.adminCommand('ping')" --quiet 2>/dev/null && echo "✅ MongoDB: Healthy" || echo "❌ MongoDB: Unhealthy"
@@ -267,7 +267,7 @@ clean-data:
 	@read -p "Type 'DELETE' to confirm: " confirm; \
 	if [ "$confirm" = "DELETE" ]; then \
 		echo "🗑️  Removing all containers and volumes..."; \
-		docker-compose down -v; \
+		docker-compose -f docker/docker-compose.yml down -v; \
 		echo "✅ All data deleted"; \
 		echo "💡 Run 'make up' to start fresh"; \
 	else \
