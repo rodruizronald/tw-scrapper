@@ -1,4 +1,3 @@
----
 services:
   # MongoDB Database
   mongodb:
@@ -13,7 +12,7 @@ services:
       MONGO_INITDB_DATABASE: tw_scrapper
     volumes:
       - mongodb_data:/data/db
-      - ./mongo:/docker-entrypoint-initdb.d
+      - ../mongo:/docker-entrypoint-initdb.d
     networks:
       - tw-network
     healthcheck:
@@ -48,8 +47,8 @@ services:
   # Prefect Worker
   prefect-worker:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/prefect-worker.dockerfile
     container_name: tw-prefect-worker
     restart: unless-stopped
     depends_on:
@@ -80,10 +79,8 @@ services:
       # Pipeline Configuration
       - PIPELINE_CONFIG_FILE=pipeline.yaml
     volumes:
-      - ./data:/app/data
-      - ./pipeline:/app/pipeline # Mount for development
-      - ./prompts:/app/prompts
-      - ./input:/app/input
+      - ../pipeline:/app/pipeline
+      - ../prompts:/app/prompts
     networks:
       - tw-network
     command: ["/app/scripts/start-worker.sh"]

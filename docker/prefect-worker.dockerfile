@@ -1,3 +1,4 @@
+
 # Multi-stage build for pipeline worker with Playwright
 
 # Stage 1: Base setup (system setup)
