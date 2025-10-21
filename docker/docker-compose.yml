@@ -1,0 +1,94 @@
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: tw-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGO_INITDB_DATABASE: tw_scrapper
+    volumes:
+      - mongodb_data:/data/db
+      - ../mongo:/docker-entrypoint-initdb.d
+    networks:
+      - tw-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Prefect Server
+  prefect-server:
+    build:
+      context: ..
+      dockerfile: docker/prefect-server.dockerfile
+    container_name: tw-prefect-server
+    restart: unless-stopped
+    ports:
+      - "4200:4200"
+    environment:
+      - PREFECT_SERVER_API_HOST=0.0.0.0
+      - PREFECT_SERVER_API_PORT=4200
+      - PREFECT_UI_API_URL=http://localhost:4200/api
+    volumes:
+      - prefect_data:/root/.prefect
+    networks:
+      - tw-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:4200/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Prefect Worker
+  prefect-worker:
+    build:
+      context: ..
+      dockerfile: docker/prefect-worker.dockerfile
+    container_name: tw-prefect-worker
+    restart: unless-stopped
+    depends_on:
+      prefect-server:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    environment:
+      # Prefect Configuration
+      - PREFECT_API_URL=http://prefect-server:4200/api
+
+      # MongoDB Configuration
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - MONGO_USERNAME=admin
+      - MONGO_PASSWORD=admin
+      - MONGO_DATABASE=tw_scrapper
+      - MONGO_AUTH_SOURCE=admin
+      - MONGO_CONNECTION_TIMEOUT=5000
+      - MONGO_SERVER_SELECTION_TIMEOUT=5000
+      - MONGO_JOB_LISTINGS_COLLECTION=job_listings
+      - MONGO_JOB_METRICS_DAILY_COLLECTION=job_metrics_daily
+      - MONGO_JOB_METRICS_AGGREGATES_COLLECTION=job_metrics_aggregates
+
+      # OpenAI Configuration
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+
+      # Pipeline Configuration
+      - PIPELINE_CONFIG_FILE=pipeline.yaml
+    volumes:
+      - ../pipeline:/app/pipeline
+      - ../prompts:/app/prompts
+    networks:
+      - tw-network
+
+volumes:
+  mongodb_data:
+  prefect_data:
+
+networks:
+  tw-network:
+    driver: bridge

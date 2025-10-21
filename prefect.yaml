@@ -1,0 +1,31 @@
+---
+push: null
+pull:
+  - prefect.deployments.steps.set_working_directory:
+      directory: /app
+
+# Deployment configurations
+deployments:
+  - name: job-scraper-production
+    version: null
+    tags:
+      - production
+      - job-scraper
+    description: >-
+      Production job scraping and processing pipeline - extracts and
+      analyzes job listings from company career pages
+
+    # Flow configuration
+    entrypoint: pipeline/flows/main_pipeline_flow.py:main_pipeline_flow
+    parameters: {}
+
+    # Work pool configuration
+    work_pool:
+      name: job-scraper-pool
+      work_queue_name: null
+      job_variables: {}
+
+    # Schedule - runs daily at 6 AM Costa Rica time
+    schedule:
+      cron: "0 6 * * *"
+      timezone: "America/Costa_Rica"
