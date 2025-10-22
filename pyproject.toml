@@ -30,14 +30,14 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["parsers*", "services*", "web_parser*", "tools*"]
+where = ["src"]
+include = ["*"]
 
 # ===== RUFF (Linting & Formatting) =====
 [tool.ruff]
 line-length = 88
 target-version = "py312"
-src = ["parsers", "services", "web_parser", "tools"]
+src = ["src", "tools"]   # tools is at root level
 
 # Exclude common directories
 exclude = [
@@ -85,7 +85,7 @@ fixable = ["ALL"]
 unfixable = []
 
 [tool.ruff.lint.isort]
-known-first-party = ["scripts", "parsers", "services", "web_parser", "tools"]
+known-first-party = ["core", "data", "services", "pipeline", "utils"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "F403"] # Unused imports in init files
@@ -104,5 +104,7 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
+namespace_packages = true
+explicit_package_bases = true
 show_error_codes = true
 exclude = ["venv/", ".venv/", "build/", "dist/"]

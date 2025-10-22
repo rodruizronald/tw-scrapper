@@ -25,22 +25,22 @@ PIP ?= pip
 # Code quality checks
 format-check:
 	@echo "Checking code formatting with Ruff..."
-	@ruff format --check --diff .
+	@ruff format --check --diff src tools
 	@echo "✅ Ruff formatting check completed successfully"
 
 import-check:
 	@echo "Checking import sorting with Ruff..."
-	@ruff check --select I --diff .
+	@ruff check --select I --diff src tools
 	@echo "✅ Import sorting check completed successfully"
 
 type-check:
 	@echo "Running type checking with mypy..."
-	@mypy . --ignore-missing-imports
+	@mypy src tools
 	@echo "✅ Type checking completed successfully"
 
 lint:
 	@echo "Running linting with Ruff..."
-	@ruff check . --statistics
+	@ruff check src tools --statistics
 	@echo "✅ Linting completed successfully"
 
 yaml-check:
@@ -54,17 +54,17 @@ check-all: format-check import-check lint type-check
 # Auto-formatting and fixing
 format:
 	@echo "Auto-formatting code with Ruff..."
-	@ruff format .
+	@ruff format src tools
 	@echo "✅ Ruff formatting applied successfully"
 
 fix-imports:
 	@echo "Fixing import sorting with Ruff..."
-	@ruff check --select I --fix .
+	@ruff check --select I --fix src tools
 	@echo "✅ Import sorting fixed successfully"
 
 fix-lint:
 	@echo "Auto-fixing linting issues with Ruff..."
-	@ruff check --fix .
+	@ruff check --fix src tools
 	@echo "✅ Linting issues fixed successfully"
 
 fix-all: format fix-lint fix-imports
