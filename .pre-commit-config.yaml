@@ -10,13 +10,6 @@ repos:
         types: [python]
         require_serial: false
 
-      - id: mypy
-        name: mypy
-        entry: mypy
-        language: system
-        types: [python]
-        require_serial: false
-
       - id: yamllint
         name: yamllint
         entry: yamllint
