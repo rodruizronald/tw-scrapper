@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from core.models.parsers import ParserType
 from dotenv import load_dotenv
 from src.core.config.integrations import (
     BrowserConfig,
@@ -14,6 +13,7 @@ from src.core.config.integrations import (
 )
 from src.core.config.services import OpenAIServiceConfig
 from src.core.config.system import PathsConfig
+from src.core.models.parsers import ParserType
 from src.pipeline.config.stages import StageConfig, StagesConfig
 
 
