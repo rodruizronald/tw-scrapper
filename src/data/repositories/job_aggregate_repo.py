@@ -10,12 +10,12 @@ from bson import ObjectId
 from loguru import logger
 from pymongo.errors import PyMongoError
 
-from data.base import BaseRepository
-from data.config import db_config
-from data.database import DatabaseController
+from core.config.database import db_config
+from data.controller import DatabaseController
+from data.models.job_aggregate_metrics import DailyAggregateMetrics
 from utils.timezone import now_local
 
-from .models import DailyAggregateMetrics
+from .base import BaseRepository
 
 
 class JobAggregateMetricsRepository(BaseRepository[DailyAggregateMetrics]):
@@ -41,7 +41,8 @@ class JobAggregateMetricsRepository(BaseRepository[DailyAggregateMetrics]):
     # Implement abstract methods from BaseRepository
     def _to_dict(self, model: DailyAggregateMetrics) -> dict[str, Any]:
         """Convert model to dictionary for storage."""
-        return model.to_dict()
+        result: dict[str, Any] = model.to_dict()
+        return result
 
     def _from_dict(self, data: dict[str, Any]) -> DailyAggregateMetrics:
         """Convert dictionary to model."""
@@ -49,11 +50,13 @@ class JobAggregateMetricsRepository(BaseRepository[DailyAggregateMetrics]):
 
     def _get_unique_key(self, model: DailyAggregateMetrics) -> str:
         """Get unique identifier for logging."""
-        return model.date
+        date: str = model.date
+        return date
 
     def _get_id(self, model: DailyAggregateMetrics) -> ObjectId | None:
         """Get MongoDB _id from model."""
-        return model._id
+        _id: ObjectId | None = model._id
+        return _id
 
     def _set_id(self, model: DailyAggregateMetrics, object_id: ObjectId) -> None:
         """Set MongoDB _id on model."""

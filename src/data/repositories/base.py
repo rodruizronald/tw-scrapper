@@ -6,7 +6,7 @@ from loguru import logger
 from pymongo.collection import Collection
 from pymongo.errors import DuplicateKeyError, PyMongoError
 
-from data.database import DatabaseController
+from data.controller import DatabaseController
 
 if TYPE_CHECKING:
     from pymongo.results import DeleteResult, InsertOneResult, UpdateResult

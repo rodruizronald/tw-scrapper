@@ -10,8 +10,7 @@ models optimized for its specific purpose.
 """
 
 from core.models.metrics import CompanySummaryInput, StageMetricsInput
-
-from .models import CompanyDailyMetrics, StageMetrics
+from data.models.job_daily_metrics import CompanyDailyMetrics, StageMetrics
 
 
 class MetricsMapper:

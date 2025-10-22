@@ -12,8 +12,7 @@ from core.models.jobs import (
     JobTechnologies,
     Technology,
 )
-
-from .models import JobListing, TechnologyInfo
+from data.models.job_listing import JobListing, TechnologyInfo
 
 
 class JobMapper:

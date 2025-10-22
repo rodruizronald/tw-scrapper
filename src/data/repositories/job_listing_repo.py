@@ -1,16 +1,15 @@
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from base.repository import BaseRepository
 from bson import ObjectId
 from loguru import logger
 from pymongo.errors import PyMongoError
 
-from data.config import db_config
-from data.database import DatabaseController
+from core.config.database import db_config
+from core.models.jobs import JobListing
+from data.controller import DatabaseController
+from data.repositories.base import BaseRepository
 from utils.timezone import LOCAL_TZ, now_local
-
-from .models import JobListing
 
 if TYPE_CHECKING:
     from pymongo.results import DeleteResult
@@ -37,16 +36,22 @@ class JobListingRepository(BaseRepository[JobListing]):
 
     # Implement abstract methods
     def _to_dict(self, model: JobListing) -> dict[str, Any]:
-        return model.to_dict()
+        """Convert model to dictionary for storage."""
+        result: dict[str, Any] = model.to_dict()
+        return result
 
     def _from_dict(self, data: dict[str, Any]) -> JobListing:
         return JobListing.from_dict(data)
 
     def _get_unique_key(self, model: JobListing) -> str:
-        return model.signature
+        """Get unique identifier for logging."""
+        signature: str = model.signature
+        return signature
 
     def _get_id(self, model: JobListing) -> ObjectId | None:
-        return model._id
+        """Get MongoDB _id from model."""
+        _id: ObjectId | None = model._id
+        return _id
 
     def _set_id(self, model: JobListing, object_id: ObjectId) -> None:
         model._id = object_id

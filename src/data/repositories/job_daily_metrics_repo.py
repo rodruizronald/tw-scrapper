@@ -11,12 +11,12 @@ from bson import ObjectId
 from loguru import logger
 from pymongo.errors import PyMongoError
 
-from data.base import BaseRepository
-from data.config import db_config
-from data.database import DatabaseController
+from core.config.database import db_config
+from data.controller import DatabaseController
+from data.models.job_daily_metrics import CompanyDailyMetrics, StageMetrics
 from utils.timezone import now_local
 
-from .models import CompanyDailyMetrics, StageMetrics
+from .base import BaseRepository
 
 
 class JobDailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
@@ -43,7 +43,8 @@ class JobDailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
     # Implement abstract methods from BaseRepository
     def _to_dict(self, model: CompanyDailyMetrics) -> dict[str, Any]:
         """Convert model to dictionary for storage."""
-        return model.to_dict()
+        result: dict[str, Any] = model.to_dict()
+        return result
 
     def _from_dict(self, data: dict[str, Any]) -> CompanyDailyMetrics:
         """Convert dictionary to model."""
@@ -55,7 +56,8 @@ class JobDailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
 
     def _get_id(self, model: CompanyDailyMetrics) -> ObjectId | None:
         """Get MongoDB _id from model."""
-        return model._id
+        _id: ObjectId | None = model._id
+        return _id
 
     def _set_id(self, model: CompanyDailyMetrics, object_id: ObjectId) -> None:
         """Set MongoDB _id on model."""

@@ -21,7 +21,7 @@ from data.job_aggregate_metrics import (
 from data.job_daily_metrics import (
     CompanyDailyMetrics,
 )
-from data.job_daily_metrics.mapper import MetricsMapper
+from data.mappers.job_daily_metrics_mapper import MetricsMapper
 from utils.timezone import now_local
 
 
