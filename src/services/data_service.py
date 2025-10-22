@@ -13,7 +13,7 @@ from core.models.jobs import Job
 from data import (
     job_listing_repository,
 )
-from data.mappers.job_daily_metrics_mapper import JobMapper
+from data.mappers.metrics_mapper import JobMapper
 from utils.timezone import LOCAL_TZ, now_local
 
 

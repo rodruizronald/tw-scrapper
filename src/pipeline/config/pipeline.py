@@ -13,8 +13,8 @@ from src.core.config.integrations import (
 )
 from src.core.config.services import OpenAIServiceConfig
 from src.core.config.system import PathsConfig
-from src.core.models.parsers import ParserType
 from src.pipeline.config.stages import StageConfig, StagesConfig
+from src.services.parsers.models import ParserType
 
 
 @dataclass

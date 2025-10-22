@@ -12,13 +12,13 @@ from pymongo.errors import PyMongoError
 
 from core.config.database import db_config
 from data.controller import DatabaseController
-from data.models.job_aggregate_metrics import DailyAggregateMetrics
+from data.models.aggregate_metrics import DailyAggregateMetrics
 from utils.timezone import now_local
 
-from .base import BaseRepository
+from .base_repo import BaseRepository
 
 
-class JobAggregateMetricsRepository(BaseRepository[DailyAggregateMetrics]):
+class AggregateMetricsRepository(BaseRepository[DailyAggregateMetrics]):
     """
     Repository for aggregate job metrics database operations.
 

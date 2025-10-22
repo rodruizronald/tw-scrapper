@@ -2,8 +2,6 @@ import time
 
 from prefect.logging import get_run_logger
 from src.pipeline.config import PipelineConfig
-from src.services.job_data_service import JobDataService
-from src.services.job_metrics_service import JobMetricsService
 from src.services.openai_service import OpenAIRequest, OpenAIService
 from src.services.web_extraction_service import WebExtractionService
 from src.utils.exceptions import (
@@ -17,6 +15,8 @@ from core.config.services import WebParserConfig
 from core.mappers.jobs import JobRequirementsMapper
 from core.models.jobs import Job, JobRequirements
 from core.models.metrics import StageMetricsInput, StageStatus
+from services.data_service import JobDataService
+from services.metrics_service import JobMetricsService
 
 
 class Stage3Processor:

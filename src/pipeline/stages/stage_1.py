@@ -2,8 +2,6 @@ import time
 
 from prefect.logging import get_run_logger
 from src.pipeline.config import PipelineConfig
-from src.services.job_data_service import JobDataService
-from src.services.job_metrics_service import JobMetricsService
 from src.services.openai_service import OpenAIRequest, OpenAIService
 from src.services.web_extraction_service import WebExtractionService
 from src.utils.exceptions import (
@@ -18,6 +16,8 @@ from src.utils.timezone import now_local
 from core.mappers.jobs import JobMapper
 from core.models.jobs import CompanyData, Job
 from core.models.metrics import StageMetricsInput, StageStatus
+from services.data_service import JobDataService
+from services.metrics_service import JobMetricsService
 
 
 class Stage1Processor:
