@@ -18,7 +18,7 @@ from core.models.jobs import (
 
 
 class JobMapper:
-    """Maps OpenAI response to Job model"""
+    """Maps dictionary containing job data to Job model."""
 
     def __init__(self):
         self.logger = get_run_logger()
@@ -27,10 +27,11 @@ class JobMapper:
         self, response: dict[str, Any], company: str
     ) -> list[Job]:
         """
-        Transform OpenAI response containing multiple jobs to list of Job models.
+        Map dictionary containing multiple jobs to list of Job models.
 
         Args:
-            response: Raw OpenAI response dictionary containing jobs
+            response: Dictionary containing jobs data
+            company: Company name to associate with the jobs
 
         Returns:
             List of validated Job objects
@@ -75,8 +76,8 @@ class JobMapper:
             return jobs
 
         except Exception as e:
-            self.logger.error(f"Failed to map OpenAI response to Job: {e}")
-            raise ValueError(f"Invalid OpenAI response format: {e}") from e
+            self.logger.error(f"Failed to map response to Job: {e}")
+            raise ValueError(f"Invalid response format: {e}") from e
 
     def _extract_title(self, job_data: dict[str, Any]) -> str:
         """Extract and validate title field."""
@@ -114,17 +115,17 @@ class JobMapper:
 
 
 class JobDetailsMapper:
-    """Maps OpenAI response to JobDetails model."""
+    """Maps dictionary containing job details data to JobDetails model."""
 
     def __init__(self):
         self.logger = get_run_logger()
 
     def map_from_openai_response(self, response: dict[str, Any]) -> JobDetails:
         """
-        Transform OpenAI response to JobDetails model.
+        Map dictionary to JobDetails model.
 
         Args:
-            response: Raw OpenAI response dictionary
+            response: Dictionary containing job details data
 
         Returns:
             JobDetails: Validated and typed job details
@@ -251,20 +252,20 @@ class JobDetailsMapper:
 
 
 class JobRequirementsMapper:
-    """Maps OpenAI response to JobRequirements model."""
+    """Maps dictionary containing job requirements data to JobRequirements model."""
 
     def __init__(self):
         self.logger = get_run_logger()
 
     def map_from_openai_response(self, response: dict[str, Any]) -> JobRequirements:
         """
-        Transform OpenAI response to JobRequirements model.
+        Map dictionary to JobRequirements model.
 
         Args:
-            response: Raw OpenAI response dictionary
+            response: Dictionary containing job requirements data
 
         Returns:
-            JobRequirements: Validated and typed job skills
+            JobRequirements: Validated and typed job requirements
 
         Raises:
             ValueError: If response format is invalid or required fields are missing
@@ -372,8 +373,8 @@ class JobTechnologiesMapper:
             )
 
         except Exception as e:
-            self.logger.error(f"Failed to map OpenAI response to JobTechnologies: {e}")
-            raise ValueError(f"Invalid OpenAI response format: {e}") from e
+            self.logger.error(f"Failed to map response to JobTechnologies: {e}")
+            raise ValueError(f"Invalid response format: {e}") from e
 
     def _extract_technologies(self, job_data: dict[str, Any]) -> list[Technology]:
         """Extract and validate technologies field."""
