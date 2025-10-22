@@ -1,8 +1,7 @@
 import hashlib
 from typing import Any
 
-from prefect.logging import get_run_logger
-from src.core.models.domain import (
+from core.models.jobs import (
     EmploymentType,
     ExperienceLevel,
     Job,
@@ -14,6 +13,7 @@ from src.core.models.domain import (
     Technology,
     WorkMode,
 )
+from prefect.logging import get_run_logger
 
 
 class JobMapper:

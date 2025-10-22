@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import yaml
-from src.core.models.domain import CompanyData
+from core.models.jobs import CompanyData
 from src.pipeline.config import PipelineConfig
 
 

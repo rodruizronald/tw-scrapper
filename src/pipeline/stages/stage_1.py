@@ -1,9 +1,9 @@
 import time
 
+from core.mappers.jobs import JobMapper
+from core.models.jobs import CompanyData, Job
+from core.models.metrics import StageMetricsInput, StageStatus
 from prefect.logging import get_run_logger
-from src.core.mappers.domain import JobMapper
-from src.core.models.domain import CompanyData, Job
-from src.core.models.metrics import StageMetricsInput, StageStatus
 from src.pipeline.config import PipelineConfig
 from src.services.job_data_service import JobDataService
 from src.services.job_metrics_service import JobMetricsService

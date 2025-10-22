@@ -8,6 +8,7 @@ Handles business logic for metric calculation, aggregation, and validation.
 import time
 from collections.abc import Callable
 
+from core.models.metrics import CompanySummaryInput, StageMetricsInput
 from data import (
     job_aggregate_metrics_repository,
     job_daily_metrics_repository,
@@ -20,7 +21,6 @@ from data.job_daily_metrics import (
 )
 from data.job_daily_metrics.mapper import MetricsMapper
 from prefect import get_run_logger
-from src.core.models.metrics import CompanySummaryInput, StageMetricsInput
 from utils.timezone import now_local
 
 

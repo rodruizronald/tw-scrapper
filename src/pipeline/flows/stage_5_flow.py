@@ -5,8 +5,8 @@ This flow records company completion metrics for each company after all stages
 have been processed, and calculates daily aggregates for the entire pipeline.
 """
 
+from core.models.jobs import CompanyData, CompanyStatus, CompanySummaryInput
 from prefect import flow, get_run_logger
-from src.core.models.domain import CompanyData, CompanyStatus, CompanySummaryInput
 from src.pipeline.config import PipelineConfig
 from src.services.job_data_service import JobDataService
 from src.services.job_metrics_service import JobMetricsService

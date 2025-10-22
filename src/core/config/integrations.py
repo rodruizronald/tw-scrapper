@@ -1,7 +1,7 @@
 import os
 from dataclasses import dataclass
 
-from core.enums.parser import ParserType
+from core.models.parsers import ParserType
 
 
 @dataclass

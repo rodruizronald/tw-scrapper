@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass
 
+from core.models.parsers import ParserType
 from playwright.async_api import Frame, Page
-from src.core.enums.parser import ParserType
 
 
 @dataclass

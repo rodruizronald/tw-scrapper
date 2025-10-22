@@ -2,10 +2,10 @@ import json
 import time
 
 from core.config.services import WebParserConfig
-from core.mappers.domain import JobTechnologiesMapper
+from core.mappers.jobs import JobTechnologiesMapper
+from core.models.jobs import Job, JobTechnologies
+from core.models.metrics import StageMetricsInput, StageStatus
 from prefect.logging import get_run_logger
-from src.core.models.domain import Job, JobTechnologies
-from src.core.models.metrics import StageMetricsInput, StageStatus
 from src.pipeline.config import PipelineConfig
 from src.services.job_data_service import JobDataService
 from src.services.job_metrics_service import JobMetricsService
