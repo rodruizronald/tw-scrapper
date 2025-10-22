@@ -1,6 +1,6 @@
 from typing import Any
 
-from pipeline.core.models import CompanyData
+from src.core.models.domain import CompanyData
 
 
 def company_task_run_name(parameters: dict[str, Any]) -> str:

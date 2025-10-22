@@ -1,5 +1,7 @@
 from prefect import task
 from prefect.logging import get_run_logger
+from src.core.models.domain import CompanyData, Job
+from src.pipeline.config import PipelineConfig
 from utils.exceptions import (
     FileOperationError,
     OpenAIProcessingError,
@@ -7,8 +9,6 @@ from utils.exceptions import (
     WebExtractionError,
 )
 
-from pipeline.core.config import PipelineConfig
-from pipeline.core.models import CompanyData, Job
 from pipeline.stages.stage_3 import Stage3Processor
 from pipeline.tasks.utils import company_task_run_name
 

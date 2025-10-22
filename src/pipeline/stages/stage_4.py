@@ -1,26 +1,21 @@
 import json
 import time
 
+from core.config.services import WebParserConfig
+from core.mappers.domain import JobTechnologiesMapper
 from prefect.logging import get_run_logger
-from utils.exceptions import (
+from src.core.models.domain import Job, JobTechnologies
+from src.core.models.metrics import StageMetricsInput, StageStatus
+from src.pipeline.config import PipelineConfig
+from src.services.job_data_service import JobDataService
+from src.services.job_metrics_service import JobMetricsService
+from src.services.openai_service import OpenAIRequest, OpenAIService
+from src.services.web_extraction_service import WebExtractionService
+from src.utils.exceptions import (
     DatabaseOperationError,
     OpenAIProcessingError,
 )
-from utils.timezone import now_local
-
-from pipeline.core.config import PipelineConfig
-from pipeline.core.mappers import JobTechnologiesMapper
-from pipeline.core.models import (
-    Job,
-    JobTechnologies,
-    StageMetricsInput,
-    StageStatus,
-    WebParserConfig,
-)
-from pipeline.services.job_data_service import JobDataService
-from pipeline.services.job_metrics_service import JobMetricsService
-from pipeline.services.openai_service import OpenAIRequest, OpenAIService
-from pipeline.services.web_extraction_service import WebExtractionService
+from src.utils.timezone import now_local
 
 
 class Stage4Processor:

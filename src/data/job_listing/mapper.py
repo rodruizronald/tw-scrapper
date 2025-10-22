@@ -5,7 +5,7 @@ This module provides bidirectional mapping between the Job model (domain model)
 and JobListing model (database model) following the mapper pattern.
 """
 
-from pipeline.core.models import (
+from src.core.models.domain import (
     Job,
     JobDetails,
     JobRequirements,

@@ -1,7 +1,7 @@
 from prefect import flow, get_run_logger
+from src.core.models.domain import CompanyData, Job
+from src.pipeline.config import PipelineConfig
 
-from pipeline.core.config import PipelineConfig
-from pipeline.core.models import CompanyData, Job
 from pipeline.flows.stage_1_flow import stage_1_flow
 from pipeline.flows.stage_2_flow import stage_2_flow
 from pipeline.flows.stage_3_flow import stage_3_flow

@@ -1,9 +1,8 @@
 from pathlib import Path
 
 import yaml
-
-from pipeline.core.config import PipelineConfig
-from pipeline.core.models import CompanyData
+from src.core.models.domain import CompanyData
+from src.pipeline.config import PipelineConfig
 
 
 def load_companies_from_file(companies_file: Path, logger) -> list[CompanyData]:

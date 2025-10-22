@@ -1,10 +1,10 @@
 import asyncio
 
 from prefect import flow, get_run_logger
+from src.core.models.domain import CompanyData, Job
+from src.pipeline.config import PipelineConfig
+from src.services.job_data_service import JobDataService
 
-from pipeline.core.config import PipelineConfig
-from pipeline.core.models import CompanyData, Job
-from pipeline.services.job_data_service import JobDataService
 from pipeline.tasks.stage_3_task import process_job_skills_task
 from pipeline.tasks.utils import (
     filter_enabled_companies,

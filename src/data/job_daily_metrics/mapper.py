@@ -9,7 +9,7 @@ The mapper ensures clean separation of concerns and allows each layer to have
 models optimized for its specific purpose.
 """
 
-from pipeline.core.models import CompanySummaryInput, StageMetricsInput
+from src.core.models.metrics import CompanySummaryInput, StageMetricsInput
 
 from .models import CompanyDailyMetrics, StageMetrics
 
