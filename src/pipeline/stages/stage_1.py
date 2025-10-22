@@ -1,8 +1,5 @@
 import time
 
-from core.mappers.jobs import JobMapper
-from core.models.jobs import CompanyData, Job
-from core.models.metrics import StageMetricsInput, StageStatus
 from prefect.logging import get_run_logger
 from src.pipeline.config import PipelineConfig
 from src.services.job_data_service import JobDataService
@@ -17,6 +14,10 @@ from src.utils.exceptions import (
     WebExtractionError,
 )
 from src.utils.timezone import now_local
+
+from core.mappers.jobs import JobMapper
+from core.models.jobs import CompanyData, Job
+from core.models.metrics import StageMetricsInput, StageStatus
 
 
 class Stage1Processor:
@@ -208,7 +209,9 @@ class Stage1Processor:
             job_listings = await self.openai_service.process_with_template(request)
 
             # Process and validate job data using JobMapper
-            jobs = self.job_mapper.map_from_openai_response(job_listings, company.name)
+            jobs: list[Job] = self.job_mapper.map_from_openai_response(
+                job_listings, company.name
+            )
 
             return jobs
         except Exception as e:

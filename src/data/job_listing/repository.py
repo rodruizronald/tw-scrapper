@@ -5,10 +5,10 @@ from base.repository import BaseRepository
 from bson import ObjectId
 from loguru import logger
 from pymongo.errors import PyMongoError
-from utils.timezone import LOCAL_TZ, now_local
 
 from data.config import db_config
 from data.database import DatabaseController
+from utils.timezone import LOCAL_TZ, now_local
 
 from .models import JobListing
 
@@ -215,7 +215,8 @@ class JobListingRepository(BaseRepository[JobListing]):
             int: Count of active job listings
         """
         try:
-            return self.collection.count_documents({"active": True})
+            count: int = self.collection.count_documents({"active": True})
+            return count
         except PyMongoError as e:
             logger.error(f"Error counting active job listings: {e}")
             return 0
@@ -228,7 +229,8 @@ class JobListingRepository(BaseRepository[JobListing]):
             int: Count of inactive job listings
         """
         try:
-            return self.collection.count_documents({"active": False})
+            count: int = self.collection.count_documents({"active": False})
+            return count
         except PyMongoError as e:
             logger.error(f"Error counting inactive job listings: {e}")
             return 0

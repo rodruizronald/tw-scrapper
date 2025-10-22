@@ -34,8 +34,8 @@ from typing import Any, ClassVar
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from loguru import logger
-from src.pipeline.core.config import BrowserConfig, WebExtractionConfig
-from src.pipeline.parsers import ElementResult, ParserType
+from src.core.config import BrowserConfig, WebExtractionConfig
+from src.services.parsers import ElementResult, ParserType
 from src.services.web_extraction_service import (
     WebExtractionService,
 )

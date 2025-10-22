@@ -2,9 +2,9 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from core.config.services import WebParserConfig
+from src.services.parsers.models import ParserType
 
-from .parsers import ParserType
+from core.config.services import WebParserConfig
 
 
 class Location(str, Enum):
@@ -98,19 +98,22 @@ class CompanyData:
     def parser_type(self) -> ParserType:
         """Get parser type."""
         assert isinstance(self.web_parser, WebParserConfig)
-        return self.web_parser.parser_type
+        parser_type: ParserType = self.web_parser.parser_type
+        return parser_type
 
     @property
     def job_board_selectors(self) -> list[str]:
         """Get job board selectors."""
         assert isinstance(self.web_parser, WebParserConfig)
-        return self.web_parser.job_board_selectors
+        selectors: list[str] = self.web_parser.job_board_selectors
+        return selectors
 
     @property
     def job_card_selectors(self) -> list[str]:
         """Get job card selectors."""
         assert isinstance(self.web_parser, WebParserConfig)
-        return self.web_parser.job_card_selectors
+        selectors: list[str] = self.web_parser.job_card_selectors
+        return selectors
 
     def to_dict(self) -> dict[str, Any]:
         """Convert CompanyData to dictionary for JSON serialization."""

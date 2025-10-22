@@ -20,7 +20,6 @@ from .jobs import (
     WorkMode,
 )
 from .metrics import CompanyStatus, CompanySummaryInput, StageMetricsInput, StageStatus
-from .parsers import ParserType
 
 __all__ = [
     "CompanyData",
@@ -34,7 +33,6 @@ __all__ = [
     "JobRequirements",
     "JobTechnologies",
     "Location",
-    "ParserType",
     "Province",
     "StageMetricsInput",
     "StageStatus",

@@ -1,7 +1,7 @@
-from core.models.jobs import CompanyData, Job
 from prefect import flow, get_run_logger
 from src.pipeline.config import PipelineConfig
 
+from core.models.jobs import CompanyData, Job
 from pipeline.flows.stage_1_flow import stage_1_flow
 from pipeline.flows.stage_2_flow import stage_2_flow
 from pipeline.flows.stage_3_flow import stage_3_flow
@@ -130,7 +130,7 @@ async def _execute_stage_1(
     logger.info("Stage 1 starting...")
 
     try:
-        results = await stage_1_flow(
+        results: dict[str, list[Job]] = await stage_1_flow(
             companies=companies,
             config=config,
         )
@@ -154,7 +154,7 @@ async def _execute_stage_2(
     logger.info("Stage 2 starting...")
 
     try:
-        results = await stage_2_flow(
+        results: dict[str, list[Job]] = await stage_2_flow(
             companies=companies,
             config=config,
         )
@@ -178,7 +178,7 @@ async def _execute_stage_3(
     logger.info("Stage 3 starting...")
 
     try:
-        results = await stage_3_flow(
+        results: dict[str, list[Job]] = await stage_3_flow(
             companies=companies,
             config=config,
         )

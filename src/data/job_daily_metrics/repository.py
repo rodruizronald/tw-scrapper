@@ -10,11 +10,11 @@ from typing import Any
 from bson import ObjectId
 from loguru import logger
 from pymongo.errors import PyMongoError
-from utils.timezone import now_local
 
 from data.base import BaseRepository
 from data.config import db_config
 from data.database import DatabaseController
+from utils.timezone import now_local
 
 from .models import CompanyDailyMetrics, StageMetrics
 

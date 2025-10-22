@@ -21,7 +21,7 @@ Example usage:
 from .base import SelectorParser
 from .factory import ParserFactory
 from .instances import AngularParser, DefaultParser, GreenhouseParser
-from .models import ElementResult, ParseContext
+from .models import ElementResult, ParseContext, ParserType
 
 __all__ = [
     "AngularParser",
@@ -30,6 +30,7 @@ __all__ = [
     "GreenhouseParser",
     "ParseContext",
     "ParserFactory",
+    "ParserType",
     "SelectorParser",
 ]
 

@@ -1,9 +1,5 @@
 import time
 
-from core.config.services import WebParserConfig
-from core.mappers.jobs import JobRequirementsMapper
-from core.models.jobs import Job, JobRequirements
-from core.models.metrics import StageMetricsInput, StageStatus
 from prefect.logging import get_run_logger
 from src.pipeline.config import PipelineConfig
 from src.services.job_data_service import JobDataService
@@ -16,6 +12,11 @@ from src.utils.exceptions import (
     WebExtractionError,
 )
 from src.utils.timezone import now_local
+
+from core.config.services import WebParserConfig
+from core.mappers.jobs import JobRequirementsMapper
+from core.models.jobs import Job, JobRequirements
+from core.models.metrics import StageMetricsInput, StageStatus
 
 
 class Stage3Processor:

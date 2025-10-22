@@ -7,12 +7,13 @@ stage tracking, deduplication, and statistics for the multi-stage job processing
 
 from typing import Any
 
+from prefect import get_run_logger
+
 from core.models.jobs import Job
 from data import (
     job_listing_repository,
 )
 from data.job_listing.mapper import JobMapper
-from prefect import get_run_logger
 from utils.timezone import LOCAL_TZ, now_local
 
 

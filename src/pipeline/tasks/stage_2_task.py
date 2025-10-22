@@ -1,16 +1,16 @@
-from core.models.jobs import CompanyData, Job
 from prefect import task
 from prefect.logging import get_run_logger
 from src.pipeline.config import PipelineConfig
+
+from core.models.jobs import CompanyData, Job
+from pipeline.stages.stage_2 import Stage2Processor
+from pipeline.tasks.utils import company_task_run_name
 from utils.exceptions import (
     FileOperationError,
     OpenAIProcessingError,
     ValidationError,
     WebExtractionError,
 )
-
-from pipeline.stages.stage_2 import Stage2Processor
-from pipeline.tasks.utils import company_task_run_name
 
 
 @task(
@@ -44,7 +44,7 @@ async def process_job_details_task(
         processor = Stage2Processor(config, company.web_parser_config)
 
         # Process all jobs for the company
-        results = await processor.process_jobs(jobs, company.name)
+        results: list[Job] = await processor.process_jobs(jobs, company.name)
 
         return results
 
