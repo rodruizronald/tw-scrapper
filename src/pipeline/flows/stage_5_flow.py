@@ -11,7 +11,7 @@ from core.models.jobs import CompanyData, CompanyStatus, CompanySummaryInput
 from pipeline.config import PipelineConfig
 from services.data_service import JobDataService
 from services.metrics_service import JobMetricsService
-from utils.timezone import now_local
+from utils.timezone import now_utc
 
 
 @flow(
@@ -46,7 +46,7 @@ async def stage_5_flow(
     metrics_service = JobMetricsService()
 
     # Get today's date using timezone utility
-    today = now_local().strftime("%Y-%m-%d")
+    today = now_utc().strftime("%Y-%m-%d")
 
     # Process each company to record completion metrics
     for company in companies:

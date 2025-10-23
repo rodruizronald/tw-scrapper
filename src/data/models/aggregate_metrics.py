@@ -10,7 +10,7 @@ from typing import Any
 
 from bson import ObjectId
 
-from utils.timezone import now_local
+from utils.timezone import now_utc, utc_to_local
 
 
 @dataclass
@@ -55,9 +55,19 @@ class DailyAggregateMetrics:
     stage_4_avg_execution_seconds: float = 0.0
 
     # Metadata
-    calculation_timestamp: datetime = field(default_factory=now_local)
+    calculation_timestamp: datetime = field(default_factory=now_utc)
     pipeline_run_count: int = 0
-    created_at: datetime = field(default_factory=now_local)
+    created_at: datetime = field(default_factory=now_utc)
+
+    @property
+    def calculation_timestamp_local(self) -> datetime:
+        local_time: datetime = utc_to_local(self.calculation_timestamp)
+        return local_time
+
+    @property
+    def created_at_local(self) -> datetime:
+        local_time: datetime = utc_to_local(self.created_at)
+        return local_time
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for storage."""
@@ -134,7 +144,7 @@ class DailyAggregateMetrics:
             stage_4_avg_execution_seconds=data.get(
                 "stage_4_avg_execution_seconds", 0.0
             ),
-            calculation_timestamp=data.get("calculation_timestamp", now_local()),
+            calculation_timestamp=data.get("calculation_timestamp", now_utc()),
             pipeline_run_count=data.get("pipeline_run_count", 0),
-            created_at=data.get("created_at", now_local()),
+            created_at=data.get("created_at", now_utc()),
         )

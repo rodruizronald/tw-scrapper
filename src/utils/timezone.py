@@ -4,12 +4,17 @@ from zoneinfo import ZoneInfo
 # Fixed timezone for Costa Rica
 LOCAL_TZ = ZoneInfo("America/Costa_Rica")
 
+# Fixed timezone for UTC
+UTC_TZ = ZoneInfo("UTC")
 
-def now_local() -> datetime:
-    """
-    Get current datetime in Costa Rica timezone.
 
-    Returns:
-        Current datetime in Costa Rica timezone.
-    """
-    return datetime.now(LOCAL_TZ)
+def now_utc() -> datetime:
+    """Get current datetime in UTC (for MongoDB storage)."""
+    return datetime.now(UTC_TZ)
+
+
+def utc_to_local(utc_dt: datetime) -> datetime:
+    """Convert UTC datetime to local timezone."""
+    if utc_dt.tzinfo is None:
+        utc_dt = utc_dt.replace(tzinfo=UTC_TZ)
+    return utc_dt.astimezone(LOCAL_TZ)

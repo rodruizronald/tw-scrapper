@@ -13,7 +13,7 @@ from pymongo.errors import PyMongoError
 from core.config.database import db_config
 from data.controller import DatabaseController
 from data.models.aggregate_metrics import DailyAggregateMetrics
-from utils.timezone import now_local
+from utils.timezone import now_utc
 
 from .base_repo import BaseRepository
 
@@ -84,10 +84,10 @@ class AggregateMetricsRepository(BaseRepository[DailyAggregateMetrics]):
             metrics_dict.pop("_id", None)
 
             # Separate created_at from other fields
-            created_at = metrics_dict.pop("created_at", now_local())
+            created_at = metrics_dict.pop("created_at", now_utc())
 
             # Update updated_at to current time
-            metrics_dict["updated_at"] = now_local()
+            metrics_dict["updated_at"] = now_utc()
 
             # Use update_one with upsert=True
             result = self.collection.update_one(

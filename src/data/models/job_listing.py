@@ -11,7 +11,7 @@ from typing import Any
 
 from bson import ObjectId
 
-from utils.timezone import now_local
+from utils.timezone import now_utc, utc_to_local
 
 
 @dataclass
@@ -84,8 +84,8 @@ class JobListing:
     # Database metadata
     _id: ObjectId | None = None
     active: bool = True
-    created_at: datetime = field(default_factory=now_local)
-    updated_at: datetime = field(default_factory=now_local)
+    created_at: datetime = field(default_factory=now_utc)
+    updated_at: datetime = field(default_factory=now_utc)
 
     def __post_init__(self) -> None:
         """Validate required fields after initialization."""
@@ -98,9 +98,22 @@ class JobListing:
         if not self.company:
             raise ValueError("Company name is required")
 
+    # Property for local time access (no storage overhead)
+    @property
+    def created_at_local(self) -> datetime:
+        """Get created_at in local timezone."""
+        local_time: datetime = utc_to_local(self.created_at)
+        return local_time
+
+    @property
+    def updated_at_local(self) -> datetime:
+        """Get updated_at in local timezone."""
+        local_time: datetime = utc_to_local(self.updated_at)
+        return local_time
+
     def update_timestamp(self) -> None:
         """Update the updated_at timestamp."""
-        self.updated_at = now_local()
+        self.updated_at = now_utc()
 
     def deactivate(self) -> None:
         """Mark job listing as inactive."""
