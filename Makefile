@@ -4,7 +4,7 @@
     install install-dev clean \
     prefect-server prefect-config prefect-reset \
     pre-commit-install pre-commit-run pre-commit-update \
-    up down restart logs logs-worker logs-server logs-db \
+    up down restart purge logs logs-worker logs-server logs-db \
     rebuild rebuild-worker status shell-db shell-worker \
     backup restore clean-data verify-indexes \
     help
@@ -22,7 +22,10 @@ PIP ?= pip
 # Default target
 .DEFAULT_GOAL := help
 
+# ═══════════════════════════════════════════════════════════
 # Code quality checks
+# ═══════════════════════════════════════════════════════════
+
 format-check:
 	@echo "Checking code formatting with Ruff..."
 	@ruff format --check --diff src tools
@@ -51,7 +54,10 @@ yaml-check:
 check-all: format-check import-check lint type-check
 	@echo "✅ All code quality checks completed successfully!"
 
+# ═══════════════════════════════════════════════════════════
 # Auto-formatting and fixing
+# ═══════════════════════════════════════════════════════════
+
 format:
 	@echo "Auto-formatting code with Ruff..."
 	@ruff format src tools
@@ -70,7 +76,10 @@ fix-lint:
 fix-all: format fix-lint fix-imports
 	@echo "✅ All formatting and linting fixes completed applied!"
 
+# ═══════════════════════════════════════════════════════════
 # Installation
+# ═══════════════════════════════════════════════════════════
+
 install:
 	@echo "Installing production dependencies..."
 	@$(PIP) install -e .
@@ -85,7 +94,10 @@ install-dev:
 	@playwright install
 	@echo "✅ Development dependencies installed successfully"
 
+# ═══════════════════════════════════════════════════════════
 # Cleanup
+# ═══════════════════════════════════════════════════════════
+
 clean:
 	@echo "Cleaning up Python cache files..."
 	@find . -type f -name "*.pyc" -delete
@@ -95,24 +107,10 @@ clean:
 	@find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
 	@echo "✅ Cleanup completed successfully"
 
-# Prefect server management (local development without Docker)
-prefect-server:
-	@echo "Starting Prefect server..."
-	@echo "🚀 Server will be available at http://127.0.0.1:4200"
-	@echo "Press Ctrl+C to stop the server"
-	@prefect server start
-
-prefect-config:
-	@echo "Configuring Prefect to use local server..."
-	@prefect config set PREFECT_API_URL=http://127.0.0.1:4200/api
-	@echo "✅ Prefect configured for local server"
-
-prefect-reset:
-	@echo "Resetting Prefect to default configuration..."
-	@prefect config unset PREFECT_API_URL
-	@echo "✅ Prefect reset to default configuration"
-
+# ═══════════════════════════════════════════════════════════
 # Pre-commit hooks
+# ═══════════════════════════════════════════════════════════
+
 pre-commit-install:
 	@echo "Installing pre-commit hooks..."
 	@pre-commit install
@@ -156,6 +154,20 @@ restart:
 	@echo "Restarting all services..."
 	@docker-compose -f docker/docker-compose.yml restart
 	@echo "✅ All services restarted"
+
+purge:
+	@echo "⚠️  WARNING: This will remove ALL volumes (MongoDB + Prefect data)!"
+	@echo "This action cannot be undone."
+	@echo ""
+	@read -p "Type 'DELETE' to confirm: " confirm; \
+	if [ "$$confirm" = "DELETE" ]; then \
+		echo "🗑️  Stopping services and removing all volumes..."; \
+		docker-compose -f docker/docker-compose.yml down -v; \
+		echo "✅ All volumes removed"; \
+		echo "💡 Run 'make up' to start with fresh volumes"; \
+	else \
+		echo "❌ Operation cancelled"; \
+	fi
 
 # ═══════════════════════════════════════════════════════════
 # Logs (View individual service logs)
@@ -235,8 +247,8 @@ restore:
 	@ls -1 ./backups/ 2>/dev/null || echo "No backups found"
 	@echo ""
 	@read -p "Enter backup folder name: " backup; \
-	if [ -d "./backups/$backup" ]; then \
-		docker cp ./backups/$backup tw-mongodb:/tmp/restore && \
+	if [ -d "./backups/$$backup" ]; then \
+		docker cp ./backups/$$backup tw-mongodb:/tmp/restore && \
 		docker exec tw-mongodb mongorestore \
 			--username admin \
 			--password admin \
@@ -261,15 +273,20 @@ verify-indexes:
 	@echo "✅ Index verification completed"
 
 clean-data:
-	@echo "⚠️  WARNING: This will delete ALL data (MongoDB + Prefect)!"
+	@echo "⚠️  WARNING: This will delete ALL MongoDB data!"
 	@echo "This action cannot be undone."
 	@echo ""
 	@read -p "Type 'DELETE' to confirm: " confirm; \
-	if [ "$confirm" = "DELETE" ]; then \
-		echo "🗑️  Removing all containers and volumes..."; \
-		docker-compose -f docker/docker-compose.yml down -v; \
-		echo "✅ All data deleted"; \
-		echo "💡 Run 'make up' to start fresh"; \
+	if [ "$$confirm" = "DELETE" ]; then \
+		echo "🗑️  Dropping MongoDB database..."; \
+		docker exec tw-mongodb mongosh \
+			-u admin \
+			-p admin \
+			--authenticationDatabase admin \
+			--eval "db.getSiblingDB('tw_scrapper').dropDatabase()" \
+			--quiet; \
+		echo "✅ MongoDB data deleted (Prefect data preserved)"; \
+		echo "💡 Database will be recreated on next pipeline run"; \
 	else \
 		echo "❌ Operation cancelled"; \
 	fi
@@ -287,6 +304,7 @@ help:
 	@echo "  make up              - Start all services (MongoDB + Prefect)"
 	@echo "  make down            - Stop all services"
 	@echo "  make restart         - Restart all services"
+	@echo "  make purge           - Remove all volumes (data loss!)"
 	@echo "  make status          - Show service status & health"
 	@echo "  make rebuild         - Rebuild and restart all services"
 	@echo "  make rebuild-worker  - Rebuild worker only (faster)"
@@ -322,10 +340,6 @@ help:
 	@echo "🪝 Pre-commit:"
 	@echo "  make pre-commit-install - Install pre-commit hooks"
 	@echo "  make pre-commit-run     - Run pre-commit checks"
-	@echo ""
-	@echo "🔮 Local Prefect (without Docker):"
-	@echo "  make prefect-server  - Start Prefect server locally"
-	@echo "  make prefect-config  - Configure for local server"
 	@echo ""
 	@echo "💡 Quick Start:"
 	@echo "  1. make up           - Start all services"
