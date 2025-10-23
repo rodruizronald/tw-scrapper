@@ -13,8 +13,8 @@ from typing import Any
 from loguru import logger as loguru_logger
 from playwright.async_api import Browser, async_playwright
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
-from src.core.config.integrations import WebExtractionConfig
 
+from core.config.integrations import WebExtractionConfig
 from utils.exceptions import WebExtractionError
 
 from .parsers import ElementResult, ParserFactory, ParserType

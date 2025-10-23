@@ -5,16 +5,17 @@ from typing import Any
 
 import yaml
 from dotenv import load_dotenv
-from src.core.config.integrations import (
+
+from core.config.integrations import (
     BrowserConfig,
     IntegrationsConfig,
     OpenAIConfig,
     WebExtractionConfig,
 )
-from src.core.config.services import OpenAIServiceConfig
-from src.core.config.system import PathsConfig
-from src.pipeline.config.stages import StageConfig, StagesConfig
-from src.services.parsers.models import ParserType
+from core.config.services import OpenAIServiceConfig
+from core.config.system import PathsConfig
+from pipeline.config.stages import StageConfig, StagesConfig
+from services.parsers.models import ParserType
 
 
 @dataclass
@@ -257,7 +258,8 @@ class PipelineConfig:
         Returns:
             Full path to the prompt template file
         """
-        return self.paths.prompts_dir / prompt_filename
+        prompts_dir: Path = self.paths.prompts_dir
+        return prompts_dir / prompt_filename
 
     def initialize_paths(self) -> None:
         """Initialize all paths using the project root and stages configuration."""
@@ -267,7 +269,8 @@ class PipelineConfig:
     @property
     def companies_file_path(self) -> Path:
         """Get the full path to the companies file."""
-        return self.paths.companies_file
+        companies_file: Path = self.paths.companies_file
+        return companies_file
 
     @property
     def openai(self) -> OpenAIConfig:

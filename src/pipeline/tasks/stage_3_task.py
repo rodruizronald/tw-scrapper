@@ -1,8 +1,8 @@
 from prefect import task
 from prefect.logging import get_run_logger
-from src.pipeline.config import PipelineConfig
 
 from core.models.jobs import CompanyData, Job
+from pipeline.config import PipelineConfig
 from pipeline.stages.stage_3 import Stage3Processor
 from pipeline.tasks.utils import company_task_run_name
 from utils.exceptions import (

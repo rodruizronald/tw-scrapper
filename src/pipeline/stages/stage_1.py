@@ -1,23 +1,23 @@
 import time
 
 from prefect.logging import get_run_logger
-from src.pipeline.config import PipelineConfig
-from src.services.openai_service import OpenAIRequest, OpenAIService
-from src.services.web_extraction_service import WebExtractionService
-from src.utils.exceptions import (
+
+from core.mappers.jobs import JobMapper
+from core.models.jobs import CompanyData, Job
+from core.models.metrics import StageMetricsInput, StageStatus
+from pipeline.config import PipelineConfig
+from services.data_service import JobDataService
+from services.metrics_service import JobMetricsService
+from services.openai_service import OpenAIRequest, OpenAIService
+from services.web_extraction_service import WebExtractionService
+from utils.exceptions import (
     CompanyProcessingError,
     DatabaseOperationError,
     OpenAIProcessingError,
     ValidationError,
     WebExtractionError,
 )
-from src.utils.timezone import now_local
-
-from core.mappers.jobs import JobMapper
-from core.models.jobs import CompanyData, Job
-from core.models.metrics import StageMetricsInput, StageStatus
-from services.data_service import JobDataService
-from services.metrics_service import JobMetricsService
+from utils.timezone import now_local
 
 
 class Stage1Processor:
@@ -180,7 +180,8 @@ class Stage1Processor:
                     ),
                     company_name=company.name,
                 )
-            return content
+            html_content: str = content
+            return html_content
         except Exception as e:
             raise WebExtractionError(
                 url=company.career_url,

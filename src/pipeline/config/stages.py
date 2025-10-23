@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from src.core.config.services import OpenAIServiceConfig
+from core.config.services import OpenAIServiceConfig
 
 
 @dataclass
@@ -17,22 +17,26 @@ class StageConfig:
     @property
     def system_message(self) -> str:
         """Get OpenAI service system message."""
-        return self.openai_service.system_message
+        message: str = self.openai_service.system_message
+        return message
 
     @property
     def prompt_template(self) -> str:
         """Get OpenAI service prompt template."""
-        return self.openai_service.prompt_template
+        template: str = self.openai_service.prompt_template
+        return template
 
     @property
     def prompt_variables(self) -> list[str]:
         """Get OpenAI service prompt variables."""
-        return self.openai_service.prompt_variables
+        variables: list[str] = self.openai_service.prompt_variables
+        return variables
 
     @property
     def response_format(self) -> dict[str, Any]:
         """Get OpenAI service response format."""
-        return self.openai_service.response_format
+        format_dict: dict[str, Any] = self.openai_service.response_format
+        return format_dict
 
 
 @dataclass
