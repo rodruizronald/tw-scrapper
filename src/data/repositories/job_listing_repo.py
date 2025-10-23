@@ -1,8 +1,8 @@
+import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from bson import ObjectId
-from loguru import logger
 from pymongo.errors import PyMongoError
 
 from core.config.database import db_config
@@ -14,6 +14,8 @@ from utils.timezone import LOCAL_TZ, now_local
 if TYPE_CHECKING:
     from pymongo.results import DeleteResult
 
+
+logger = logging.getLogger(__name__)
 
 """
 Repository layer for job listing CRUD operations.

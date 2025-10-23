@@ -33,20 +33,15 @@ from typing import Any, ClassVar
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from loguru import logger
+import logging
+
 from src.core.config import BrowserConfig, WebExtractionConfig
 from src.services.parsers import ElementResult, ParserType
 from src.services.web_extraction_service import (
     WebExtractionService,
 )
 
-# Configure logger for this tool
-logger.remove()
-logger.add(
-    sys.stderr,
-    level="INFO",
-    format="<green>{time:HH:mm:ss}</green> | <level>{message}</level>",
-)
+logger = logging.getLogger(__name__)
 
 
 class SelectorTester:
