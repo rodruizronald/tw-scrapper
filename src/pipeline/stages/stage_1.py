@@ -17,7 +17,7 @@ from utils.exceptions import (
     ValidationError,
     WebExtractionError,
 )
-from utils.timezone import now_local
+from utils.timezone import now_utc
 
 
 class Stage1Processor:
@@ -57,7 +57,7 @@ class Stage1Processor:
         """
         company_name = company.name
         start_time = time.time()
-        started_at = now_local()
+        started_at = now_utc()
         jobs_processed = 0
         jobs_completed = 0
         status = StageStatus.FAILED
@@ -110,7 +110,7 @@ class Stage1Processor:
         finally:
             # Record stage metrics
             execution_time = time.time() - start_time
-            completed_at = now_local()
+            completed_at = now_utc()
 
             metrics_input = StageMetricsInput(
                 status=status,

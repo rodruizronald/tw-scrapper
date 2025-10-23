@@ -16,7 +16,7 @@ from utils.exceptions import (
     DatabaseOperationError,
     OpenAIProcessingError,
 )
-from utils.timezone import now_local
+from utils.timezone import now_utc
 
 
 class Stage4Processor:
@@ -51,7 +51,7 @@ class Stage4Processor:
         self.logger.info(f"Processing {len(jobs)} jobs for {company_name}")
 
         start_time = time.time()
-        started_at = now_local()
+        started_at = now_utc()
         jobs_processed = len(jobs)
         jobs_completed = 0
         status = StageStatus.FAILED
@@ -116,7 +116,7 @@ class Stage4Processor:
         finally:
             # Record stage metrics
             execution_time = time.time() - start_time
-            completed_at = now_local()
+            completed_at = now_utc()
 
             metrics_input = StageMetricsInput(
                 status=status,

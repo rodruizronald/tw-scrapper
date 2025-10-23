@@ -14,7 +14,7 @@ from pymongo.errors import PyMongoError
 from core.config.database import db_config
 from data.controller import DatabaseController
 from data.models.daily_metrics import CompanyDailyMetrics, StageMetrics
-from utils.timezone import now_local
+from utils.timezone import now_utc
 
 from .base_repo import BaseRepository
 
@@ -85,7 +85,7 @@ class DailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
         """
         try:
             # Update the timestamps
-            metrics.updated_at = now_local()
+            metrics.updated_at = now_utc()
 
             # Convert to flat dictionary
             metrics_dict = metrics.to_dict()
@@ -150,7 +150,7 @@ class DailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
                 update_fields[flat_key] = value
 
             # Always update the updated_at and last_updated_stage
-            update_fields["updated_at"] = now_local()
+            update_fields["updated_at"] = now_utc()
             update_fields["last_updated_stage"] = f"stage_{stage_number}"
 
             # Perform atomic update with upsert
@@ -162,7 +162,7 @@ class DailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
                         "date": date,
                         "company_name": company_name,
                         "document_type": "company_daily",
-                        "created_at": now_local(),
+                        "created_at": now_utc(),
                     },
                 },
                 upsert=True,
@@ -204,7 +204,7 @@ class DailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
                 "total_inactive_jobs": summary_metrics.total_inactive_jobs,
                 "jobs_deactivated_today": summary_metrics.jobs_deactivated_today,
                 "overall_status": summary_metrics.overall_status,
-                "updated_at": now_local(),
+                "updated_at": now_utc(),
             }
 
             # Add optional fields if present
@@ -223,7 +223,7 @@ class DailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
                         "date": date,
                         "company_name": company_name,
                         "document_type": "company_daily",
-                        "created_at": now_local(),
+                        "created_at": now_utc(),
                     },
                 },
                 upsert=True,

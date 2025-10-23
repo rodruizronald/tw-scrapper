@@ -21,7 +21,7 @@ from data.models.aggregate_metrics import (
 from data.models.daily_metrics import (
     CompanyDailyMetrics,
 )
-from utils.timezone import now_local
+from utils.timezone import now_utc, utc_to_local
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ class JobMetricsService:
             date: Optional date override (default: today)
         """
         if date is None:
-            date = now_local().strftime("%Y-%m-%d")
+            date = now_utc().strftime("%Y-%m-%d")
 
         # Extract stage number
         stage_number = self._get_stage_number(stage)
@@ -119,7 +119,7 @@ class JobMetricsService:
             date: Optional date override (default: today)
         """
         if date is None:
-            date = now_local().strftime("%Y-%m-%d")
+            date = now_utc().strftime("%Y-%m-%d")
 
         try:
             # Map input model to repository model
@@ -160,16 +160,16 @@ class JobMetricsService:
             date: Date in YYYY-MM-DD format (default: today)
         """
         if date is None:
-            date = now_local().strftime("%Y-%m-%d")
+            date = now_utc().strftime("%Y-%m-%d")
 
         try:
-            logger.info(f"Calculating daily aggregates for {date}...")
+            logger.info(f"Calculating daily aggregates for {utc_to_local(date)}...")
 
             # Get aggregated data from daily repository
             aggregated_data = self.daily_repository.aggregate_by_date(date)
 
             if not aggregated_data:
-                logger.warning(f"No data found to aggregate for {date}")
+                logger.warning(f"No data found to aggregate for {utc_to_local(date)}")
                 return
 
             # Calculate derived metrics
@@ -237,7 +237,7 @@ class JobMetricsService:
                     "stage_4_avg_execution_seconds", 0.0
                 ),
                 pipeline_run_count=total_companies,
-                calculation_timestamp=now_local(),
+                calculation_timestamp=now_utc(),
             )
 
             # Store aggregate metrics
@@ -245,22 +245,24 @@ class JobMetricsService:
                 lambda: self.aggregate_repository.upsert_daily_aggregate(
                     date, aggregate_metrics
                 ),
-                operation_name=f"calculate_daily_aggregates for {date}",
+                operation_name=f"calculate_daily_aggregates for {utc_to_local(date)}",
             )
 
             if success:
                 logger.info(
-                    f"Calculated daily aggregates for {date}: "
+                    f"Calculated daily aggregates for {utc_to_local(date)}: "
                     f"{total_companies} companies, "
                     f"{overall_success_rate:.1f}% success rate"
                 )
             else:
                 logger.warning(
-                    f"Failed to store daily aggregates for {date} after retries"
+                    f"Failed to store daily aggregates for {utc_to_local(date)} after retries"
                 )
 
         except Exception as e:
-            logger.error(f"Error calculating daily aggregates for {date}: {e}")
+            logger.error(
+                f"Error calculating daily aggregates for {utc_to_local(date)}: {e}"
+            )
 
     def get_company_metrics(
         self,
@@ -312,9 +314,13 @@ class JobMetricsService:
             )
 
             if aggregate:
-                logger.debug(f"Retrieved pipeline health metrics for {date}")
+                logger.debug(
+                    f"Retrieved pipeline health metrics for {utc_to_local(date)}"
+                )
             else:
-                logger.debug(f"No pipeline health metrics found for {date}")
+                logger.debug(
+                    f"No pipeline health metrics found for {utc_to_local(date)}"
+                )
 
             return aggregate
 
@@ -340,7 +346,7 @@ class JobMetricsService:
             return companies if companies else []
         except Exception as e:
             logger.error(
-                f"Error getting companies by status for {date}, status={status}: {e}"
+                f"Error getting companies by status for {utc_to_local(date)}, status={status}: {e}"
             )
             return []
 

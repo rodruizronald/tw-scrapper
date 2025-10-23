@@ -13,7 +13,7 @@ from data import (
     job_listing_repository,
 )
 from data.mappers.metrics_mapper import JobMapper
-from utils.timezone import LOCAL_TZ, now_local
+from utils.timezone import UTC_TZ, now_utc
 
 logger = logging.getLogger(__name__)
 
@@ -258,10 +258,10 @@ class JobDataService:
                 )
 
                 # Get today's date range for filtering (in local timezone)
-                today_start = now_local().replace(
+                today_start = now_utc().replace(
                     hour=0, minute=0, second=0, microsecond=0
                 )
-                today_end = now_local().replace(
+                today_end = now_utc().replace(
                     hour=23, minute=59, second=59, microsecond=999999
                 )
 
@@ -269,8 +269,8 @@ class JobDataService:
                 stats["new_jobs"] = sum(
                     1
                     for j in company_jobs
-                    if j.created_at.replace(tzinfo=LOCAL_TZ) >= today_start
-                    and j.created_at.replace(tzinfo=LOCAL_TZ) <= today_end
+                    if j.created_at.replace(tzinfo=UTC_TZ) >= today_start
+                    and j.created_at.replace(tzinfo=UTC_TZ) <= today_end
                 )
                 stats["active_jobs"] = sum(1 for j in company_jobs if j.active)
                 stats["inactive_jobs"] = sum(1 for j in company_jobs if not j.active)
@@ -278,8 +278,8 @@ class JobDataService:
                     1
                     for j in company_jobs
                     if not j.active
-                    and j.updated_at.replace(tzinfo=LOCAL_TZ) >= today_start
-                    and j.updated_at.replace(tzinfo=LOCAL_TZ) <= today_end
+                    and j.updated_at.replace(tzinfo=UTC_TZ) >= today_start
+                    and j.updated_at.replace(tzinfo=UTC_TZ) <= today_end
                 )
 
             return stats

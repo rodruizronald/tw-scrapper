@@ -10,7 +10,7 @@ from typing import Any
 
 from bson import ObjectId
 
-from utils.timezone import now_local
+from utils.timezone import now_utc, utc_to_local
 
 
 @dataclass
@@ -124,9 +124,19 @@ class CompanyDailyMetrics:
     # Metadata
     prefect_flow_run_id: str | None = None
     pipeline_version: str | None = None
-    created_at: datetime = field(default_factory=now_local)
-    updated_at: datetime = field(default_factory=now_local)
+    created_at: datetime = field(default_factory=now_utc)
+    updated_at: datetime = field(default_factory=now_utc)
     last_updated_stage: str | None = None
+
+    @property
+    def created_at_local(self) -> datetime:
+        local_time: datetime = utc_to_local(self.created_at)
+        return local_time
+
+    @property
+    def updated_at_local(self) -> datetime:
+        local_time: datetime = utc_to_local(self.updated_at)
+        return local_time
 
     def to_dict(self) -> dict[str, Any]:
         """
@@ -243,8 +253,8 @@ class CompanyDailyMetrics:
             overall_status=data.get("overall_status", "pending"),
             prefect_flow_run_id=data.get("prefect_flow_run_id"),
             pipeline_version=data.get("pipeline_version"),
-            created_at=data.get("created_at", now_local()),
-            updated_at=data.get("updated_at", now_local()),
+            created_at=data.get("created_at", now_utc()),
+            updated_at=data.get("updated_at", now_utc()),
             last_updated_stage=data.get("last_updated_stage"),
             **stage_fields,
         )
