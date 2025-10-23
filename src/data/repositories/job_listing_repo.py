@@ -8,7 +8,7 @@ from pymongo.errors import PyMongoError
 from core.config.database import db_config
 from core.models.jobs import JobListing
 from data.controller import DatabaseController
-from data.repositories.base import BaseRepository
+from data.repositories.base_repo import BaseRepository
 from utils.timezone import LOCAL_TZ, now_local
 
 if TYPE_CHECKING:

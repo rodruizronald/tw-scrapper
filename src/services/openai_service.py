@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Any, cast
 import openai
 from openai.types.shared_params import ResponseFormatJSONSchema
 from prefect import get_run_logger
-from src.core.config.integrations import OpenAIConfig
 
+from core.config.integrations import OpenAIConfig
 from utils.exceptions import FileOperationError, OpenAIProcessingError
 
 if TYPE_CHECKING:

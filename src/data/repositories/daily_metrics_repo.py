@@ -13,13 +13,13 @@ from pymongo.errors import PyMongoError
 
 from core.config.database import db_config
 from data.controller import DatabaseController
-from data.models.job_daily_metrics import CompanyDailyMetrics, StageMetrics
+from data.models.daily_metrics import CompanyDailyMetrics, StageMetrics
 from utils.timezone import now_local
 
-from .base import BaseRepository
+from .base_repo import BaseRepository
 
 
-class JobDailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
+class DailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):
     """
     Repository for daily job metrics database operations.
 

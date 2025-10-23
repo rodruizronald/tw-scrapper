@@ -15,13 +15,13 @@ from data import (
     job_aggregate_metrics_repository,
     job_daily_metrics_repository,
 )
-from data.job_aggregate_metrics import (
+from data.mappers.metrics_mapper import MetricsMapper
+from data.models.aggregate_metrics import (
     DailyAggregateMetrics,
 )
-from data.job_daily_metrics import (
+from data.models.daily_metrics import (
     CompanyDailyMetrics,
 )
-from data.mappers.job_daily_metrics_mapper import MetricsMapper
 from utils.timezone import now_local
 
 
