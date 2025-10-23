@@ -16,7 +16,7 @@ deployments:
       analyzes job listings from company career pages
 
     # Flow configuration
-    entrypoint: pipeline/flows/main_pipeline_flow.py:main_pipeline_flow
+    entrypoint: src/pipeline/flows/main_pipeline_flow.py:main_pipeline_flow
     parameters: {}
 
     # Work pool configuration

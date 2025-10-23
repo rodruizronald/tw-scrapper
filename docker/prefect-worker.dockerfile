@@ -52,6 +52,9 @@ RUN groupadd -r -g 1001 pipeline 2>/dev/null || true && \
 # --chown=1001:1001: Sets owner to our pipeline user (UID 1001:GID 1001)
 COPY --chown=1001:1001 . /app
 
+# Set PYTHONPATH to include src directory so Python can find your modules
+ENV PYTHONPATH=/app/src:$PYTHONPATH
+
 # Ensure pipeline user has access to Playwright browsers
 RUN chown -R 1001:1001 /ms-playwright 2>/dev/null || true && \
     chmod -R 755 /ms-playwright 2>/dev/null || true
