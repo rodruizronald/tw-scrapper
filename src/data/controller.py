@@ -5,14 +5,16 @@ This module handles MongoDB connection management, configuration,
 and provides a centralized database controller following best practices.
 """
 
+import logging
 from typing import Any, Optional
 
-from loguru import logger
 from pymongo import MongoClient
 from pymongo.database import Database
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 
 from core.config.database import get_database_config
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseController:

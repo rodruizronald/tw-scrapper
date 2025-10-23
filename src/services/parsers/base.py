@@ -1,19 +1,18 @@
 """Base parser class for selector extraction."""
 
-from loguru import logger as loguru_logger
+import logging
+
 from playwright.async_api import Page
 
 from .models import ElementResult, ParseContext, ParserType
+
+logger = logging.getLogger(__name__)
 
 
 class SelectorParser:
     """Base class for different parser implementations."""
 
-    def __init__(self, page: Page, selectors: list[str], logger=None):
-        if logger is None:
-            self.logger = loguru_logger
-        else:
-            self.logger = logger
+    def __init__(self, page: Page, selectors: list[str]):
         self.page = page
         self.selectors = selectors
         self.results: list[ElementResult] = []
@@ -79,7 +78,7 @@ class SelectorParser:
                 self._log_result(result)
 
         except Exception as e:
-            self.logger.error(f"Error during parsing: {e}")
+            logger.error(f"Error during parsing: {e}")
             # Add error result for remaining selectors
             for selector in self.selectors:
                 if not any(r.selector == selector for r in self.results):
@@ -97,8 +96,8 @@ class SelectorParser:
     def _log_result(self, result: ElementResult) -> None:
         """Log the result of element extraction."""
         if result.found:
-            self.logger.info(f"Found element with selector: {result.selector}")
+            logger.info(f"Found element with selector: {result.selector}")
         else:
-            self.logger.warning(
+            logger.warning(
                 f"Failed to find element: {result.selector} - {result.error_message}"
             )

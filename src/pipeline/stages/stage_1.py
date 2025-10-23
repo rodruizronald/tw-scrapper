@@ -40,9 +40,7 @@ class Stage1Processor:
         self.openai_service = OpenAIService(config.openai)
         self.database_service = JobDataService()
         self.metrics_service = JobMetricsService()
-        self.web_extraction_service = WebExtractionService(
-            config.web_extraction, logger
-        )
+        self.web_extraction_service = WebExtractionService(config.web_extraction)
         # Initialize mapper
         self.job_mapper = JobMapper()
 

@@ -1,18 +1,20 @@
 import asyncio
 import json
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 import openai
 from openai.types.shared_params import ResponseFormatJSONSchema
-from prefect import get_run_logger
 
 from core.config.integrations import OpenAIConfig
 from utils.exceptions import FileOperationError, OpenAIProcessingError
 
 if TYPE_CHECKING:
     from openai.types.shared_params.response_format_json_schema_param import JSONSchema
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -36,7 +38,6 @@ class OpenAIService:
         Args:
             config: OpenAI configuration
         """
-        self.logger = get_run_logger()
         self.config = config
         self.client = openai.OpenAI(api_key=config.api_key)
         self._rate_limit_delay = 1.0  # Base delay between requests
@@ -79,12 +80,12 @@ class OpenAIService:
                 )
 
                 if result is not None:
-                    self.logger.info(
+                    logger.info(
                         f"OpenAI request completed successfully on attempt {attempt + 1}"
                     )
                     return result
 
-                self.logger.warning(
+                logger.warning(
                     f"OpenAI request returned no result on attempt {attempt + 1}, retrying..."
                 )
 
@@ -117,12 +118,12 @@ class OpenAIService:
         Note: response_format should be a dict with 'name', 'schema', and optionally 'strict' keys
         as per OpenAI's Structured Outputs format.
         """
-        self.logger.info(f"Sending content to OpenAI (attempt {attempt + 1})...")
+        logger.info(f"Sending content to OpenAI (attempt {attempt + 1})...")
 
         # Add rate limiting delay
         if attempt > 0:
             delay = self._rate_limit_delay * (2 ** (attempt - 1))  # Exponential backoff
-            self.logger.info(f"Waiting {delay}s before retry...")
+            logger.info(f"Waiting {delay}s before retry...")
             await asyncio.sleep(delay)
 
         # Cast the response_format dict to JSONSchema type for type checking
@@ -158,17 +159,17 @@ class OpenAIService:
         response_text = response.choices[0].message.content
         if response_text is None:
             error_msg = "Empty response from OpenAI"
-            self.logger.error(f"{error_msg}")
+            logger.error(f"{error_msg}")
             return None
 
         try:
             response_data: dict[str, Any] = json.loads(response_text)
-            self.logger.info("Successfully parsed response from OpenAI")
+            logger.info("Successfully parsed response from OpenAI")
             return response_data
 
         except json.JSONDecodeError as e:
             error_msg = f"Invalid JSON response from OpenAI: {e}"
-            self.logger.error(f"{error_msg}")
+            logger.error(f"{error_msg}")
             return None
 
     async def _handle_openai_error(
@@ -181,11 +182,11 @@ class OpenAIService:
 
         if isinstance(error, openai.RateLimitError):
             error_msg = f"OpenAI rate limit exceeded: {error}"
-            self.logger.warning(f"{error_msg}")
+            logger.warning(f"{error_msg}")
 
             if attempt < self.config.max_retries:
                 delay = self._rate_limit_delay * (3**attempt)
-                self.logger.info(f"Rate limited, waiting {delay}s...")
+                logger.info(f"Rate limited, waiting {delay}s...")
                 await asyncio.sleep(delay)
                 return True
             else:
@@ -193,7 +194,7 @@ class OpenAIService:
 
         elif isinstance(error, openai.APITimeoutError):
             error_msg = f"OpenAI API timeout: {error}"
-            self.logger.warning(f"{error_msg}")
+            logger.warning(f"{error_msg}")
 
             if attempt < self.config.max_retries:
                 return True
@@ -202,7 +203,7 @@ class OpenAIService:
 
         elif isinstance(error, openai.APIError):
             error_msg = f"OpenAI API error: {error}"
-            self.logger.error(f"{error_msg}")
+            logger.error(f"{error_msg}")
 
             if attempt < self.config.max_retries:
                 return True
@@ -219,7 +220,7 @@ class OpenAIService:
     ) -> bool:
         """Handle unexpected errors. Returns True if should continue retrying."""
         error_msg = f"Unexpected error during OpenAI processing: {error}"
-        self.logger.error(f"{error_msg}")
+        logger.error(f"{error_msg}")
 
         if attempt < self.config.max_retries:
             return True

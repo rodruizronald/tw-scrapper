@@ -1,7 +1,6 @@
 import hashlib
+import logging
 from typing import Any
-
-from prefect.logging import get_run_logger
 
 from core.models.jobs import (
     EmploymentType,
@@ -16,12 +15,11 @@ from core.models.jobs import (
     WorkMode,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class JobMapper:
     """Maps dictionary containing job data to Job model."""
-
-    def __init__(self):
-        self.logger = get_run_logger()
 
     def map_from_openai_response(
         self, response: dict[str, Any], company: str
@@ -49,7 +47,7 @@ class JobMapper:
             for i, job_info in enumerate(job_data):
                 try:
                     if not isinstance(job_info, dict):
-                        self.logger.warning(
+                        logger.warning(
                             f"Skipping invalid job item at index {i}: not a dictionary"
                         )
                         continue
@@ -70,13 +68,13 @@ class JobMapper:
                     jobs.append(job)
 
                 except Exception as e:
-                    self.logger.warning(f"Skipping invalid job data at index {i}: {e}")
+                    logger.warning(f"Skipping invalid job data at index {i}: {e}")
                     continue
 
             return jobs
 
         except Exception as e:
-            self.logger.error(f"Failed to map response to Job: {e}")
+            logger.error(f"Failed to map response to Job: {e}")
             raise ValueError(f"Invalid response format: {e}") from e
 
     def _extract_title(self, job_data: dict[str, Any]) -> str:
@@ -117,9 +115,6 @@ class JobMapper:
 class JobDetailsMapper:
     """Maps dictionary containing job details data to JobDetails model."""
 
-    def __init__(self):
-        self.logger = get_run_logger()
-
     def map_from_openai_response(self, response: dict[str, Any]) -> JobDetails:
         """
         Map dictionary to JobDetails model.
@@ -156,7 +151,7 @@ class JobDetailsMapper:
             )
 
         except Exception as e:
-            self.logger.error(f"Failed to map OpenAI response to JobDetails: {e}")
+            logger.error(f"Failed to map OpenAI response to JobDetails: {e}")
             raise ValueError(f"Invalid OpenAI response format: {e}") from e
 
     def _extract_location(self, job_data: dict[str, Any]) -> Location:
@@ -244,18 +239,13 @@ class JobDetailsMapper:
 
         # Validate max length as per prompt requirements
         if len(description) > 500:
-            self.logger.warning(
-                f"Description exceeds 500 characters: {len(description)}"
-            )
+            logger.warning(f"Description exceeds 500 characters: {len(description)}")
 
         return description.strip()
 
 
 class JobRequirementsMapper:
     """Maps dictionary containing job requirements data to JobRequirements model."""
-
-    def __init__(self):
-        self.logger = get_run_logger()
 
     def map_from_openai_response(self, response: dict[str, Any]) -> JobRequirements:
         """
@@ -285,7 +275,7 @@ class JobRequirementsMapper:
             )
 
         except Exception as e:
-            self.logger.error(f"Failed to map OpenAI response to JobRequirements: {e}")
+            logger.error(f"Failed to map OpenAI response to JobRequirements: {e}")
             raise ValueError(f"Invalid OpenAI response format: {e}") from e
 
     def _extract_responsibilities(self, job_data: dict[str, Any]) -> list[str]:
@@ -346,9 +336,6 @@ class JobRequirementsMapper:
 class JobTechnologiesMapper:
     """Maps OpenAI response to JobTechnologies model."""
 
-    def __init__(self):
-        self.logger = get_run_logger()
-
     def map_from_openai_response(self, response: dict[str, Any]) -> JobTechnologies:
         """
         Transform OpenAI response to JobTechnologies model.
@@ -373,7 +360,7 @@ class JobTechnologiesMapper:
             )
 
         except Exception as e:
-            self.logger.error(f"Failed to map response to JobTechnologies: {e}")
+            logger.error(f"Failed to map response to JobTechnologies: {e}")
             raise ValueError(f"Invalid response format: {e}") from e
 
     def _extract_technologies(self, job_data: dict[str, Any]) -> list[Technology]:

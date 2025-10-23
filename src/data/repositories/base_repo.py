@@ -1,8 +1,8 @@
+import logging
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
 from bson import ObjectId
-from loguru import logger
 from pymongo.collection import Collection
 from pymongo.errors import DuplicateKeyError, PyMongoError
 
@@ -10,6 +10,8 @@ from data.controller import DatabaseController
 
 if TYPE_CHECKING:
     from pymongo.results import DeleteResult, InsertOneResult, UpdateResult
+
+logger = logging.getLogger(__name__)
 
 
 class BaseRepository[T](ABC):

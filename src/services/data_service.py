@@ -5,9 +5,8 @@ Provides database-backed persistence for job listings, handling CRUD operations,
 stage tracking, deduplication, and statistics for the multi-stage job processing pipeline.
 """
 
+import logging
 from typing import Any
-
-from prefect import get_run_logger
 
 from core.models.jobs import Job
 from data import (
@@ -15,6 +14,8 @@ from data import (
 )
 from data.mappers.metrics_mapper import JobMapper
 from utils.timezone import LOCAL_TZ, now_local
+
+logger = logging.getLogger(__name__)
 
 
 class JobDataService:
@@ -29,7 +30,6 @@ class JobDataService:
         """
         self.repository = job_listing_repository
         self.mapper = JobMapper()
-        self.logger = get_run_logger()
 
     def save_stage_results(
         self,
@@ -55,7 +55,7 @@ class JobDataService:
             Exception: If database operation fails
         """
         if not jobs:
-            self.logger.warning(f"No jobs to save for {company_name} at {stage_tag}")
+            logger.warning(f"No jobs to save for {company_name} at {stage_tag}")
             return 0
 
         try:
@@ -74,9 +74,7 @@ class JobDataService:
                             saved_count += 1
                         else:
                             failed_count += 1
-                            self.logger.warning(
-                                f"Failed to update job: {job.signature}"
-                            )
+                            logger.warning(f"Failed to update job: {job.signature}")
                     else:
                         # Create new job listing
                         job_listing = self.mapper.to_job_listing(job)
@@ -85,15 +83,13 @@ class JobDataService:
                             saved_count += 1
                         else:
                             failed_count += 1
-                            self.logger.warning(
-                                f"Failed to create job: {job.signature}"
-                            )
+                            logger.warning(f"Failed to create job: {job.signature}")
 
                 except Exception as e:
                     failed_count += 1
-                    self.logger.error(f"Error saving job {job.signature}: {e}")
+                    logger.error(f"Error saving job {job.signature}: {e}")
 
-            self.logger.info(
+            logger.info(
                 f"Saved {saved_count} jobs for {company_name} at {stage_tag}. "
                 f"Failed: {failed_count}"
             )
@@ -101,7 +97,7 @@ class JobDataService:
 
         except Exception as e:
             error_msg = f"Failed to save jobs for {company_name} at {stage_tag}: {e}"
-            self.logger.error(error_msg)
+            logger.error(error_msg)
             raise
 
     def load_jobs_for_stage(
@@ -130,12 +126,12 @@ class JobDataService:
             stage_number = self._get_stage_number(stage_tag)
 
             if stage_number is None:
-                self.logger.error(f"Invalid stage tag: {stage_tag}")
+                logger.error(f"Invalid stage tag: {stage_tag}")
                 return []
 
             # For stage 1, we don't load from database (fresh scraping)
             if stage_number == 1:
-                self.logger.info("Stage 1 doesn't load from database")
+                logger.info("Stage 1 doesn't load from database")
                 return []
 
             # Load jobs ready for this stage
@@ -147,14 +143,14 @@ class JobDataService:
             # Convert to Job objects
             jobs = [self.mapper.to_job(job_listing) for job_listing in job_listings]
 
-            self.logger.info(
+            logger.info(
                 f"Loaded {len(jobs)} jobs for {company_name} ready for {stage_tag}"
             )
             return jobs
 
         except Exception as e:
             error_msg = f"Failed to load jobs for {company_name} at {stage_tag}: {e}"
-            self.logger.error(error_msg)
+            logger.error(error_msg)
             raise
 
     def load_all_jobs_for_company(self, company_name: str) -> list[Job]:
@@ -171,12 +167,12 @@ class JobDataService:
             job_listings = self.repository.find_by_company(company_name, limit=1000)
             jobs = [self.mapper.to_job(job_listing) for job_listing in job_listings]
 
-            self.logger.info(f"Loaded {len(jobs)} total jobs for {company_name}")
+            logger.info(f"Loaded {len(jobs)} total jobs for {company_name}")
             return jobs
 
         except Exception as e:
             error_msg = f"Failed to load all jobs for {company_name}: {e}"
-            self.logger.error(error_msg)
+            logger.error(error_msg)
             raise
 
     def get_existing_signatures(self, company_name: str) -> set[str]:
@@ -195,13 +191,13 @@ class JobDataService:
             job_listings = self.repository.find_by_company(company_name, limit=10000)
             signatures = {job.signature for job in job_listings}
 
-            self.logger.info(
+            logger.info(
                 f"Found {len(signatures)} existing signatures for {company_name}"
             )
             return signatures
 
         except Exception as e:
-            self.logger.error(f"Error getting signatures for {company_name}: {e}")
+            logger.error(f"Error getting signatures for {company_name}: {e}")
             return set()
 
     def deactivate_missing_jobs(
@@ -235,11 +231,11 @@ class JobDataService:
                     if self.repository.update(job_listing):
                         deactivated_count += 1
 
-            self.logger.info(f"Deactivated {deactivated_count} jobs for {company_name}")
+            logger.info(f"Deactivated {deactivated_count} jobs for {company_name}")
             return deactivated_count
 
         except Exception as e:
-            self.logger.error(f"Error deactivating jobs for {company_name}: {e}")
+            logger.error(f"Error deactivating jobs for {company_name}: {e}")
             return 0
 
     def get_stage_statistics(self, company_name: str | None = None) -> dict[str, Any]:
@@ -289,7 +285,7 @@ class JobDataService:
             return stats
 
         except Exception as e:
-            self.logger.error(f"Error getting stage statistics: {e}")
+            logger.error(f"Error getting stage statistics: {e}")
             return {}
 
     def _get_stage_number(self, stage_tag: str) -> int | None:

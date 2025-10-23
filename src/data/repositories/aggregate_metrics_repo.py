@@ -4,10 +4,10 @@ Repository for aggregate job metrics persistence.
 Handles database operations for daily aggregate metrics without business logic.
 """
 
+import logging
 from typing import Any
 
 from bson import ObjectId
-from loguru import logger
 from pymongo.errors import PyMongoError
 
 from core.config.database import db_config
@@ -16,6 +16,8 @@ from data.models.aggregate_metrics import DailyAggregateMetrics
 from utils.timezone import now_local
 
 from .base_repo import BaseRepository
+
+logger = logging.getLogger(__name__)
 
 
 class AggregateMetricsRepository(BaseRepository[DailyAggregateMetrics]):

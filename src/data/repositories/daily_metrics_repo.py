@@ -5,10 +5,10 @@ Handles database operations for company daily metrics without business logic.
 Provides thread-safe access to MongoDB for concurrent company processing.
 """
 
+import logging
 from typing import Any
 
 from bson import ObjectId
-from loguru import logger
 from pymongo.errors import PyMongoError
 
 from core.config.database import db_config
@@ -17,6 +17,8 @@ from data.models.daily_metrics import CompanyDailyMetrics, StageMetrics
 from utils.timezone import now_local
 
 from .base_repo import BaseRepository
+
+logger = logging.getLogger(__name__)
 
 
 class DailyMetricsRepository(BaseRepository[CompanyDailyMetrics]):

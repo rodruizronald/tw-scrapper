@@ -5,10 +5,9 @@ Provides the primary interface for pipeline components to record and query metri
 Handles business logic for metric calculation, aggregation, and validation.
 """
 
+import logging
 import time
 from collections.abc import Callable
-
-from prefect import get_run_logger
 
 from core.models.metrics import CompanySummaryInput, StageMetricsInput
 from data import (
@@ -23,6 +22,8 @@ from data.models.daily_metrics import (
     CompanyDailyMetrics,
 )
 from utils.timezone import now_local
+
+logger = logging.getLogger(__name__)
 
 
 class JobMetricsService:
@@ -42,7 +43,6 @@ class JobMetricsService:
         """
         Initialize job metrics service.
         """
-        self.logger = get_run_logger()
         self.daily_repository = job_daily_metrics_repository
         self.aggregate_repository = job_aggregate_metrics_repository
         self.mapper = MetricsMapper()
@@ -72,7 +72,7 @@ class JobMetricsService:
         # Extract stage number
         stage_number = self._get_stage_number(stage)
         if stage_number is None:
-            self.logger.error(f"Invalid stage identifier: {stage}")
+            logger.error(f"Invalid stage identifier: {stage}")
             return
 
         try:
@@ -88,17 +88,17 @@ class JobMetricsService:
             )
 
             if success:
-                self.logger.info(
+                logger.info(
                     f"Recorded stage {stage_number} metrics for {company_name}: "
                     f"{metrics_input.jobs_completed}/{metrics_input.jobs_processed} jobs completed"
                 )
             else:
-                self.logger.warning(
+                logger.warning(
                     f"Failed to record stage {stage_number} metrics for {company_name} after retries"
                 )
 
         except Exception as e:
-            self.logger.error(
+            logger.error(
                 f"Error recording stage metrics for {company_name} stage {stage}: {e}"
             )
 
@@ -136,20 +136,18 @@ class JobMetricsService:
             )
 
             if success:
-                self.logger.info(
+                logger.info(
                     f"Recorded company completion for {company_name}: "
                     f"status={summary_input.overall_status}, "
                     f"new_jobs={summary_input.new_jobs_found}"
                 )
             else:
-                self.logger.warning(
+                logger.warning(
                     f"Failed to record company completion for {company_name} after retries"
                 )
 
         except Exception as e:
-            self.logger.error(
-                f"Error recording company completion for {company_name}: {e}"
-            )
+            logger.error(f"Error recording company completion for {company_name}: {e}")
 
     def calculate_daily_aggregates(self, date: str | None = None) -> None:
         """
@@ -165,13 +163,13 @@ class JobMetricsService:
             date = now_local().strftime("%Y-%m-%d")
 
         try:
-            self.logger.info(f"Calculating daily aggregates for {date}...")
+            logger.info(f"Calculating daily aggregates for {date}...")
 
             # Get aggregated data from daily repository
             aggregated_data = self.daily_repository.aggregate_by_date(date)
 
             if not aggregated_data:
-                self.logger.warning(f"No data found to aggregate for {date}")
+                logger.warning(f"No data found to aggregate for {date}")
                 return
 
             # Calculate derived metrics
@@ -251,18 +249,18 @@ class JobMetricsService:
             )
 
             if success:
-                self.logger.info(
+                logger.info(
                     f"Calculated daily aggregates for {date}: "
                     f"{total_companies} companies, "
                     f"{overall_success_rate:.1f}% success rate"
                 )
             else:
-                self.logger.warning(
+                logger.warning(
                     f"Failed to store daily aggregates for {date} after retries"
                 )
 
         except Exception as e:
-            self.logger.error(f"Error calculating daily aggregates for {date}: {e}")
+            logger.error(f"Error calculating daily aggregates for {date}: {e}")
 
     def get_company_metrics(
         self,
@@ -288,14 +286,14 @@ class JobMetricsService:
                 )
             )
 
-            self.logger.debug(
+            logger.debug(
                 f"Retrieved {len(metrics)} metrics for {company_name} "
                 f"between {start_date} and {end_date}"
             )
             return metrics
 
         except Exception as e:
-            self.logger.error(f"Error retrieving metrics for {company_name}: {e}")
+            logger.error(f"Error retrieving metrics for {company_name}: {e}")
             return []
 
     def get_pipeline_health_metrics(self, date: str) -> DailyAggregateMetrics | None:
@@ -314,14 +312,14 @@ class JobMetricsService:
             )
 
             if aggregate:
-                self.logger.debug(f"Retrieved pipeline health metrics for {date}")
+                logger.debug(f"Retrieved pipeline health metrics for {date}")
             else:
-                self.logger.debug(f"No pipeline health metrics found for {date}")
+                logger.debug(f"No pipeline health metrics found for {date}")
 
             return aggregate
 
         except Exception as e:
-            self.logger.error(f"Error retrieving pipeline health metrics: {e}")
+            logger.error(f"Error retrieving pipeline health metrics: {e}")
             return None
 
     def get_companies_by_status(self, date: str, status: str) -> list[str]:
@@ -341,7 +339,7 @@ class JobMetricsService:
             )
             return companies if companies else []
         except Exception as e:
-            self.logger.error(
+            logger.error(
                 f"Error getting companies by status for {date}, status={status}: {e}"
             )
             return []
@@ -389,7 +387,7 @@ class JobMetricsService:
 
                 # Operation returned False but didn't raise exception
                 if attempt < self.MAX_RETRIES:
-                    self.logger.warning(
+                    logger.warning(
                         f"{operation_name} returned False, "
                         f"retrying in {delay}s... (attempt {attempt + 1}/{self.MAX_RETRIES + 1})"
                     )
@@ -398,14 +396,14 @@ class JobMetricsService:
 
             except Exception as e:
                 if attempt < self.MAX_RETRIES:
-                    self.logger.warning(
+                    logger.warning(
                         f"{operation_name} failed: {e}. "
                         f"Retrying in {delay}s... (attempt {attempt + 1}/{self.MAX_RETRIES + 1})"
                     )
                     time.sleep(delay)
                     delay *= self.BACKOFF_FACTOR
                 else:
-                    self.logger.error(
+                    logger.error(
                         f"{operation_name} failed after {self.MAX_RETRIES + 1} attempts: {e}"
                     )
 
