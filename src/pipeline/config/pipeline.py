@@ -14,8 +14,8 @@ from core.config.integrations import (
 )
 from core.config.services import OpenAIServiceConfig
 from core.config.system import PathsConfig
+from core.models.parsers import ParserType
 from pipeline.config.stages import StageConfig, StagesConfig
-from services.parsers.models import ParserType
 
 
 @dataclass
