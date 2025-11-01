@@ -2,7 +2,6 @@
     format-check import-check type-check lint yaml-check check-all \
     format fix-imports fix-lint fix-all \
     install install-dev clean \
-    prefect-server prefect-config prefect-reset \
     pre-commit-install pre-commit-run pre-commit-update \
     up down restart purge logs logs-worker logs-server logs-db \
     rebuild rebuild-worker status shell-db shell-worker \
@@ -353,16 +352,9 @@ help:
 	@echo "  make pre-commit-install - Install pre-commit hooks"
 	@echo "  make pre-commit-run     - Run pre-commit checks"
 	@echo ""
-<<<<<<< HEAD
-=======
-	@echo "🔮 Local Prefect (without Docker):"
-	@echo "  make prefect-server  - Start Prefect server locally"
-	@echo "  make prefect-config  - Configure for local server"
-	@echo ""
 	@echo "📊 Dashboard:"
 	@echo "  make dashboard       - Start Pipeline Health Dashboard"
 	@echo ""
->>>>>>> d0e9477 (dashboard implementation)
 	@echo "💡 Quick Start:"
 	@echo "  1. make up           - Start all services"
 	@echo "  2. make logs-worker  - Watch pipeline execution"
