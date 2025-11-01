@@ -10,9 +10,9 @@ This module contains service classes that handle specific aspects of the pipelin
 """
 
 from .data_service import JobDataService
-from .metrics_service import JobMetricsService
+from .metrics_service import JobMetricsService, job_metrics_service
 from .openai_service import OpenAIService
-from .parsers import ParserFactory, ParserType
+from .parsers import ParserFactory
 from .web_extraction_service import WebExtractionService
 
 __all__ = [
@@ -20,6 +20,6 @@ __all__ = [
     "JobMetricsService",
     "OpenAIService",
     "ParserFactory",
-    "ParserType",
     "WebExtractionService",
+    "job_metrics_service",
 ]

@@ -7,6 +7,7 @@
     up down restart purge logs logs-worker logs-server logs-db \
     rebuild rebuild-worker status shell-db shell-worker \
     backup restore clean-data verify-indexes \
+    dashboard \
     help
 
 # Load environment variables from .env file if it exists
@@ -292,6 +293,17 @@ clean-data:
 	fi
 
 # ═══════════════════════════════════════════════════════════
+# Dashboard
+# ═══════════════════════════════════════════════════════════
+
+dashboard:
+	@echo "🚀 Starting Pipeline Health Dashboard..."
+	@echo "📊 Dashboard will be available at http://localhost:8501"
+	@echo "⏹️  Press Ctrl+C to stop the dashboard"
+	@echo ""
+	@PYTHONPATH=src streamlit run src/dashboard/app.py --server.port=8501 --server.address=localhost
+
+# ═══════════════════════════════════════════════════════════
 # Help
 # ═══════════════════════════════════════════════════════════
 
@@ -341,8 +353,19 @@ help:
 	@echo "  make pre-commit-install - Install pre-commit hooks"
 	@echo "  make pre-commit-run     - Run pre-commit checks"
 	@echo ""
+<<<<<<< HEAD
+=======
+	@echo "🔮 Local Prefect (without Docker):"
+	@echo "  make prefect-server  - Start Prefect server locally"
+	@echo "  make prefect-config  - Configure for local server"
+	@echo ""
+	@echo "📊 Dashboard:"
+	@echo "  make dashboard       - Start Pipeline Health Dashboard"
+	@echo ""
+>>>>>>> d0e9477 (dashboard implementation)
 	@echo "💡 Quick Start:"
 	@echo "  1. make up           - Start all services"
 	@echo "  2. make logs-worker  - Watch pipeline execution"
-	@echo "  3. Open http://localhost:4200 to view Prefect UI"
+	@echo "  3. make dashboard    - View metrics dashboard"
+	@echo "  4. Open http://localhost:4200 to view Prefect UI"
 	@echo ""
