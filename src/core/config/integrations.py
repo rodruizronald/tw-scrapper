@@ -1,7 +1,7 @@
 import os
 from dataclasses import dataclass
 
-from services.parsers.models import ParserType
+from core.models.parsers import ParserType
 
 
 @dataclass

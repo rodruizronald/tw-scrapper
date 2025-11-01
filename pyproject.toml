@@ -13,6 +13,9 @@ requires-python = ">=3.12"
 dependencies = [
     "playwright~=1.51.0",
     "openai>=1.75.0",
+    "streamlit~=1.50.0",
+    "plotly~=6.3.1",
+    "pandas~=2.3.3",
     "python-dotenv~=1.1.0",
     "prefect~=3.4.14",
     "PyYAML~=6.0.0",

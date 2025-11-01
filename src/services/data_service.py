@@ -12,7 +12,7 @@ from core.models.jobs import Job
 from data import (
     job_listing_repository,
 )
-from data.mappers.metrics_mapper import JobMapper
+from data.mappers.job_mapper import JobMapper
 from utils.timezone import UTC_TZ, now_utc
 
 logger = logging.getLogger(__name__)

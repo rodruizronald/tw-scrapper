@@ -15,9 +15,10 @@ from playwright.async_api import Browser, async_playwright
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from core.config.integrations import WebExtractionConfig
+from core.models.parsers import ParserType
 from utils.exceptions import WebExtractionError
 
-from .parsers import ElementResult, ParserFactory, ParserType
+from .parsers import ElementResult, ParserFactory
 
 logger = logging.getLogger(__name__)
 

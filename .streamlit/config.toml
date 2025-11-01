@@ -1,0 +1,29 @@
+# Streamlit configuration for Pipeline Health Dashboard
+
+[server]
+port = 8501
+address = "localhost"
+headless = false
+# Enable CORS and XSRF protection for security
+enableCORS = true
+enableXsrfProtection = true
+
+[browser]
+gatherUsageStats = false
+serverAddress = "localhost"
+
+[client]
+# Show full error details during development
+showErrorDetails = "full"
+# Auto mode shows developer options on localhost
+toolbarMode = "auto"
+
+[theme]
+primaryColor = "#1f77b4"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f0f2f6"
+textColor = "#262730"
+font = "sans serif"
+
+[logger]
+level = "info"

@@ -164,3 +164,24 @@ class AggregateMetricsRepository(BaseRepository[DailyAggregateMetrics]):
         except PyMongoError as e:
             logger.error(f"Error querying aggregate metrics by date range: {e}")
             return []
+
+    def find_most_recent(self) -> DailyAggregateMetrics | None:
+        """
+        Find the most recent aggregate metrics document.
+
+        Returns:
+            Most recent DailyAggregateMetrics or None
+        """
+        try:
+            doc = self.collection.find_one(sort=[("date", -1)])  # Sort descending
+
+            if doc:
+                result = self._from_dict(doc)
+                logger.debug(f"Found most recent aggregate: {result.date}")
+                return result
+
+            return None
+
+        except PyMongoError as e:
+            logger.error(f"Error finding most recent aggregate: {e}")
+            return None
