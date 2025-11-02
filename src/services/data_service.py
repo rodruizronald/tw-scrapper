@@ -305,3 +305,38 @@ class JobDataService:
             return int(stage_tag)
         except (ValueError, IndexError):
             return None
+
+    def remove_incomplete_jobs(self, company_name: str) -> int:
+        """
+        Remove all jobs for a company that haven't completed all pipeline stages.
+
+        A job is considered incomplete if any of stage_2_completed, stage_3_completed,
+        or stage_4_completed is False.
+
+        Args:
+            company_name: Company name
+
+        Returns:
+            int: Number of jobs removed
+
+        Raises:
+            Exception: If database operation fails
+        """
+        try:
+            removed_count = self.repository.delete_incomplete_jobs_by_company(
+                company_name
+            )
+
+            if removed_count == 0:
+                logger.info(f"No incomplete jobs found for {company_name}")
+            else:
+                logger.info(
+                    f"Removed {removed_count} incomplete jobs for {company_name}"
+                )
+
+            return removed_count
+
+        except Exception as e:
+            error_msg = f"Failed to remove incomplete jobs for {company_name}: {e}"
+            logger.error(error_msg)
+            raise

@@ -411,3 +411,30 @@ class JobListingRepository(BaseRepository[JobListing]):
         except PyMongoError as e:
             logger.error(f"Error cleaning up old job listings: {e}")
             return 0
+
+    def delete_incomplete_jobs_by_company(self, company: str) -> int:
+        """
+        Delete all jobs for a company that haven't completed all pipeline stages.
+
+        Args:
+            company: Company name to filter by
+
+        Returns:
+            int: Number of deleted job listings
+        """
+        try:
+            query = {
+                "company": company,
+                "$or": [
+                    {"stage_2_completed": False},
+                    {"stage_3_completed": False},
+                    {"stage_4_completed": False},
+                ],
+            }
+
+            result: DeleteResult = self.collection.delete_many(query)
+            return result.deleted_count
+
+        except PyMongoError as e:
+            logger.error(f"Error deleting incomplete jobs for {company}: {e}")
+            return 0
