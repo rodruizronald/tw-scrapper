@@ -8,7 +8,7 @@ from datetime import datetime
 import streamlit as st
 
 from services import job_metrics_service
-from utils.timezone import today_local
+from src.utils.timezone import today_local
 
 
 def render_sidebar() -> None:

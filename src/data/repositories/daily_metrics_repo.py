@@ -14,7 +14,7 @@ from pymongo.errors import PyMongoError
 from core.config.database import db_config
 from data.controller import DatabaseController
 from data.models.daily_metrics import CompanyDailyMetrics, StageMetrics
-from utils.timezone import now_utc
+from src.utils.timezone import now_utc
 
 from .base_repo import BaseRepository
 

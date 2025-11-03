@@ -12,11 +12,11 @@ from services.data_service import JobDataService
 from services.metrics_service import JobMetricsService
 from services.openai_service import OpenAIRequest, OpenAIService
 from services.web_extraction_service import WebExtractionService
-from utils.exceptions import (
+from src.utils.exceptions import (
     DatabaseOperationError,
     OpenAIProcessingError,
 )
-from utils.timezone import now_utc
+from src.utils.timezone import now_utc
 
 
 class Stage4Processor:

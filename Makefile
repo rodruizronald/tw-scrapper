@@ -3,8 +3,8 @@
     format fix-imports fix-lint fix-all \
     install install-dev clean \
     pre-commit-install pre-commit-run pre-commit-update \
-    up down restart purge logs logs-worker logs-server logs-db \
-    rebuild rebuild-worker status shell-db shell-worker \
+    up down restart restart-worker purge logs logs-worker logs-server logs-db \
+    rebuild rebuild-worker recreate-worker status shell-db shell-worker \
     backup restore clean-data verify-indexes \
     dashboard \
     help
@@ -150,11 +150,6 @@ down:
 	@docker-compose -f docker/docker-compose.yml down
 	@echo "✅ All services stopped"
 
-restart:
-	@echo "Restarting all services..."
-	@docker-compose -f docker/docker-compose.yml restart
-	@echo "✅ All services restarted"
-
 purge:
 	@echo "⚠️  WARNING: This will remove ALL volumes (MongoDB + Prefect data)!"
 	@echo "This action cannot be undone."
@@ -190,6 +185,16 @@ logs-db:
 	@docker-compose -f docker/docker-compose.yml logs -f mongodb
 
 # ═══════════════════════════════════════════════════════════
+# Recreate Commands
+# ═══════════════════════════════════════════════════════════
+
+recreate-worker:
+	@echo "🔄 Recreating worker with updated configuration..."
+	@docker-compose -f docker/docker-compose.yml up -d prefect-worker
+	@echo "✅ Worker recreated"
+	@echo "💡 Run 'make logs-worker' to view logs"
+
+# ═══════════════════════════════════════════════════════════
 # Rebuild Commands
 # ═══════════════════════════════════════════════════════════
 
@@ -203,6 +208,21 @@ rebuild-worker:
 	@echo "🔨 Rebuilding and restarting worker only..."
 	@docker-compose -f docker/docker-compose.yml up -d --build --no-deps prefect-worker
 	@echo "✅ Worker rebuilt and restarted"
+	@echo "💡 Run 'make logs-worker' to view logs"
+
+# ═══════════════════════════════════════════════════════════
+# Restart Commands
+# ═══════════════════════════════════════════════════════════
+
+restart:
+	@echo "Restarting all services..."
+	@docker-compose -f docker/docker-compose.yml restart
+	@echo "✅ All services restarted"
+
+restart-worker:
+	@echo "🔄 Restarting worker only..."
+	@docker-compose -f docker/docker-compose.yml restart prefect-worker
+	@echo "✅ Worker restarted"
 	@echo "💡 Run 'make logs-worker' to view logs"
 
 # ═══════════════════════════════════════════════════════════
@@ -315,10 +335,12 @@ help:
 	@echo "  make up              - Start all services (MongoDB + Prefect)"
 	@echo "  make down            - Stop all services"
 	@echo "  make restart         - Restart all services"
+	@echo "  make restart-worker  - Restart worker only"
 	@echo "  make purge           - Remove all volumes (data loss!)"
 	@echo "  make status          - Show service status & health"
 	@echo "  make rebuild         - Rebuild and restart all services"
-	@echo "  make rebuild-worker  - Rebuild worker only (faster)"
+	@echo "  make rebuild-worker  - Rebuild worker only"
+	@echo "  make recreate-worker - Recreate worker only"
 	@echo ""
 	@echo "📋 Logs:"
 	@echo "  make logs            - View all logs"

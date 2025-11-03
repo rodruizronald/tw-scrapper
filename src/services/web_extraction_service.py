@@ -16,7 +16,7 @@ from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from core.config.integrations import WebExtractionConfig
 from core.models.parsers import ParserType
-from utils.exceptions import WebExtractionError
+from src.utils.exceptions import WebExtractionError
 
 from .parsers import ElementResult, ParserFactory
 

@@ -11,6 +11,7 @@ from pipeline.flows.utils import (
     load_companies_from_file,
     validate_flow_inputs,
 )
+from services.data_service import JobDataService
 
 
 @flow(
@@ -56,6 +57,22 @@ async def main_pipeline_flow() -> None:
 
         validate_flow_inputs(companies, config)
         logger.info("Input validation passed")
+
+        # Clean up incomplete jobs before starting pipeline
+        logger.info("Cleaning up incomplete jobs from previous runs...")
+        data_service = JobDataService()
+        total_removed = 0
+
+        for company in companies:
+            try:
+                removed_count = data_service.remove_incomplete_jobs(company.name)
+                total_removed += removed_count
+            except Exception as e:
+                logger.warning(
+                    f"Failed to remove incomplete jobs for {company.name}: {e}"
+                )
+
+        logger.info(f"Removed {total_removed} incomplete jobs across all companies")
 
         # Run pipeline
         logger.info("Starting pipeline execution...")

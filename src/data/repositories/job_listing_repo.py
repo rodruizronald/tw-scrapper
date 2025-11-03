@@ -9,7 +9,7 @@ from core.config.database import db_config
 from data.controller import DatabaseController
 from data.models.job_listing import JobListing
 from data.repositories.base_repo import BaseRepository
-from utils.timezone import now_utc
+from src.utils.timezone import now_utc
 
 if TYPE_CHECKING:
     from pymongo.results import DeleteResult

@@ -228,8 +228,8 @@ class PipelineConfig:
                     load_dotenv(env_path)
                     break
 
-        # Get project root (directory containing this file's parent's parent)
-        project_root = Path(__file__).parent.parent.parent
+        # Use current working directory as project root (works in Docker)
+        project_root = Path.cwd()
 
         # Load pipeline.yaml configuration
         pipeline_config_file = os.getenv("PIPELINE_CONFIG_FILE", "pipeline.yaml")

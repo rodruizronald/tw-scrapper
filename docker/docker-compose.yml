@@ -80,8 +80,10 @@ services:
       # Pipeline Configuration
       - PIPELINE_CONFIG_FILE=pipeline.yaml
     volumes:
-      - ../src/pipeline:/app/src/pipeline
+      - ../src:/app/src
       - ../prompts:/app/prompts
+      - ../pipeline.yaml:/app/pipeline.yaml
+      - ../companies.yaml:/app/companies.yaml
     networks:
       - tw-network
 

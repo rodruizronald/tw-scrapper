@@ -35,6 +35,7 @@ FROM base AS dependencies
 
 # Copy only dependency files first (better layer caching)
 COPY pyproject.toml ./
+COPY src ./src
 
 # Install Python dependencies
 RUN pip install .

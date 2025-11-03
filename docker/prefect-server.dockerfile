@@ -1,4 +1,3 @@
-
 FROM prefecthq/prefect:3.4.14-python3.12
 
 # Install curl for healthcheck

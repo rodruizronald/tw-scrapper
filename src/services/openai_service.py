@@ -9,7 +9,7 @@ import openai
 from openai.types.shared_params import ResponseFormatJSONSchema
 
 from core.config.integrations import OpenAIConfig
-from utils.exceptions import FileOperationError, OpenAIProcessingError
+from src.utils.exceptions import FileOperationError, OpenAIProcessingError
 
 if TYPE_CHECKING:
     from openai.types.shared_params.response_format_json_schema_param import JSONSchema
