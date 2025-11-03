@@ -22,12 +22,7 @@ class JobDataService:
     """Service for handling job database operations in the pipeline."""
 
     def __init__(self):
-        """
-        Initialize job data service.
-
-        Args:
-            repository: Job listing repository (uses global if None)
-        """
+        """Initialize job data service."""
         self.repository = job_listing_repository
         self.mapper = JobMapper()
 
@@ -327,9 +322,7 @@ class JobDataService:
                 company_name
             )
 
-            if removed_count == 0:
-                logger.info(f"No incomplete jobs found for {company_name}")
-            else:
+            if removed_count > 0:
                 logger.info(
                     f"Removed {removed_count} incomplete jobs for {company_name}"
                 )

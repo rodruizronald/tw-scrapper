@@ -1,3 +1,5 @@
+import logging
+
 from prefect import flow, get_run_logger
 
 from src.core.models.jobs import CompanyData, Job
@@ -42,6 +44,16 @@ async def main_pipeline_flow() -> None:
         # Load configuration
         config = PipelineConfig.load()
         logger.info("Configuration loaded")
+
+        logger.info("Configuring service loggers...")
+        # Just set the levels - don't touch handlers or formatters
+        for logger_name in [
+            "src.services.data_service",
+            "src.services.openai_service",
+            "src.services.web_extraction_service",
+            "src.services.metrics_service",
+        ]:
+            logging.getLogger(logger_name).setLevel(logging.INFO)
 
         # Initialize paths
         config.initialize_paths()
