@@ -5,7 +5,7 @@ This module provides the foundational components of the application including
 configuration management, domain models, data mappers, and enumerations.
 """
 
-from .config import (
+from src.core.config import (
     BrowserConfig,
     IntegrationsConfig,
     OpenAIConfig,
@@ -14,13 +14,13 @@ from .config import (
     WebExtractionConfig,
     WebParserConfig,
 )
-from .mappers import (
+from src.core.mappers import (
     JobDetailsMapper,
     JobMapper,
     JobRequirementsMapper,
     JobTechnologiesMapper,
 )
-from .models import (
+from src.core.models import (
     CompanyData,
     CompanyStatus,
     CompanySummaryInput,

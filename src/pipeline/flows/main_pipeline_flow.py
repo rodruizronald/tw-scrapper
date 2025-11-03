@@ -1,17 +1,17 @@
 from prefect import flow, get_run_logger
 
-from core.models.jobs import CompanyData, Job
-from pipeline.config import PipelineConfig
-from pipeline.flows.stage_1_flow import stage_1_flow
-from pipeline.flows.stage_2_flow import stage_2_flow
-from pipeline.flows.stage_3_flow import stage_3_flow
-from pipeline.flows.stage_4_flow import stage_4_flow
-from pipeline.flows.stage_5_flow import stage_5_flow
-from pipeline.flows.utils import (
+from src.core.models.jobs import CompanyData, Job
+from src.pipeline.config import PipelineConfig
+from src.pipeline.flows.stage_1_flow import stage_1_flow
+from src.pipeline.flows.stage_2_flow import stage_2_flow
+from src.pipeline.flows.stage_3_flow import stage_3_flow
+from src.pipeline.flows.stage_4_flow import stage_4_flow
+from src.pipeline.flows.stage_5_flow import stage_5_flow
+from src.pipeline.flows.utils import (
     load_companies_from_file,
     validate_flow_inputs,
 )
-from services.data_service import JobDataService
+from src.services.data_service import JobDataService
 
 
 @flow(

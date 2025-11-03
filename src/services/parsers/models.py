@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from playwright.async_api import Frame, Page
 
-from core.models.parsers import ParserType
+from src.core.models.parsers import ParserType
 
 
 @dataclass

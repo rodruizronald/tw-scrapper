@@ -7,7 +7,7 @@ from datetime import datetime
 
 import streamlit as st
 
-from services import job_metrics_service
+from src.services import job_metrics_service
 from src.utils.timezone import today_local
 
 

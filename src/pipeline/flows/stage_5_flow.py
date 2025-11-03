@@ -7,11 +7,11 @@ have been processed, and calculates daily aggregates for the entire pipeline.
 
 from prefect import flow, get_run_logger
 
-from core.models.jobs import CompanyData
-from core.models.metrics import CompanyStatus, CompanySummaryInput
-from pipeline.config import PipelineConfig
-from services.data_service import JobDataService
-from services.metrics_service import JobMetricsService
+from src.core.models.jobs import CompanyData
+from src.core.models.metrics import CompanyStatus, CompanySummaryInput
+from src.pipeline.config import PipelineConfig
+from src.services.data_service import JobDataService
+from src.services.metrics_service import JobMetricsService
 from src.utils.timezone import now_utc
 
 

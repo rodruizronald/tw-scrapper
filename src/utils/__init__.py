@@ -7,7 +7,7 @@ This module contains utility functions and classes used throughout the pipeline:
 - Common utilities
 """
 
-from .exceptions import (
+from src.utils.exceptions import (
     CompanyProcessingError,
     ConfigurationError,
     DatabaseOperationError,

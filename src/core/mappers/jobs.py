@@ -2,7 +2,7 @@ import hashlib
 import logging
 from typing import Any
 
-from core.models.jobs import (
+from src.core.models.jobs import (
     EmploymentType,
     ExperienceLevel,
     Job,

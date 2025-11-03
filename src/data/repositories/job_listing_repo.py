@@ -5,10 +5,10 @@ from typing import TYPE_CHECKING, Any
 from bson import ObjectId
 from pymongo.errors import PyMongoError
 
-from core.config.database import db_config
-from data.controller import DatabaseController
-from data.models.job_listing import JobListing
-from data.repositories.base_repo import BaseRepository
+from src.core.config.database import db_config
+from src.data.controller import DatabaseController
+from src.data.models.job_listing import JobListing
+from src.data.repositories.base_repo import BaseRepository
 from src.utils.timezone import now_utc
 
 if TYPE_CHECKING:

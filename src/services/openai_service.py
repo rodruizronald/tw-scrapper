@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, cast
 import openai
 from openai.types.shared_params import ResponseFormatJSONSchema
 
-from core.config.integrations import OpenAIConfig
+from src.core.config.integrations import OpenAIConfig
 from src.utils.exceptions import FileOperationError, OpenAIProcessingError
 
 if TYPE_CHECKING:

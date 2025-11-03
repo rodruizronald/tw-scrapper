@@ -6,9 +6,8 @@ Deep dive into each pipeline stage's performance.
 
 import pandas as pd
 import streamlit as st
-
-from dashboard.components.sidebar import render_sidebar
-from services import job_metrics_service
+from src.dashboard.components.sidebar import render_sidebar
+from src.services import job_metrics_service
 
 # Configure page
 st.set_page_config(

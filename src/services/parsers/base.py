@@ -4,7 +4,7 @@ import logging
 
 from playwright.async_api import Page
 
-from .models import ElementResult, ParseContext, ParserType
+from src.services.parsers.models import ElementResult, ParseContext, ParserType
 
 logger = logging.getLogger(__name__)
 

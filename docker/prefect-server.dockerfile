@@ -1,4 +1,4 @@
-FROM prefecthq/prefect:3.4.14-python3.12
+FROM prefecthq/prefect:3.4.25-python3.12
 
 # Install curl for healthcheck
 RUN apt-get update && \

@@ -14,11 +14,10 @@ from typing import Any
 from playwright.async_api import Browser, async_playwright
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
-from core.config.integrations import WebExtractionConfig
-from core.models.parsers import ParserType
+from src.core.config.integrations import WebExtractionConfig
+from src.core.models.parsers import ParserType
+from src.services.parsers import ElementResult, ParserFactory
 from src.utils.exceptions import WebExtractionError
-
-from .parsers import ElementResult, ParserFactory
 
 logger = logging.getLogger(__name__)
 

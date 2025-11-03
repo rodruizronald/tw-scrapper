@@ -5,7 +5,7 @@ This module provides domain models for jobs, companies, metrics, and parsers
 used throughout the application.
 """
 
-from .jobs import (
+from src.core.models.jobs import (
     CompanyData,
     EmploymentType,
     ExperienceLevel,
@@ -19,8 +19,13 @@ from .jobs import (
     Technology,
     WorkMode,
 )
-from .metrics import CompanyStatus, CompanySummaryInput, StageMetricsInput, StageStatus
-from .parsers import ParserType
+from src.core.models.metrics import (
+    CompanyStatus,
+    CompanySummaryInput,
+    StageMetricsInput,
+    StageStatus,
+)
+from src.core.models.parsers import ParserType
 
 __all__ = [
     "CompanyData",

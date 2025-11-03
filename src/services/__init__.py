@@ -9,11 +9,11 @@ This module contains service classes that handle specific aspects of the pipelin
 - Web page parsing strategies
 """
 
-from .data_service import JobDataService
-from .metrics_service import JobMetricsService, job_metrics_service
-from .openai_service import OpenAIService
-from .parsers import ParserFactory
-from .web_extraction_service import WebExtractionService
+from src.services.data_service import JobDataService
+from src.services.metrics_service import JobMetricsService, job_metrics_service
+from src.services.openai_service import OpenAIService
+from src.services.parsers import ParserFactory
+from src.services.web_extraction_service import WebExtractionService
 
 __all__ = [
     "JobDataService",

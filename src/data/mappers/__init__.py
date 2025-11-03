@@ -5,8 +5,12 @@ This module provides mapper classes for transforming data between service layer
 and repository layer models, ensuring clean separation of concerns.
 """
 
-from .job_mapper import JobMapper, job_listing_to_job, job_to_job_listing
-from .metrics_mapper import MetricsMapper
+from src.data.mappers.job_mapper import (
+    JobMapper,
+    job_listing_to_job,
+    job_to_job_listing,
+)
+from src.data.mappers.metrics_mapper import MetricsMapper
 
 __all__ = [
     "JobMapper",

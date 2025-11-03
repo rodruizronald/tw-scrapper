@@ -1,6 +1,6 @@
 from typing import Any
 
-from core.models.jobs import CompanyData
+from src.core.models.jobs import CompanyData
 
 
 def company_task_run_name(parameters: dict[str, Any]) -> str:

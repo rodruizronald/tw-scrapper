@@ -6,10 +6,10 @@ by Prefect flows to process job data with proper monitoring,
 error handling, and retry capabilities.
 """
 
-from .stage_1_task import (
+from src.pipeline.tasks.stage_1_task import (
     process_job_listings_task,
 )
-from .utils import (
+from src.pipeline.tasks.utils import (
     filter_enabled_companies,
 )
 
