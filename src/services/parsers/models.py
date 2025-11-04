@@ -1,17 +1,10 @@
 """Data models for the parser module."""
 
 from dataclasses import dataclass
-from enum import Enum
 
 from playwright.async_api import Frame, Page
 
-
-class ParserType(Enum):
-    """Enumeration of available parser types."""
-
-    DEFAULT = "default"
-    GREENHOUSE = "greenhouse"
-    ANGULAR = "angular"
+from core.models.parsers import ParserType
 
 
 @dataclass

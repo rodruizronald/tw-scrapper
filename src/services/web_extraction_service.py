@@ -15,9 +15,9 @@ from playwright.async_api import Browser, async_playwright
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from core.config.integrations import WebExtractionConfig
+from core.models.parsers import ParserType
+from services.parsers import ElementResult, ParserFactory
 from utils.exceptions import WebExtractionError
-
-from .parsers import ElementResult, ParserFactory, ParserType
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +105,7 @@ class WebExtractionService:
             WebExtractionError: If extraction fails and retry is not enabled
         """
         parser_type = parser_type or self.config.parser_type
-        results = []
+        results: list[ElementResult] = []
 
         try:
             async with (

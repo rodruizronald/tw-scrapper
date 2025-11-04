@@ -18,10 +18,14 @@ Example usage:
     results = await parser.parse()
 """
 
-from .base import SelectorParser
-from .factory import ParserFactory
-from .instances import AngularParser, DefaultParser, GreenhouseParser
-from .models import ElementResult, ParseContext, ParserType
+from services.parsers.base import SelectorParser
+from services.parsers.factory import ParserFactory
+from services.parsers.instances import (
+    AngularParser,
+    DefaultParser,
+    GreenhouseParser,
+)
+from services.parsers.models import ElementResult, ParseContext
 
 __all__ = [
     "AngularParser",
@@ -30,7 +34,6 @@ __all__ = [
     "GreenhouseParser",
     "ParseContext",
     "ParserFactory",
-    "ParserType",
     "SelectorParser",
 ]
 

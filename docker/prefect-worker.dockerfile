@@ -35,9 +35,10 @@ FROM base AS dependencies
 
 # Copy only dependency files first (better layer caching)
 COPY pyproject.toml ./
+COPY src ./src
 
-# Install Python dependencies
-RUN pip install .
+# Install only pipeline dependencies
+RUN pip install ".[pipeline]"
 
 # Stage 3: Runtime (final image)
 # Has: Everything from dependencies + your application code + non-root user
@@ -68,5 +69,5 @@ RUN chmod +x /app/scripts/start-worker.sh
 # Switch to non-root user (use UID instead of username for reliability)
 USER 1001
 
-# Use ENTRYPOINT with explicit bash interpreter instead of CMD
+# Start Prefect worker
 ENTRYPOINT ["/bin/bash", "/app/scripts/start-worker.sh"]

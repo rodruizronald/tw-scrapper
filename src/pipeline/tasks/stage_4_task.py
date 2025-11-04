@@ -4,7 +4,7 @@ from prefect.logging import get_run_logger
 from core.models.jobs import CompanyData, Job
 from pipeline.config import PipelineConfig
 from pipeline.stages.stage_4 import Stage4Processor
-from pipeline.tasks.utils import company_task_run_name
+from pipeline.tasks.helpers import company_task_run_name
 from utils.exceptions import (
     FileOperationError,
     OpenAIProcessingError,

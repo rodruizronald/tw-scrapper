@@ -4,8 +4,9 @@ import logging
 
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
-from .base import SelectorParser
-from .models import ElementResult, ParseContext, ParserType
+from core.models.parsers import ParserType
+from services.parsers.base import SelectorParser
+from services.parsers.models import ElementResult, ParseContext
 
 logger = logging.getLogger(__name__)
 

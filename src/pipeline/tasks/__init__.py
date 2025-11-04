@@ -6,14 +6,14 @@ by Prefect flows to process job data with proper monitoring,
 error handling, and retry capabilities.
 """
 
-from .stage_1_task import (
-    process_job_listings_task,
-)
-from .utils import (
-    filter_enabled_companies,
-)
+from pipeline.tasks.stage_1_task import process_job_listings_task
+from pipeline.tasks.stage_2_task import process_job_details_task
+from pipeline.tasks.stage_3_task import process_job_skills_task
+from pipeline.tasks.stage_4_task import process_job_technologies_task
 
 __all__ = [
-    "filter_enabled_companies",
+    "process_job_details_task",
     "process_job_listings_task",
+    "process_job_skills_task",
+    "process_job_technologies_task",
 ]

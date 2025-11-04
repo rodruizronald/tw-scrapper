@@ -1,16 +1,19 @@
+import logging
+
 from prefect import flow, get_run_logger
 
 from core.models.jobs import CompanyData, Job
 from pipeline.config import PipelineConfig
+from pipeline.flows.helpers import (
+    load_companies_from_file,
+    validate_flow_inputs,
+)
 from pipeline.flows.stage_1_flow import stage_1_flow
 from pipeline.flows.stage_2_flow import stage_2_flow
 from pipeline.flows.stage_3_flow import stage_3_flow
 from pipeline.flows.stage_4_flow import stage_4_flow
 from pipeline.flows.stage_5_flow import stage_5_flow
-from pipeline.flows.utils import (
-    load_companies_from_file,
-    validate_flow_inputs,
-)
+from services.data_service import JobDataService
 
 
 @flow(
@@ -42,6 +45,16 @@ async def main_pipeline_flow() -> None:
         config = PipelineConfig.load()
         logger.info("Configuration loaded")
 
+        logger.info("Configuring service loggers...")
+        # Just set the levels - don't touch handlers or formatters
+        for logger_name in [
+            "services.data_service",
+            "services.openai_service",
+            "services.web_extraction_service",
+            "services.metrics_service",
+        ]:
+            logging.getLogger(logger_name).setLevel(logging.INFO)
+
         # Initialize paths
         config.initialize_paths()
         logger.info("Paths initialized")
@@ -56,6 +69,22 @@ async def main_pipeline_flow() -> None:
 
         validate_flow_inputs(companies, config)
         logger.info("Input validation passed")
+
+        # Clean up incomplete jobs before starting pipeline
+        logger.info("Cleaning up incomplete jobs from previous runs...")
+        data_service = JobDataService()
+        total_removed = 0
+
+        for company in companies:
+            try:
+                removed_count = data_service.remove_incomplete_jobs(company.name)
+                total_removed += removed_count
+            except Exception as e:
+                logger.warning(
+                    f"Failed to remove incomplete jobs for {company.name}: {e}"
+                )
+
+        logger.info(f"Removed {total_removed} incomplete jobs across all companies")
 
         # Run pipeline
         logger.info("Starting pipeline execution...")

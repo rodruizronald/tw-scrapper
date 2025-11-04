@@ -12,7 +12,7 @@ from core.models.jobs import Job
 from data import (
     job_listing_repository,
 )
-from data.mappers.metrics_mapper import JobMapper
+from data.mappers.job_mapper import JobMapper
 from utils.timezone import UTC_TZ, now_utc
 
 logger = logging.getLogger(__name__)
@@ -22,12 +22,7 @@ class JobDataService:
     """Service for handling job database operations in the pipeline."""
 
     def __init__(self):
-        """
-        Initialize job data service.
-
-        Args:
-            repository: Job listing repository (uses global if None)
-        """
+        """Initialize job data service."""
         self.repository = job_listing_repository
         self.mapper = JobMapper()
 
@@ -305,3 +300,36 @@ class JobDataService:
             return int(stage_tag)
         except (ValueError, IndexError):
             return None
+
+    def remove_incomplete_jobs(self, company_name: str) -> int:
+        """
+        Remove all jobs for a company that haven't completed all pipeline stages.
+
+        A job is considered incomplete if any of stage_2_completed, stage_3_completed,
+        or stage_4_completed is False.
+
+        Args:
+            company_name: Company name
+
+        Returns:
+            int: Number of jobs removed
+
+        Raises:
+            Exception: If database operation fails
+        """
+        try:
+            removed_count = self.repository.delete_incomplete_jobs_by_company(
+                company_name
+            )
+
+            if removed_count > 0:
+                logger.info(
+                    f"Removed {removed_count} incomplete jobs for {company_name}"
+                )
+
+            return int(removed_count)
+
+        except Exception as e:
+            error_msg = f"Failed to remove incomplete jobs for {company_name}: {e}"
+            logger.error(error_msg)
+            raise

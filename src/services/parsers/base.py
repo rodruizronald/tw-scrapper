@@ -4,7 +4,8 @@ import logging
 
 from playwright.async_api import Page
 
-from .models import ElementResult, ParseContext, ParserType
+from core.models.parsers import ParserType
+from services.parsers.models import ElementResult, ParseContext
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,7 @@ class SelectorParser:
         """Get human-readable context name."""
         if context.frame:
             return f"{context.parser_type.value}_frame"
-        return context.parser_type.value
+        return str(context.parser_type.value)
 
     async def parse(self) -> list[ElementResult]:
         """Main parsing method."""

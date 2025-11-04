@@ -5,9 +5,6 @@ from prefect import flow, get_run_logger
 from core.models.jobs import CompanyData, Job
 from pipeline.config import PipelineConfig
 from pipeline.tasks.stage_3_task import process_job_skills_task
-from pipeline.tasks.utils import (
-    filter_enabled_companies,
-)
 from services.data_service import JobDataService
 
 
@@ -40,7 +37,7 @@ async def stage_3_flow(
     db_service = JobDataService()
 
     # Filter enabled companies
-    enabled_companies = filter_enabled_companies(companies)
+    enabled_companies = [company for company in companies if company.enabled]
 
     if not enabled_companies:
         logger.warning("No enabled companies found to process")

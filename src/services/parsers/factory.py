@@ -4,9 +4,13 @@ from typing import ClassVar
 
 from playwright.async_api import Page
 
-from .base import SelectorParser
-from .instances import AngularParser, DefaultParser, GreenhouseParser
-from .models import ParserType
+from core.models.parsers import ParserType
+from services.parsers.base import SelectorParser
+from services.parsers.instances import (
+    AngularParser,
+    DefaultParser,
+    GreenhouseParser,
+)
 
 
 class ParserFactory:

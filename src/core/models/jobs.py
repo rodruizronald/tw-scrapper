@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Any
 
 from core.config.services import WebParserConfig
-from src.services.parsers.models import ParserType
+from core.models.parsers import ParserType
 
 
 class Location(str, Enum):

@@ -7,9 +7,6 @@ from pipeline.config import PipelineConfig
 from pipeline.tasks.stage_1_task import (
     process_job_listings_task,
 )
-from pipeline.tasks.utils import (
-    filter_enabled_companies,
-)
 
 
 @flow(
@@ -41,7 +38,7 @@ async def stage_1_flow(
     logger.info("Stage 1: Job Listing Extraction")
 
     # Filter enabled companies
-    enabled_companies = filter_enabled_companies(companies)
+    enabled_companies = [company for company in companies if company.enabled]
 
     if not enabled_companies:
         logger.warning("No enabled companies found to process")

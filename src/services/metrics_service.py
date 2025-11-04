@@ -5,9 +5,11 @@ Provides the primary interface for pipeline components to record and query metri
 Handles business logic for metric calculation, aggregation, and validation.
 """
 
+import calendar
 import logging
 import time
 from collections.abc import Callable
+from typing import Any
 
 from core.models.metrics import CompanySummaryInput, StageMetricsInput
 from data import (
@@ -21,7 +23,7 @@ from data.models.aggregate_metrics import (
 from data.models.daily_metrics import (
     CompanyDailyMetrics,
 )
-from utils.timezone import now_utc, utc_to_local
+from utils.timezone import now_utc
 
 logger = logging.getLogger(__name__)
 
@@ -163,13 +165,13 @@ class JobMetricsService:
             date = now_utc().strftime("%Y-%m-%d")
 
         try:
-            logger.info(f"Calculating daily aggregates for {utc_to_local(date)}...")
+            logger.info(f"Calculating daily aggregates for {date}...")
 
             # Get aggregated data from daily repository
             aggregated_data = self.daily_repository.aggregate_by_date(date)
 
             if not aggregated_data:
-                logger.warning(f"No data found to aggregate for {utc_to_local(date)}")
+                logger.warning(f"No data found to aggregate for {date}")
                 return
 
             # Calculate derived metrics
@@ -245,24 +247,22 @@ class JobMetricsService:
                 lambda: self.aggregate_repository.upsert_daily_aggregate(
                     date, aggregate_metrics
                 ),
-                operation_name=f"calculate_daily_aggregates for {utc_to_local(date)}",
+                operation_name=f"calculate_daily_aggregates for {date}",
             )
 
             if success:
                 logger.info(
-                    f"Calculated daily aggregates for {utc_to_local(date)}: "
+                    f"Calculated daily aggregates for {date}: "
                     f"{total_companies} companies, "
                     f"{overall_success_rate:.1f}% success rate"
                 )
             else:
                 logger.warning(
-                    f"Failed to store daily aggregates for {utc_to_local(date)} after retries"
+                    f"Failed to store daily aggregates for {date} after retries"
                 )
 
         except Exception as e:
-            logger.error(
-                f"Error calculating daily aggregates for {utc_to_local(date)}: {e}"
-            )
+            logger.error(f"Error calculating daily aggregates for {date}: {e}")
 
     def get_company_metrics(
         self,
@@ -314,13 +314,9 @@ class JobMetricsService:
             )
 
             if aggregate:
-                logger.debug(
-                    f"Retrieved pipeline health metrics for {utc_to_local(date)}"
-                )
+                logger.debug(f"Retrieved pipeline health metrics for {date}")
             else:
-                logger.debug(
-                    f"No pipeline health metrics found for {utc_to_local(date)}"
-                )
+                logger.debug(f"No pipeline health metrics found for {date}")
 
             return aggregate
 
@@ -346,9 +342,108 @@ class JobMetricsService:
             return companies if companies else []
         except Exception as e:
             logger.error(
-                f"Error getting companies by status for {utc_to_local(date)}, status={status}: {e}"
+                f"Error getting companies by status for {date}, status={status}: {e}"
             )
             return []
+
+    def get_companies_by_date(
+        self,
+        date: str,
+    ) -> list[CompanyDailyMetrics]:
+        """
+        Retrieve all company metrics for a specific date.
+
+        Args:
+            date: Date in YYYY-MM-DD format
+
+        Returns:
+            List of CompanyDailyMetrics objects
+        """
+        try:
+            companies: list[CompanyDailyMetrics] = (
+                self.daily_repository.find_by_date_range(
+                    start_date=date,
+                    end_date=date,
+                    company_name=None,  # Get all companies
+                )
+            )
+
+            logger.debug(f"Retrieved {len(companies)} companies for {date}")
+            return companies
+
+        except Exception as e:
+            logger.error(f"Error retrieving companies for {date}: {e}")
+            return []
+
+    def get_heatmap_data(
+        self,
+        year: int,
+        month: int,
+    ) -> list[dict[str, Any]]:
+        """
+        Get lightweight heatmap data for calendar visualization.
+
+        Args:
+            year: Year (e.g., 2024)
+            month: Month (1-12)
+
+        Returns:
+            List of dicts with date, success_rate, and company_count
+        """
+        try:
+            # Calculate date range for the month
+            _, last_day = calendar.monthrange(year, month)
+            start_date = f"{year:04d}-{month:02d}-01"
+            end_date = f"{year:04d}-{month:02d}-{last_day:02d}"
+
+            # Query aggregate repository
+            aggregates = self.aggregate_repository.find_aggregates_by_date_range(
+                start_date=start_date,
+                end_date=end_date,
+            )
+
+            # Transform to lightweight format
+            heatmap_data = [
+                {
+                    "date": agg.date,
+                    "success_rate": agg.overall_success_rate,
+                    "company_count": agg.total_companies_processed,
+                }
+                for agg in aggregates
+            ]
+
+            logger.debug(
+                f"Retrieved heatmap data for {year}-{month:02d}: "
+                f"{len(heatmap_data)} days"
+            )
+            return heatmap_data
+
+        except Exception as e:
+            logger.error(f"Error retrieving heatmap data: {e}")
+            return []
+
+    def get_most_recent_date(self) -> str | None:
+        """
+        Get the most recent date with aggregate metrics.
+
+        Returns:
+            Date string in YYYY-MM-DD format or None
+        """
+        try:
+            # Query for most recent aggregate
+            result = self.aggregate_repository.find_most_recent()
+
+            if result:
+                date: str = result.date
+                logger.debug(f"Most recent date: {date}")
+                return date
+
+            logger.warning("No aggregate metrics found in database")
+            return None
+
+        except Exception as e:
+            logger.error(f"Error finding most recent date: {e}")
+            return None
 
     def _get_stage_number(self, stage_tag: str) -> int | None:
         """
@@ -414,3 +509,7 @@ class JobMetricsService:
                     )
 
         return False
+
+
+# Global singleton instance
+job_metrics_service = JobMetricsService()

@@ -15,12 +15,6 @@ Key Features:
 
 """
 
-# Core pipeline components
-from .config import (
-    PipelineConfig,
-    StageConfig,
-)
-
 # Version information
 __version__ = "1.0.0"
 __author__ = "Job Pipeline Team"
@@ -28,8 +22,6 @@ __description__ = "AI-powered job listing extraction pipeline with MongoDB integ
 
 # Public API
 __all__ = [
-    "PipelineConfig",
-    "StageConfig",
     "__author__",
     "__description__",
     "__version__",
