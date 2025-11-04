@@ -65,7 +65,7 @@ class SelectorParser:
         """Get human-readable context name."""
         if context.frame:
             return f"{context.parser_type.value}_frame"
-        return context.parser_type.value
+        return str(context.parser_type.value)
 
     async def parse(self) -> list[ElementResult]:
         """Main parsing method."""

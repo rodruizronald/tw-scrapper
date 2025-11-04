@@ -4,6 +4,8 @@ Issues & Alerts Page.
 Displays failed and partial company runs with error details.
 """
 
+from typing import cast
+
 import pandas as pd
 import streamlit as st
 
@@ -89,7 +91,7 @@ st.markdown("---")
 st.subheader("🔴 Critical Errors Summary")
 
 # Collect all errors
-all_errors = {}
+all_errors: dict[str, dict[str, int | list[str] | list[int]]] = {}
 for company in failed_companies + partial_companies:
     for stage in range(1, 5):
         error = getattr(company, f"stage_{stage}_error_message", None)
@@ -100,14 +102,16 @@ for company in failed_companies + partial_companies:
                     "companies": [],
                     "stages": [],
                 }
-            all_errors[error]["count"] += 1
-            all_errors[error]["companies"].append(company.company_name)
-            all_errors[error]["stages"].append(stage)
+            all_errors[error]["count"] = cast("int", all_errors[error]["count"]) + 1
+            cast("list[str]", all_errors[error]["companies"]).append(
+                company.company_name
+            )
+            cast("list[int]", all_errors[error]["stages"]).append(stage)
 
 if all_errors:
     # Sort by count
     sorted_errors = sorted(
-        all_errors.items(), key=lambda x: x[1]["count"], reverse=True
+        all_errors.items(), key=lambda x: cast("int", x[1]["count"]), reverse=True
     )
 
     st.warning(
@@ -123,7 +127,7 @@ if all_errors:
                 if len(error_msg) > 100
                 else error_msg,
                 "Occurrences": data["count"],
-                "Companies Affected": len(set(data["companies"])),
+                "Companies Affected": len(set(cast("list", data["companies"]))),
             }
         )
 
@@ -142,12 +146,14 @@ if all_errors:
             st.markdown("**Full Error Message:**")
             st.code(error_msg)
 
-            st.markdown(f"**Affected Companies ({len(set(data['companies']))}):**")
-            for company_name in set(data["companies"]):
+            unique_companies = list(set(cast("list", data["companies"])))
+            st.markdown(f"**Affected Companies ({len(unique_companies)}):**")
+            for company_name in unique_companies:
                 st.write(f"- {company_name}")
 
+            unique_stages = list(set(cast("list", data["stages"])))
             st.markdown(
-                f"**Stages Affected:** {', '.join([f'Stage {s}' for s in set(data['stages'])])}"
+                f"**Stages Affected:** {', '.join([f'Stage {s}' for s in unique_stages])}"
             )
 else:
     st.success("✅ No errors found!")

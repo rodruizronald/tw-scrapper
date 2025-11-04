@@ -2,6 +2,8 @@
 Reusable metric card components.
 """
 
+from typing import Literal
+
 import streamlit as st
 
 
@@ -9,7 +11,7 @@ def render_metric_card(
     label: str,
     value: str | int | float,
     delta: str | None = None,
-    delta_color: str = "normal",
+    delta_color: Literal["normal", "inverse", "off"] = "normal",
     icon: str = "📊",
 ) -> None:
     """
@@ -41,43 +43,15 @@ def render_metric_cards_row(metrics: list[dict]) -> None:
 
     for i, metric in enumerate(metrics):
         with cols[i]:
+            delta_color_value = metric.get("delta_color", "normal")
+            # Ensure delta_color is one of the allowed values
+            if delta_color_value not in ("normal", "inverse", "off"):
+                delta_color_value = "normal"
+
             render_metric_card(
                 label=metric.get("label", ""),
                 value=metric.get("value", ""),
                 delta=metric.get("delta"),
-                delta_color=metric.get("delta_color", "normal"),
+                delta_color=delta_color_value,  # type: ignore[arg-type]
                 icon=metric.get("icon", "📊"),
             )
-
-
-def render_status_badge(status: str) -> str:
-    """
-    Get HTML for status badge.
-
-    Args:
-        status: Status string (success, partial, failed)
-
-    Returns:
-        HTML string for badge
-    """
-    colors = {
-        "success": "#4caf50",
-        "partial": "#ff9800",
-        "failed": "#f44336",
-    }
-
-    icons = {
-        "success": "✓",
-        "partial": "⚠",
-        "failed": "✗",
-    }
-
-    color = colors.get(status, "#9e9e9e")
-    icon = icons.get(status, "?")
-
-    return f"""
-    <span style='background-color: {color}; color: white; padding: 4px 8px;
-          border-radius: 4px; font-weight: bold;'>
-        {icon} {status.upper()}
-    </span>
-    """

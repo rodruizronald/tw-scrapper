@@ -327,7 +327,7 @@ class JobDataService:
                     f"Removed {removed_count} incomplete jobs for {company_name}"
                 )
 
-            return removed_count
+            return int(removed_count)
 
         except Exception as e:
             error_msg = f"Failed to remove incomplete jobs for {company_name}: {e}"
