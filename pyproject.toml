@@ -10,25 +10,41 @@ authors = [{ name = "Ronald Rodriguez", email = "rodruizronald@gmail.com" }]
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.12"
+
+# Minimal core dependencies (shared by all components)
 dependencies = [
-    "playwright~=1.51.0",
-    "openai>=1.75.0",
-    "streamlit~=1.50.0",
-    "plotly~=6.3.1",
-    "pandas~=2.3.3",
     "python-dotenv~=1.1.0",
-    "prefect==3.4.25",
     "PyYAML~=6.0.0",
     "pymongo~=4.10.1",
 ]
 
 [project.optional-dependencies]
+# Pipeline worker dependencies
+pipeline = [
+    "playwright~=1.51.0",
+    "openai>=1.75.0",
+    "prefect==3.4.25",
+]
+
+# Dashboard dependencies
+dashboard = [
+    "streamlit~=1.50.0",
+    "plotly~=6.3.1",
+    "pandas~=2.3.3",
+]
+
+# Development tools
 dev = [
     "ruff>=0.12.9",
     "mypy>=1.17.0",
     "pre-commit>=4.3.0",
     "types-PyYAML~=6.0.12",
     "yamllint>=1.37.1",
+]
+
+# All dependencies (for local development)
+all = [
+    "tw-scrapper[pipeline,dashboard,dev]",
 ]
 
 [tool.setuptools.packages.find]
