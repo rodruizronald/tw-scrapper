@@ -6,9 +6,10 @@ Displays failed and partial company runs with error details.
 
 import pandas as pd
 import streamlit as st
-from src.dashboard.components.metrics_cards import render_status_badge
-from src.dashboard.components.sidebar import render_sidebar
-from src.services import job_metrics_service
+
+from dashboard.components.metrics_cards import render_status_badge
+from dashboard.components.sidebar import render_sidebar
+from services.metrics_service import job_metrics_service
 
 # Configure page
 st.set_page_config(

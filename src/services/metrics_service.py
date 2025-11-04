@@ -11,19 +11,19 @@ import time
 from collections.abc import Callable
 from typing import Any
 
-from src.core.models.metrics import CompanySummaryInput, StageMetricsInput
-from src.data import (
+from core.models.metrics import CompanySummaryInput, StageMetricsInput
+from data import (
     job_aggregate_metrics_repository,
     job_daily_metrics_repository,
 )
-from src.data.mappers.metrics_mapper import MetricsMapper
-from src.data.models.aggregate_metrics import (
+from data.mappers.metrics_mapper import MetricsMapper
+from data.models.aggregate_metrics import (
     DailyAggregateMetrics,
 )
-from src.data.models.daily_metrics import (
+from data.models.daily_metrics import (
     CompanyDailyMetrics,
 )
-from src.utils.timezone import now_utc
+from utils.timezone import now_utc
 
 logger = logging.getLogger(__name__)
 

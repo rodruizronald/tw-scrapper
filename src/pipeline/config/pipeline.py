@@ -6,16 +6,16 @@ from typing import Any
 import yaml
 from dotenv import load_dotenv
 
-from src.core.config.integrations import (
+from core.config.integrations import (
     BrowserConfig,
     IntegrationsConfig,
     OpenAIConfig,
     WebExtractionConfig,
 )
-from src.core.config.services import OpenAIServiceConfig
-from src.core.config.system import PathsConfig
-from src.core.models.parsers import ParserType
-from src.pipeline.config.stages import StageConfig, StagesConfig
+from core.config.services import OpenAIServiceConfig
+from core.config.system import PathsConfig
+from core.models.parsers import ParserType
+from pipeline.config.stages import StageConfig, StagesConfig
 
 
 @dataclass

@@ -3,20 +3,20 @@ import time
 
 from prefect.logging import get_run_logger
 
-from src.core.config.services import WebParserConfig
-from src.core.mappers.jobs import JobTechnologiesMapper
-from src.core.models.jobs import Job, JobTechnologies
-from src.core.models.metrics import StageMetricsInput, StageStatus
-from src.pipeline.config import PipelineConfig
-from src.services.data_service import JobDataService
-from src.services.metrics_service import JobMetricsService
-from src.services.openai_service import OpenAIRequest, OpenAIService
-from src.services.web_extraction_service import WebExtractionService
-from src.utils.exceptions import (
+from core.config.services import WebParserConfig
+from core.mappers.jobs import JobTechnologiesMapper
+from core.models.jobs import Job, JobTechnologies
+from core.models.metrics import StageMetricsInput, StageStatus
+from pipeline.config import PipelineConfig
+from services.data_service import JobDataService
+from services.metrics_service import JobMetricsService
+from services.openai_service import OpenAIRequest, OpenAIService
+from services.web_extraction_service import WebExtractionService
+from utils.exceptions import (
     DatabaseOperationError,
     OpenAIProcessingError,
 )
-from src.utils.timezone import now_utc
+from utils.timezone import now_utc
 
 
 class Stage4Processor:

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from src.core.models.parsers import ParserType
+from core.models.parsers import ParserType
 
 
 @dataclass

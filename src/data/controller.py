@@ -12,7 +12,7 @@ from pymongo import MongoClient
 from pymongo.database import Database
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 
-from src.core.config.database import get_database_config
+from core.config.database import get_database_config
 
 logger = logging.getLogger(__name__)
 

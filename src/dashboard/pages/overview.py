@@ -6,9 +6,10 @@ Displays pipeline-wide metrics and stage performance for selected date.
 
 import pandas as pd
 import streamlit as st
-from src.dashboard.components.metrics_cards import render_metric_cards_row
-from src.dashboard.components.sidebar import render_sidebar
-from src.services import job_metrics_service
+
+from dashboard.components.metrics_cards import render_metric_cards_row
+from dashboard.components.sidebar import render_sidebar
+from services.metrics_service import job_metrics_service
 
 # Configure page
 st.set_page_config(

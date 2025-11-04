@@ -5,14 +5,14 @@ This module provides bidirectional mapping between the Job model (domain model)
 and JobListing model (database model) following the mapper pattern.
 """
 
-from src.core.models.jobs import (
+from core.models.jobs import (
     Job,
     JobDetails,
     JobRequirements,
     JobTechnologies,
     Technology,
 )
-from src.data.models.job_listing import JobListing, TechnologyInfo
+from data.models.job_listing import JobListing, TechnologyInfo
 
 
 class JobMapper:

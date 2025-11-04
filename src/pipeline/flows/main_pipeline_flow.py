@@ -2,18 +2,18 @@ import logging
 
 from prefect import flow, get_run_logger
 
-from src.core.models.jobs import CompanyData, Job
-from src.pipeline.config import PipelineConfig
-from src.pipeline.flows.stage_1_flow import stage_1_flow
-from src.pipeline.flows.stage_2_flow import stage_2_flow
-from src.pipeline.flows.stage_3_flow import stage_3_flow
-from src.pipeline.flows.stage_4_flow import stage_4_flow
-from src.pipeline.flows.stage_5_flow import stage_5_flow
-from src.pipeline.flows.utils import (
+from core.models.jobs import CompanyData, Job
+from pipeline.config import PipelineConfig
+from pipeline.flows.helpers import (
     load_companies_from_file,
     validate_flow_inputs,
 )
-from src.services.data_service import JobDataService
+from pipeline.flows.stage_1_flow import stage_1_flow
+from pipeline.flows.stage_2_flow import stage_2_flow
+from pipeline.flows.stage_3_flow import stage_3_flow
+from pipeline.flows.stage_4_flow import stage_4_flow
+from pipeline.flows.stage_5_flow import stage_5_flow
+from services.data_service import JobDataService
 
 
 @flow(
@@ -48,10 +48,10 @@ async def main_pipeline_flow() -> None:
         logger.info("Configuring service loggers...")
         # Just set the levels - don't touch handlers or formatters
         for logger_name in [
-            "src.services.data_service",
-            "src.services.openai_service",
-            "src.services.web_extraction_service",
-            "src.services.metrics_service",
+            "services.data_service",
+            "services.openai_service",
+            "services.web_extraction_service",
+            "services.metrics_service",
         ]:
             logging.getLogger(logger_name).setLevel(logging.INFO)
 

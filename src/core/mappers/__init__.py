@@ -5,7 +5,7 @@ This module provides mapper classes for transforming data between different
 representations, particularly for converting OpenAI API responses to domain models.
 """
 
-from src.core.mappers.jobs import (
+from core.mappers.jobs import (
     JobDetailsMapper,
     JobMapper,
     JobRequirementsMapper,

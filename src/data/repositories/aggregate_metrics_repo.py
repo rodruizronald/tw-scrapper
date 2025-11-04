@@ -10,10 +10,10 @@ from typing import Any
 from bson import ObjectId
 from pymongo.errors import PyMongoError
 
-from src.core.config.database import db_config
-from src.data.controller import DatabaseController
-from src.data.models.aggregate_metrics import DailyAggregateMetrics
-from src.utils.timezone import now_utc
+from core.config.database import db_config
+from data.controller import DatabaseController
+from data.models.aggregate_metrics import DailyAggregateMetrics
+from utils.timezone import now_utc
 
 from .base_repo import BaseRepository
 

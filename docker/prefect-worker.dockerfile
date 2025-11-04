@@ -54,7 +54,7 @@ RUN groupadd -r -g 1001 pipeline 2>/dev/null || true && \
 COPY --chown=1001:1001 . /app
 
 # Set PYTHONPATH to include src directory so Python can find your modules
-# ENV PYTHONPATH=/app/src:$PYTHONPATH
+ENV PYTHONPATH=/app/src:$PYTHONPATH
 
 # Ensure pipeline user has access to Playwright browsers
 RUN chown -R 1001:1001 /ms-playwright 2>/dev/null || true && \

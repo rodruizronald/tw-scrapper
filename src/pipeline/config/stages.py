@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from src.core.config.services import OpenAIServiceConfig
+from core.config.services import OpenAIServiceConfig
 
 
 @dataclass

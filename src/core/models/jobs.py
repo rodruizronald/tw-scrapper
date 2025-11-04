@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from src.core.config.services import WebParserConfig
-from src.core.models.parsers import ParserType
+from core.config.services import WebParserConfig
+from core.models.parsers import ParserType
 
 
 class Location(str, Enum):

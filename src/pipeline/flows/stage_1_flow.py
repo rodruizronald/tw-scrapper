@@ -2,13 +2,10 @@ import asyncio
 
 from prefect import flow, get_run_logger
 
-from src.core.models.jobs import CompanyData, Job
-from src.pipeline.config import PipelineConfig
-from src.pipeline.tasks.stage_1_task import (
+from core.models.jobs import CompanyData, Job
+from pipeline.config import PipelineConfig
+from pipeline.tasks.stage_1_task import (
     process_job_listings_task,
-)
-from src.pipeline.tasks.utils import (
-    filter_enabled_companies,
 )
 
 
@@ -41,7 +38,7 @@ async def stage_1_flow(
     logger.info("Stage 1: Job Listing Extraction")
 
     # Filter enabled companies
-    enabled_companies = filter_enabled_companies(companies)
+    enabled_companies = [company for company in companies if company.enabled]
 
     if not enabled_companies:
         logger.warning("No enabled companies found to process")

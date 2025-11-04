@@ -9,8 +9,8 @@ The mapper ensures clean separation of concerns and allows each layer to have
 models optimized for its specific purpose.
 """
 
-from src.core.models.metrics import CompanySummaryInput, StageMetricsInput
-from src.data.models.daily_metrics import CompanyDailyMetrics, StageMetrics
+from core.models.metrics import CompanySummaryInput, StageMetricsInput
+from data.models.daily_metrics import CompanyDailyMetrics, StageMetrics
 
 
 class MetricsMapper:

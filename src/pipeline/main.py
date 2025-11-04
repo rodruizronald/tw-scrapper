@@ -7,7 +7,7 @@ for running the job processing pipeline with Prefect orchestration.
 
 import asyncio
 
-from src.pipeline.flows import main_pipeline_flow
+from pipeline.flows import main_pipeline_flow
 
 
 def run():

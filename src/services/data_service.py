@@ -8,12 +8,12 @@ stage tracking, deduplication, and statistics for the multi-stage job processing
 import logging
 from typing import Any
 
-from src.core.models.jobs import Job
-from src.data import (
+from core.models.jobs import Job
+from data import (
     job_listing_repository,
 )
-from src.data.mappers.job_mapper import JobMapper
-from src.utils.timezone import UTC_TZ, now_utc
+from data.mappers.job_mapper import JobMapper
+from utils.timezone import UTC_TZ, now_utc
 
 logger = logging.getLogger(__name__)
 
