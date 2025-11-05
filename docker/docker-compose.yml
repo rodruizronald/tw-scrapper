@@ -61,6 +61,7 @@ services:
     environment:
       # Prefect Configuration
       - PREFECT_API_URL=http://prefect-server:4200/api
+      - PREFECT_LOGGING_EXTRA_LOGGERS=services.data_service,services.openai_service,services.web_extraction_service,services.metrics_service
 
       # MongoDB Configuration
       - MONGO_HOST=mongodb
