@@ -1,6 +1,9 @@
 .venv/
 __pycache__/
 
+# Tabnine configuration
+.tabnine
+
 # Environment variables
 .env
 .env.*
