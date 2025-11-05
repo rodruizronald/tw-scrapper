@@ -55,3 +55,26 @@ def render_metric_cards_row(metrics: list[dict]) -> None:
                 delta_color=delta_color_value,  # type: ignore[arg-type]
                 icon=metric.get("icon", "📊"),
             )
+
+
+def render_status_badge(status: str) -> str:
+    """
+    Render a colored status badge.
+
+    Args:
+        status: Status string (e.g., 'completed', 'failed', 'pending')
+
+    Returns:
+        HTML string for colored badge
+    """
+    status_colors = {
+        "completed": "#28a745",  # Green
+        "failed": "#dc3545",  # Red
+        "pending": "#ffc107",  # Yellow
+        "running": "#17a2b8",  # Blue
+        "skipped": "#6c757d",  # Gray
+    }
+
+    color = status_colors.get(status.lower(), "#6c757d")
+
+    return f'<span style="background-color: {color}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.85em; font-weight: 500;">{status.upper()}</span>'

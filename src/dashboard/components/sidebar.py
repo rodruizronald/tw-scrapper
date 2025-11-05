@@ -19,16 +19,6 @@ def render_sidebar() -> None:
         # Calendar with Heatmap
         _render_calendar_heatmap()
 
-        st.markdown("---")
-
-        # Navigation Menu
-        _render_navigation_menu()
-
-        st.markdown("---")
-
-        # Quick Filters (Optional)
-        _render_quick_filters()
-
 
 def _render_calendar_heatmap() -> None:
     """Render calendar with heatmap visualization using st.date_input."""
@@ -173,35 +163,3 @@ def _get_success_emoji(success_rate: float) -> str:
     if success_rate >= 25:
         return "🟠"
     return "🔴"
-
-
-def _render_navigation_menu() -> None:
-    """Render navigation menu."""
-    st.subheader("📊 Pages")
-
-    pages = {
-        "overview": "📈 Overview",
-        "companies": "🏢 Companies",
-        "stage_analysis": "🔄 Stage Analysis",
-        "issues_alerts": "⚠️ Issues & Alerts",
-    }
-
-    for page_key, page_label in pages.items():
-        if st.button(page_label, key=f"nav_{page_key}", use_container_width=True):
-            st.switch_page(f"pages/{page_key}.py")
-
-
-def _render_quick_filters() -> None:
-    """Render quick filter options."""
-    st.subheader("🔍 Quick Filters")
-
-    if st.checkbox("Show only failed runs", key="filter_failed"):
-        st.session_state.filter_status = "failed"
-    elif st.checkbox("Show only partial runs", key="filter_partial"):
-        st.session_state.filter_status = "partial"
-    else:
-        st.session_state.filter_status = None
-
-    if st.button("Clear Filters", key="clear_filters"):
-        st.session_state.filter_status = None
-        st.rerun()
