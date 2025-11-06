@@ -1,7 +1,7 @@
 .PHONY: \
     format-check import-check type-check lint yaml-check check-all \
     format fix-imports fix-lint fix-all \
-    install install-dev clean \
+    install clean \
     pre-commit-install pre-commit-run pre-commit-update \
     up down restart restart-worker restart-dashboard purge logs logs-worker logs-server logs-db logs-dashboard \
     rebuild rebuild-worker rebuild-dashboard recreate-worker recreate-dashboard status shell-db shell-worker shell-dashboard \
@@ -81,13 +81,6 @@ fix-all: format fix-lint fix-imports
 # ═══════════════════════════════════════════════════════════
 
 install:
-	@echo "Installing production dependencies..."
-	@$(PIP) install -e .
-	@echo "Installing Playwright browsers..."
-	@playwright install
-	@echo "✅ Production dependencies installed successfully"
-
-install-dev:
 	@echo "Installing development dependencies..."
 	@$(PIP) install -e ".[dev]"
 	@echo "Installing Playwright browsers..."
@@ -397,8 +390,7 @@ help:
 	@echo "  make type-check      - Run type checking"
 	@echo ""
 	@echo "📦 Environment Setup:"
-	@echo "  make install         - Install production dependencies"
-	@echo "  make install-dev     - Install development dependencies"
+	@echo "  make install         - Install local development dependencies"
 	@echo "  make clean           - Clean cache files"
 	@echo ""
 	@echo "🪝 Pre-commit:"
