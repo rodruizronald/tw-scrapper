@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tw-scrapper"
+name = "tw-data"
 version = "1.0.0"
 description = "Job Link Extraction and Analysis Pipeline"
 authors = [{ name = "Ronald Rodriguez", email = "rodruizronald@gmail.com" }]
@@ -12,29 +12,17 @@ license = { text = "MIT" }
 requires-python = ">=3.12"
 
 # Minimal core dependencies (shared by all components)
-dependencies = [
-    "python-dotenv~=1.1.0",
-    "PyYAML~=6.0.0",
-    "pymongo~=4.10.1",
-]
+dependencies = ["python-dotenv~=1.1.0", "PyYAML~=6.0.0", "pymongo~=4.10.1"]
 
 [project.optional-dependencies]
 # Pipeline worker dependencies
-pipeline = [
-    "playwright~=1.51.0",
-    "openai>=1.75.0",
-    "prefect==3.4.25",
-]
+pipeline = ["playwright~=1.51.0", "openai>=1.75.0", "prefect==3.4.25"]
 
 # Dashboard dependencies
-dashboard = [
-    "streamlit~=1.50.0",
-    "plotly~=6.3.1",
-    "pandas~=2.3.3",
-]
+dashboard = ["streamlit~=1.50.0", "plotly~=6.3.1", "pandas~=2.3.3"]
 
 # Development tools
-dev = [
+linters = [
     "ruff>=0.12.9",
     "mypy>=1.17.0",
     "pre-commit>=4.3.0",
@@ -43,9 +31,7 @@ dev = [
 ]
 
 # All dependencies (for local development)
-all = [
-    "tw-scrapper[pipeline,dashboard,dev]",
-]
+dev = ["tw-data[pipeline,dashboard,linters]"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

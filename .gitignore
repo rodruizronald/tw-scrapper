@@ -5,6 +5,9 @@ __pycache__/
 .tabnine
 
 # Environment variables
+.envrc
+.envrc.*
+!.envrc.example
 .env
 .env.*
 !.env.example
