@@ -53,7 +53,7 @@ RUN groupadd -r -g 1001 dashboard 2>/dev/null || true && \
 COPY --chown=1001:1001 . /app
 
 # Set PYTHONPATH to include src directory so Python can find your modules
-ENV PYTHONPATH=/app/src:${PYTHONPATH:-}
+ENV PYTHONPATH=/app/src:${PYTHONPATH}
 
 # Ensure dashboard user owns all application files
 RUN chown -R 1001:1001 /app

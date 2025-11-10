@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from dotenv import load_dotenv
 
 from core.config.integrations import (
     BrowserConfig,
@@ -207,7 +206,7 @@ class PipelineConfig:
         }
 
     @classmethod
-    def load(cls, env_file: Path | None = None) -> "PipelineConfig":
+    def load(cls) -> "PipelineConfig":
         """
         Load configuration from environment variables and YAML file.
 
@@ -217,17 +216,6 @@ class PipelineConfig:
         Returns:
             Configured PipelineConfig instance
         """
-        if env_file:
-            load_dotenv(env_file)
-        else:
-            # Try to find .env file in current directory or parent directories
-            current_dir = Path.cwd()
-            for parent in [current_dir, *list(current_dir.parents)]:
-                env_path = parent / ".env"
-                if env_path.exists():
-                    load_dotenv(env_path)
-                    break
-
         # Use current working directory as project root (works in Docker)
         project_root = Path.cwd()
 
