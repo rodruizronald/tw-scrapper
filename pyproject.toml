@@ -12,7 +12,14 @@ license = { text = "MIT" }
 requires-python = ">=3.12"
 
 # Minimal core dependencies (shared by all components)
-dependencies = ["python-dotenv~=1.1.0", "PyYAML~=6.0.0", "pymongo~=4.10.1"]
+dependencies = [
+    "python-dotenv~=1.1.0",
+    "PyYAML~=6.0.0",
+    "pymongo~=4.10.1",
+    "httpx~=0.28.1",
+    "pybreaker~=1.4.1",
+    "tenacity~=9.1.2",
+]
 
 [project.optional-dependencies]
 # Pipeline worker dependencies

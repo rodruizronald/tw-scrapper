@@ -7,12 +7,15 @@ This module contains service classes that handle specific aspects of the pipelin
 - Database operations for pipeline stages
 - Job metrics collection and aggregation
 - Web page parsing strategies
+- Company management through external API
 """
 
+from services.company_service import CompanyService
 from services.data_service import JobDataService
 from services.metrics_service import JobMetricsService, job_metrics_service
 
 __all__ = [
+    "CompanyService",
     "JobDataService",
     "JobMetricsService",
     "job_metrics_service",
