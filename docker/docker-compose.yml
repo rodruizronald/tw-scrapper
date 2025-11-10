@@ -1,21 +1,21 @@
 ---
+name: tw-data
 services:
   # MongoDB Database
-  mongodb:
+  mongo:
     image: mongo:7.0
-    container_name: tw-mongodb
     restart: unless-stopped
     ports:
       - "27017:27017"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: admin
-      MONGO_INITDB_DATABASE: job_scraper
+      MONGO_USERNAME: admin
+      MONGO_PASSWORD: admin
+      MONGO_DATABASE: job_scraper
     volumes:
       - mongodb_data:/data/db
       - ../mongo:/docker-entrypoint-initdb.d
     networks:
-      - tw-network
+      - network
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -23,11 +23,10 @@ services:
       retries: 5
 
   # Prefect Server
-  prefect-server:
+  prefect:
     build:
       context: ..
-      dockerfile: docker/prefect-server.dockerfile
-    container_name: tw-prefect-server
+      dockerfile: docker/prefect.dockerfile
     restart: unless-stopped
     ports:
       - "4200:4200"
@@ -38,7 +37,7 @@ services:
     volumes:
       - prefect_data:/root/.prefect
     networks:
-      - tw-network
+      - network
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:4200/api/health || exit 1"]
       interval: 10s
@@ -46,21 +45,20 @@ services:
       retries: 10
       start_period: 30s
 
-  # Prefect Worker
-  prefect-worker:
+  # Prefect Worker (scraper)
+  pipeline:
     build:
       context: ..
-      dockerfile: docker/prefect-worker.dockerfile
-    container_name: tw-prefect-worker
+      dockerfile: docker/pipeline.dockerfile
     restart: unless-stopped
     depends_on:
-      prefect-server:
+      prefect:
         condition: service_healthy
-      mongodb:
+      mongo:
         condition: service_healthy
     environment:
       # Prefect Configuration
-      - PREFECT_API_URL=http://prefect-server:4200/api
+      - PREFECT_API_URL=http://prefect:4200/api
       - PREFECT_LOGGING_EXTRA_LOGGERS=services.data_service,services.openai_service,services.web_extraction_service,services.metrics_service
 
       # MongoDB Configuration
@@ -87,17 +85,16 @@ services:
       - ../pipeline.yaml:/app/pipeline.yaml
       - ../companies.yaml:/app/companies.yaml
     networks:
-      - tw-network
+      - network
 
   # Streamlit Dashboard
-  streamlit-dashboard:
+  dashboard:
     build:
       context: ..
-      dockerfile: docker/streamlit-dashboard.dockerfile
-    container_name: tw-dashboard
+      dockerfile: docker/dashboard.dockerfile
     restart: unless-stopped
     depends_on:
-      mongodb:
+      mongo:
         condition: service_healthy
     ports:
       - "8501:8501"
@@ -119,12 +116,12 @@ services:
       - ../src:/app/src
       - ../.streamlit:/app/.streamlit
     networks:
-      - tw-network
+      - network
 
 volumes:
   mongodb_data:
   prefect_data:
 
 networks:
-  tw-network:
+  network:
     driver: bridge

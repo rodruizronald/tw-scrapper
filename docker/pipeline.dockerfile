@@ -64,10 +64,10 @@ RUN chown -R 1001:1001 /ms-playwright 2>/dev/null || true && \
 RUN chown -R 1001:1001 /app
 
 # Make startup script executable
-RUN chmod +x /app/scripts/start-worker.sh
+RUN chmod +x /app/scripts/start-pipeline.sh
 
 # Switch to non-root user (use UID instead of username for reliability)
 USER 1001
 
-# Start Prefect worker
-ENTRYPOINT ["/bin/bash", "/app/scripts/start-worker.sh"]
+# Start Prefect worker (pipeline)
+ENTRYPOINT ["/bin/bash", "/app/scripts/start-pipeline.sh"]

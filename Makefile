@@ -3,8 +3,8 @@
     format fix-imports fix-lint fix-all \
     install clean \
     pre-commit-install pre-commit-run pre-commit-update \
-    up down restart restart-worker restart-dashboard purge logs logs-worker logs-server logs-db logs-dashboard \
-    rebuild rebuild-worker rebuild-dashboard recreate-worker recreate-dashboard status shell-db shell-worker shell-dashboard \
+    up down restart restart-pipeline restart-dashboard purge logs logs-pipeline logs-server logs-db logs-dashboard \
+    rebuild rebuild-pipeline rebuild-dashboard recreate-pipeline recreate-dashboard status shell-db shell-pipeline shell-dashboard \
     backup restore clean-data verify-indexes \
     dashboard \
     help
@@ -134,7 +134,7 @@ up:
 	@echo ""
 	@echo "💡 Useful commands:"
 	@echo "   make logs        - View all logs"
-	@echo "   make logs-worker - View worker logs"
+	@echo "   make logs-pipeline - View pipeline logs"
 	@echo "   make status      - Check service status"
 	@echo "   make down        - Stop all services"
 
@@ -165,13 +165,13 @@ logs:
 	@echo "📋 Showing all logs (Press Ctrl+C to exit)..."
 	@docker-compose -f docker/docker-compose.yml logs -f
 
-logs-worker:
-	@echo "📋 Showing worker logs (Press Ctrl+C to exit)..."
-	@docker-compose -f docker/docker-compose.yml logs -f prefect-worker
+logs-pipeline:
+	@echo "📋 Showing pipeline logs (Press Ctrl+C to exit)..."
+	@docker-compose -f docker/docker-compose.yml logs -f pipeline
 
 logs-server:
 	@echo "📋 Showing Prefect server logs (Press Ctrl+C to exit)..."
-	@docker-compose -f docker/docker-compose.yml logs -f prefect-server
+	@docker-compose -f docker/docker-compose.yml logs -f prefect
 
 logs-db:
 	@echo "📋 Showing MongoDB logs (Press Ctrl+C to exit)..."
@@ -179,21 +179,21 @@ logs-db:
 
 logs-dashboard:
 	@echo "📋 Showing dashboard logs (Press Ctrl+C to exit)..."
-	@docker-compose -f docker/docker-compose.yml logs -f streamlit-dashboard
+	@docker-compose -f docker/docker-compose.yml logs -f dashboard
 
 # ═══════════════════════════════════════════════════════════
 # Recreate Commands
 # ═══════════════════════════════════════════════════════════
 
-recreate-worker:
-	@echo "🔄 Recreating worker with updated configuration..."
-	@docker-compose -f docker/docker-compose.yml up -d prefect-worker
+recreate-pipeline:
+	@echo "🔄 Recreating pipeline with updated configuration..."
+	@docker-compose -f docker/docker-compose.yml up -d pipeline
 	@echo "✅ Worker recreated"
-	@echo "💡 Run 'make logs-worker' to view logs"
+	@echo "💡 Run 'make logs-pipeline' to view logs"
 
 recreate-dashboard:
 	@echo "🔄 Recreating dashboard with updated configuration..."
-	@docker-compose -f docker/docker-compose.yml up -d streamlit-dashboard
+	@docker-compose -f docker/docker-compose.yml up -d dashboard
 	@echo "✅ Dashboard recreated"
 	@echo "💡 Run 'make logs-dashboard' to view logs"
 
@@ -207,15 +207,15 @@ rebuild:
 	@echo "✅ All services rebuilt and restarted"
 	@echo "💡 Run 'make logs' to view logs"
 
-rebuild-worker:
-	@echo "🔨 Rebuilding and restarting worker only..."
-	@docker-compose -f docker/docker-compose.yml up -d --build --no-deps prefect-worker
+rebuild-pipeline:
+	@echo "🔨 Rebuilding and restarting pipeline only..."
+	@docker-compose -f docker/docker-compose.yml up -d --build --no-deps pipeline
 	@echo "✅ Worker rebuilt and restarted"
-	@echo "💡 Run 'make logs-worker' to view logs"
+	@echo "💡 Run 'make logs-pipeline' to view logs"
 
 rebuild-dashboard:
 	@echo "🔨 Rebuilding and restarting dashboard only..."
-	@docker-compose -f docker/docker-compose.yml up -d --build --no-deps streamlit-dashboard
+	@docker-compose -f docker/docker-compose.yml up -d --build --no-deps dashboard
 	@echo "✅ Dashboard rebuilt and restarted"
 	@echo "💡 Run 'make logs-dashboard' to view logs"
 
@@ -228,15 +228,15 @@ restart:
 	@docker-compose -f docker/docker-compose.yml restart
 	@echo "✅ All services restarted"
 
-restart-worker:
-	@echo "🔄 Restarting worker only..."
-	@docker-compose -f docker/docker-compose.yml restart prefect-worker
+restart-pipeline:
+	@echo "🔄 Restarting pipeline only..."
+	@docker-compose -f docker/docker-compose.yml restart pipeline
 	@echo "✅ Worker restarted"
-	@echo "💡 Run 'make logs-worker' to view logs"
+	@echo "💡 Run 'make logs-pipeline' to view logs"
 
 restart-dashboard:
 	@echo "🔄 Restarting dashboard only..."
-	@docker-compose -f docker/docker-compose.yml restart streamlit-dashboard
+	@docker-compose -f docker/docker-compose.yml restart dashboard
 	@echo "✅ Dashboard restarted"
 	@echo "💡 Run 'make logs-dashboard' to view logs"
 
@@ -257,9 +257,9 @@ shell-db:
 	@echo "🐚 Connecting to MongoDB shell..."
 	@docker exec -it tw-mongodb mongosh -u admin -p admin --authenticationDatabase admin
 
-shell-worker:
-	@echo "🐚 Connecting to worker container..."
-	@docker exec -it tw-prefect-worker bash
+shell-pipeline:
+	@echo "🐚 Connecting to pipeline container..."
+	@docker exec -it tw-pipeline bash
 
 shell-dashboard:
 	@echo "🐚 Connecting to dashboard container..."
@@ -354,26 +354,26 @@ help:
 	@echo "  make up              - Start all services (MongoDB + Prefect)"
 	@echo "  make down            - Stop all services"
 	@echo "  make restart         - Restart all services"
-	@echo "  make restart-worker  - Restart worker only"
+	@echo "  make restart-pipeline  - Restart pipeline only"
 	@echo "  make restart-dashboard - Restart dashboard only"
 	@echo "  make purge           - Remove all volumes (data loss!)"
 	@echo "  make status          - Show service status & health"
 	@echo "  make rebuild         - Rebuild and restart all services"
-	@echo "  make rebuild-worker  - Rebuild worker only"
+	@echo "  make rebuild-pipeline  - Rebuild pipeline only"
 	@echo "  make rebuild-dashboard - Rebuild dashboard only"
-	@echo "  make recreate-worker - Recreate worker only"
+	@echo "  make recreate-pipeline - Recreate pipeline only"
 	@echo "  make recreate-dashboard - Recreate dashboard only"
 	@echo ""
 	@echo "📋 Logs:"
 	@echo "  make logs            - View all logs"
-	@echo "  make logs-worker     - View worker logs only"
+	@echo "  make logs-pipeline     - View pipeline logs only"
 	@echo "  make logs-server     - View Prefect server logs"
 	@echo "  make logs-db         - View MongoDB logs"
 	@echo "  make logs-dashboard  - View dashboard logs only"
 	@echo ""
 	@echo "🐚 Shell Access:"
 	@echo "  make shell-db        - MongoDB shell"
-	@echo "  make shell-worker    - Worker container bash"
+	@echo "  make shell-pipeline    - Worker container bash"
 	@echo "  make shell-dashboard - Dashboard container bash"
 	@echo ""
 	@echo "💾 Database Operations:"
@@ -402,7 +402,7 @@ help:
 	@echo ""
 	@echo "💡 Quick Start:"
 	@echo "  1. make up           - Start all services"
-	@echo "  2. make logs-worker  - Watch pipeline execution"
+	@echo "  2. make logs-pipeline  - Watch pipeline execution"
 	@echo "  3. make dashboard    - View metrics dashboard"
 	@echo "  4. Open http://localhost:4200 to view Prefect UI"
 	@echo ""
