@@ -276,9 +276,9 @@ backup:
 		--username admin \
 		--password admin \
 		--authenticationDatabase admin \
-		--db tw_scrapper \
+		--db job_scraper \
 		--out /tmp/backup
-	@docker cp tw-mongodb:/tmp/backup/tw_scrapper ./backups/backup-$(shell date +%Y%m%d-%H%M%S)
+	@docker cp tw-mongodb:/tmp/backup/job_scraper ./backups/backup-$(shell date +%Y%m%d-%H%M%S)
 	@echo "✅ Backup saved to ./backups/backup-$(shell date +%Y%m%d-%H%M%S)"
 
 restore:
@@ -292,7 +292,7 @@ restore:
 			--username admin \
 			--password admin \
 			--authenticationDatabase admin \
-			--db tw_scrapper \
+			--db job_scraper \
 			--drop \
 			/tmp/restore && \
 		echo "✅ MongoDB restore completed successfully"; \
@@ -307,7 +307,7 @@ verify-indexes:
 		-u admin \
 		-p admin \
 		--authenticationDatabase admin \
-		--eval "db.getSiblingDB('tw_scrapper').job_listings.getIndexes()" \
+		--eval "db.getSiblingDB('job_scraper').job_listings.getIndexes()" \
 		--quiet
 	@echo "✅ Index verification completed"
 
@@ -322,7 +322,7 @@ clean-data:
 			-u admin \
 			-p admin \
 			--authenticationDatabase admin \
-			--eval "db.getSiblingDB('tw_scrapper').dropDatabase()" \
+			--eval "db.getSiblingDB('job_scraper').dropDatabase()" \
 			--quiet; \
 		echo "✅ MongoDB data deleted (Prefect data preserved)"; \
 		echo "💡 Database will be recreated on next pipeline run"; \

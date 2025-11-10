@@ -10,7 +10,7 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: admin
-      MONGO_INITDB_DATABASE: tw_scrapper
+      MONGO_INITDB_DATABASE: job_scraper
     volumes:
       - mongodb_data:/data/db
       - ../mongo:/docker-entrypoint-initdb.d
@@ -68,7 +68,7 @@ services:
       - MONGO_PORT=27017
       - MONGO_USERNAME=admin
       - MONGO_PASSWORD=admin
-      - MONGO_DATABASE=tw_scrapper
+      - MONGO_DATABASE=job_scraper
       - MONGO_AUTH_SOURCE=admin
       - MONGO_CONNECTION_TIMEOUT=5000
       - MONGO_SERVER_SELECTION_TIMEOUT=5000
@@ -107,7 +107,7 @@ services:
       - MONGO_PORT=27017
       - MONGO_USERNAME=admin
       - MONGO_PASSWORD=admin
-      - MONGO_DATABASE=tw_scrapper
+      - MONGO_DATABASE=job_scraper
       - MONGO_AUTH_SOURCE=admin
       - MONGO_CONNECTION_TIMEOUT=5000
       - MONGO_SERVER_SELECTION_TIMEOUT=5000

@@ -32,7 +32,7 @@ class DatabaseConfig:
     username: str | None = field(default_factory=lambda: os.getenv("MONGO_USERNAME"))
     password: str | None = field(default_factory=lambda: os.getenv("MONGO_PASSWORD"))
     database: str = field(
-        default_factory=lambda: os.getenv("MONGO_DATABASE", "tw_scrapper")
+        default_factory=lambda: os.getenv("MONGO_DATABASE", "job_scraper")
     )
     auth_source: str = field(
         default_factory=lambda: os.getenv("MONGO_AUTH_SOURCE", "admin")
