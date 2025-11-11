@@ -1,5 +1,5 @@
 
-db = db.getSiblingDB('tw_scrapper');
+db = db.getSiblingDB('job_scraper');
 
 // ============================================
 // JOB LISTINGS INDEXES

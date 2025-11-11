@@ -7,19 +7,7 @@ and data layer settings.
 
 import os
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
-
-from dotenv import load_dotenv
-
-# Load environment variables when this module is imported
-# Try to find .env file in current directory or parent directories
-current_dir = Path.cwd()
-for parent in [current_dir, *list(current_dir.parents)]:
-    env_path = parent / ".env"
-    if env_path.exists():
-        load_dotenv(env_path)
-        break
 
 
 @dataclass
@@ -32,7 +20,7 @@ class DatabaseConfig:
     username: str | None = field(default_factory=lambda: os.getenv("MONGO_USERNAME"))
     password: str | None = field(default_factory=lambda: os.getenv("MONGO_PASSWORD"))
     database: str = field(
-        default_factory=lambda: os.getenv("MONGO_DATABASE", "tw_scrapper")
+        default_factory=lambda: os.getenv("MONGO_DATABASE", "job_scraper")
     )
     auth_source: str = field(
         default_factory=lambda: os.getenv("MONGO_AUTH_SOURCE", "admin")
