@@ -54,8 +54,6 @@ class JobMapper:
         employment_type = ""
         experience_level = ""
         job_function = ""
-        province = ""
-        city = ""
         description = ""
 
         if job.details:
@@ -64,8 +62,6 @@ class JobMapper:
             employment_type = job.details.employment_type.value
             experience_level = job.details.experience_level.value
             job_function = job.details.job_function.value
-            province = job.details.province
-            city = job.details.city
             description = job.details.description
 
         # Extract requirements data or use defaults
@@ -91,8 +87,6 @@ class JobMapper:
             employment_type=employment_type,
             experience_level=experience_level,
             job_function=job_function,
-            province=province,
-            city=city,
             description=description,
             responsibilities=responsibilities,
             skill_must_have=skill_must_have,
@@ -130,8 +124,6 @@ class JobMapper:
                 job_listing.employment_type,
                 job_listing.experience_level,
                 job_listing.job_function,
-                job_listing.province,
-                job_listing.city,
                 job_listing.description,
             ]
         ):
@@ -142,8 +134,6 @@ class JobMapper:
                     "employment_type": job_listing.employment_type,
                     "experience_level": job_listing.experience_level,
                     "job_function": job_listing.job_function,
-                    "province": job_listing.province,
-                    "city": job_listing.city,
                     "description": job_listing.description,
                 }
             )
@@ -226,8 +216,6 @@ class JobMapper:
             employment_type="",
             experience_level="",
             job_function="",
-            province="",
-            city="",
             description="",
             responsibilities=[],
             skill_must_have=[],
@@ -265,8 +253,6 @@ class JobMapper:
             job_listing.employment_type = job.details.employment_type.value
             job_listing.experience_level = job.details.experience_level.value
             job_listing.job_function = job.details.job_function.value
-            job_listing.province = job.details.province
-            job_listing.city = job.details.city
             job_listing.description = job.details.description
             job_listing.stage_2_completed = True
 
