@@ -37,23 +37,6 @@ class JobFunction(StrEnum):
     OTHER = "other"
 
 
-class Province(StrEnum):
-    """
-    Province enumeration for Costa Rican locations.
-
-    Represents the provinces (administrative divisions) of Costa Rica.
-    Values match the province_enum PostgreSQL type.
-    """
-
-    SAN_JOSE = "san-jose"
-    ALAJUELA = "alajuela"
-    HEREDIA = "heredia"
-    GUANACASTE = "guanacaste"
-    PUNTARENAS = "puntarenas"
-    LIMON = "limon"
-    CARTAGO = "cartago"
-
-
 class ExperienceLevel(StrEnum):
     """
     Experience level enumeration for job postings.
@@ -102,12 +85,17 @@ class Location(StrEnum):
     """
     Location enumeration for job postings.
 
-    Represents the geographic region where the job is available.
+    Represents the Costa Rica province where the job is located.
     Values match the location_enum PostgreSQL type.
     """
 
-    COSTA_RICA = "costa-rica"
-    LATAM = "latam"
+    SAN_JOSE = "san-jose"
+    ALAJUELA = "alajuela"
+    HEREDIA = "heredia"
+    GUANACASTE = "guanacaste"
+    PUNTARENAS = "puntarenas"
+    LIMON = "limon"
+    CARTAGO = "cartago"
 
 
 class Job(BaseModel):
@@ -126,9 +114,7 @@ class Job(BaseModel):
         benefits: Job benefits offered
         experience_level: Required seniority level
         employment_type: Type of employment
-        location: Geographic region (costa-rica or latam)
-        city: City where the job is located
-        province: Province in Costa Rica
+        location: Costa Rica province where the job is located
         work_mode: Work arrangement (remote/hybrid/onsite)
         job_function: Functional area or department
         application_url: URL to apply for the job
@@ -151,9 +137,7 @@ class Job(BaseModel):
             benefits=["Health insurance", "Remote work"],
             experience_level=ExperienceLevel.SENIOR,
             employment_type=EmploymentType.FULL_TIME,
-            location=Location.COSTA_RICA,
-            city="San José",
-            province=Province.SAN_JOSE,
+            location=Location.SAN_JOSE,
             work_mode=WorkMode.REMOTE,
             job_function=JobFunction.TECHNOLOGY_ENGINEERING,
             application_url="https://example.com/apply",
@@ -187,9 +171,7 @@ class Job(BaseModel):
         ..., description="Required seniority level"
     )
     employment_type: EmploymentType = Field(..., description="Type of employment")
-    location: Location = Field(..., description="Geographic region")
-    city: str = Field(..., max_length=50, description="City where the job is located")
-    province: Province = Field(..., description="Province in Costa Rica")
+    location: Location = Field(..., description="Costa Rica province")
     work_mode: WorkMode = Field(..., description="Work arrangement")
     job_function: JobFunction = Field(..., description="Functional area or department")
     application_url: str = Field(

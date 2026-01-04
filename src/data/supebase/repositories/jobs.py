@@ -16,7 +16,6 @@ from data.supebase.models.job import (
     Job,
     JobFunction,
     Location,
-    Province,
     WorkMode,
 )
 
@@ -50,8 +49,6 @@ class JobsRepository(BaseRepository):
         experience_level: ExperienceLevel,
         employment_type: EmploymentType,
         location: Location,
-        city: str,
-        province: Province,
         work_mode: WorkMode,
         job_function: JobFunction,
         application_url: str,
@@ -72,9 +69,7 @@ class JobsRepository(BaseRepository):
             description: Full job description
             experience_level: Required seniority level
             employment_type: Type of employment
-            location: Geographic region (costa-rica or latam)
-            city: City where the job is located
-            province: Province in Costa Rica
+            location: Costa Rica province where the job is located
             work_mode: Work arrangement (remote/hybrid/onsite)
             job_function: Functional area or department
             application_url: URL to apply for the job
@@ -103,9 +98,7 @@ class JobsRepository(BaseRepository):
                 description="We are looking for...",
                 experience_level=ExperienceLevel.SENIOR,
                 employment_type=EmploymentType.FULL_TIME,
-                location=Location.COSTA_RICA,
-                city="San José",
-                province=Province.SAN_JOSE,
+                location=Location.SAN_JOSE,
                 work_mode=WorkMode.REMOTE,
                 job_function=JobFunction.TECHNOLOGY_ENGINEERING,
                 application_url="https://example.com/apply",
@@ -122,8 +115,6 @@ class JobsRepository(BaseRepository):
             "experience_level": experience_level.value,
             "employment_type": employment_type.value,
             "location": location.value,
-            "city": city,
-            "province": province.value,
             "work_mode": work_mode.value,
             "job_function": job_function.value,
             "application_url": application_url,
@@ -222,8 +213,6 @@ class JobsRepository(BaseRepository):
         experience_level: ExperienceLevel,
         employment_type: EmploymentType,
         location: Location,
-        city: str,
-        province: Province,
         work_mode: WorkMode,
         job_function: JobFunction,
         application_url: str,
@@ -244,9 +233,7 @@ class JobsRepository(BaseRepository):
             description: Full job description
             experience_level: Required seniority level
             employment_type: Type of employment
-            location: Geographic region (costa-rica or latam)
-            city: City where the job is located
-            province: Province in Costa Rica
+            location: Costa Rica province where the job is located
             work_mode: Work arrangement (remote/hybrid/onsite)
             job_function: Functional area or department
             application_url: URL to apply for the job
@@ -284,8 +271,6 @@ class JobsRepository(BaseRepository):
             "experience_level": experience_level.value,
             "employment_type": employment_type.value,
             "location": location.value,
-            "city": city,
-            "province": province.value,
             "work_mode": work_mode.value,
             "job_function": job_function.value,
             "application_url": application_url,

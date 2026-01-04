@@ -135,8 +135,6 @@ class JobDetailsMapper:
             employment_type = self._extract_employment_type(response)
             experience_level = self._extract_experience_level(response)
             job_function = self._extract_job_function(response)
-            province = self._extract_province(response)
-            city = self._extract_city(response)
             description = self._extract_description(response)
 
             return JobDetails(
@@ -145,8 +143,6 @@ class JobDetailsMapper:
                 employment_type=employment_type,
                 experience_level=experience_level,
                 job_function=job_function,
-                province=province,
-                city=city,
                 description=description,
             )
 
@@ -212,24 +208,6 @@ class JobDetailsMapper:
             return JobFunction(job_function_str)
         except ValueError as err:
             raise ValueError(f"Invalid job_function value: {job_function_str}") from err
-
-    def _extract_province(self, job_data: dict[str, Any]) -> str:
-        """Extract and validate province field."""
-        province = job_data.get("province", "")
-
-        if not isinstance(province, str):
-            raise ValueError(f"Invalid province value: {province}")
-
-        return province.strip()
-
-    def _extract_city(self, job_data: dict[str, Any]) -> str:
-        """Extract and validate city field."""
-        city = job_data.get("city", "")
-
-        if not isinstance(city, str):
-            raise ValueError(f"Invalid city value: {city}")
-
-        return city.strip()
 
     def _extract_description(self, job_data: dict[str, Any]) -> str:
         """Extract and validate description field."""

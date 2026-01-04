@@ -12,7 +12,6 @@ from data.supebase.models.job import (
     Job,
     JobFunction,
     Location,
-    Province,
     WorkMode,
 )
 from data.supebase.models.job_technology import JobTechnology
@@ -27,7 +26,6 @@ __all__ = [
     "JobFunction",
     "JobTechnology",
     "Location",
-    "Province",
     "Technology",
     "TechnologyAlias",
     "WorkMode",
