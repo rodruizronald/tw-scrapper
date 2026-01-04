@@ -90,8 +90,17 @@ pipeline:
             properties:
               location:
                 type: "string"
-                enum: ["Costa Rica", "LATAM"]
-                description: "Job location"
+                enum:
+                  [
+                    "San Jose",
+                    "Alajuela",
+                    "Heredia",
+                    "Guanacaste",
+                    "Puntarenas",
+                    "Limon",
+                    "Cartago",
+                  ]
+                description: "Costa Rica province where the job is located"
               work_mode:
                 type: "string"
                 enum: ["Remote", "Hybrid", "Onsite"]
@@ -143,14 +152,6 @@ pipeline:
                     "Other",
                   ]
                 description: "Job function category"
-              province:
-                type: "string"
-                description: >-
-                  Province name for Costa Rica locations or empty string for
-                  LATAM
-              city:
-                type: "string"
-                description: "City name or empty string"
               description:
                 type: "string"
                 maxLength: 500
@@ -164,8 +165,6 @@ pipeline:
                 "employment_type",
                 "experience_level",
                 "job_function",
-                "province",
-                "city",
                 "description",
               ]
             additionalProperties: false

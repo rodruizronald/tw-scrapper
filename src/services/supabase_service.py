@@ -351,7 +351,6 @@ class SupabaseService:
                 job.details.employment_type
             )
             location = JobEnumMapper.map_location(job.details.location)
-            province = JobEnumMapper.map_province(job.details.province)
             work_mode = JobEnumMapper.map_work_mode(job.details.work_mode)
             job_function = JobEnumMapper.map_job_function(job.details.job_function)
 
@@ -378,8 +377,6 @@ class SupabaseService:
                 experience_level=experience_level,
                 employment_type=employment_type,
                 location=location,
-                city=job.details.city,
-                province=province,
                 work_mode=work_mode,
                 job_function=job_function,
                 application_url=job.url,
@@ -448,7 +445,6 @@ class SupabaseService:
                 job.details.employment_type
             )
             location = JobEnumMapper.map_location(job.details.location)
-            province = JobEnumMapper.map_province(job.details.province)
             work_mode = JobEnumMapper.map_work_mode(job.details.work_mode)
             job_function = JobEnumMapper.map_job_function(job.details.job_function)
 
@@ -476,8 +472,6 @@ class SupabaseService:
                 experience_level=experience_level,
                 employment_type=employment_type,
                 location=location,
-                city=job.details.city,
-                province=province,
                 work_mode=work_mode,
                 job_function=job_function,
                 application_url=job.url,

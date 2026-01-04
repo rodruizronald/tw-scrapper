@@ -15,7 +15,6 @@ from core.models.jobs import (
     JobRequirements,
     JobTechnologies,
     Location,
-    Province,
     Technology,
     WorkMode,
 )
@@ -40,7 +39,6 @@ __all__ = [
     "JobTechnologies",
     "Location",
     "ParserType",
-    "Province",
     "StageMetricsInput",
     "StageStatus",
     "Technology",

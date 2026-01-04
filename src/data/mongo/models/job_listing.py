@@ -58,8 +58,6 @@ class JobListing:
     employment_type: str
     experience_level: str
     job_function: str
-    province: str
-    city: str
     description: str
 
     # Job requirements (flat lists) - Stage 3 data
@@ -198,8 +196,6 @@ class JobListing:
             "employment_type": self.employment_type,
             "experience_level": self.experience_level,
             "job_function": self.job_function,
-            "province": self.province,
-            "city": self.city,
             "description": self.description,
             "responsibilities": self.responsibilities,
             "skill_must_have": self.skill_must_have,
@@ -250,8 +246,6 @@ class JobListing:
             employment_type=data.get("employment_type", ""),
             experience_level=data.get("experience_level", ""),
             job_function=data.get("job_function", ""),
-            province=data.get("province", ""),
-            city=data.get("city", ""),
             description=data.get("description", ""),
             responsibilities=data.get("responsibilities", []),
             skill_must_have=data.get("skill_must_have", []),

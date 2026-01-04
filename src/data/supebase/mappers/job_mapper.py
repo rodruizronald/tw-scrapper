@@ -25,7 +25,6 @@ from data.supebase.models.job import (
     ExperienceLevel,
     JobFunction,
     Location,
-    Province,
     WorkMode,
 )
 
@@ -87,38 +86,21 @@ class JobEnumMapper:
         Map core Location enum to Supabase Location enum.
 
         Args:
-            core_location: Location from core domain model
+            core_location: Location (province) from core domain model
 
         Returns:
             Corresponding Supabase Location enum value
         """
         mapping = {
-            CoreLocation.COSTA_RICA: Location.COSTA_RICA,
-            CoreLocation.LATAM: Location.LATAM,
+            CoreLocation.SAN_JOSE: Location.SAN_JOSE,
+            CoreLocation.ALAJUELA: Location.ALAJUELA,
+            CoreLocation.HEREDIA: Location.HEREDIA,
+            CoreLocation.GUANACASTE: Location.GUANACASTE,
+            CoreLocation.PUNTARENAS: Location.PUNTARENAS,
+            CoreLocation.LIMON: Location.LIMON,
+            CoreLocation.CARTAGO: Location.CARTAGO,
         }
-        return mapping.get(core_location, Location.LATAM)
-
-    @staticmethod
-    def map_province(province_str: str) -> Province:
-        """
-        Map province string to Supabase Province enum.
-
-        Args:
-            province_str: Province name string from core domain model
-
-        Returns:
-            Corresponding Supabase Province enum value
-        """
-        province_mapping = {
-            "San Jose": Province.SAN_JOSE,
-            "Alajuela": Province.ALAJUELA,
-            "Heredia": Province.HEREDIA,
-            "Guanacaste": Province.GUANACASTE,
-            "Puntarenas": Province.PUNTARENAS,
-            "Limon": Province.LIMON,
-            "Cartago": Province.CARTAGO,
-        }
-        return province_mapping.get(province_str, Province.SAN_JOSE)
+        return mapping.get(core_location, Location.SAN_JOSE)
 
     @staticmethod
     def map_work_mode(core_mode: CoreWorkMode) -> WorkMode:

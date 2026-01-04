@@ -7,8 +7,13 @@ from core.models.parsers import ParserType
 
 
 class Location(str, Enum):
-    COSTA_RICA = "Costa Rica"
-    LATAM = "LATAM"
+    SAN_JOSE = "San Jose"
+    ALAJUELA = "Alajuela"
+    HEREDIA = "Heredia"
+    GUANACASTE = "Guanacaste"
+    PUNTARENAS = "Puntarenas"
+    LIMON = "Limon"
+    CARTAGO = "Cartago"
 
 
 class WorkMode(str, Enum):
@@ -53,16 +58,6 @@ class JobFunction(str, Enum):
     CONSULTING_STRATEGY = "Consulting & Strategy"
     GENERAL_MANAGEMENT = "General Management"
     OTHER = "Other"
-
-
-class Province(str, Enum):
-    SAN_JOSE = "San Jose"
-    ALAJUELA = "Alajuela"
-    HEREDIA = "Heredia"
-    GUANACASTE = "Guanacaste"
-    PUNTARENAS = "Puntarenas"
-    LIMON = "Limon"
-    CARTAGO = "Cartago"
 
 
 @dataclass
@@ -148,8 +143,6 @@ class JobDetails:
     employment_type: EmploymentType
     experience_level: ExperienceLevel
     job_function: JobFunction
-    province: str  # Province name or empty string for LATAM
-    city: str  # City name or empty string
     description: str
 
     def to_dict(self) -> dict[str, Any]:
@@ -160,8 +153,6 @@ class JobDetails:
             "employment_type": self.employment_type.value,
             "experience_level": self.experience_level.value,
             "job_function": self.job_function.value,
-            "province": self.province,
-            "city": self.city,
             "description": self.description,
         }
 
@@ -169,7 +160,7 @@ class JobDetails:
     def from_dict(cls, data: dict[str, Any]) -> "JobDetails":
         """Create JobDetails from dictionary."""
         return cls(
-            location=Location(data.get("location", Location.LATAM.value)),
+            location=Location(data.get("location", Location.SAN_JOSE.value)),
             work_mode=WorkMode(data.get("work_mode", WorkMode.REMOTE.value)),
             employment_type=EmploymentType(
                 data.get("employment_type", EmploymentType.FULL_TIME.value)
@@ -178,8 +169,6 @@ class JobDetails:
                 data.get("experience_level", ExperienceLevel.MID_LEVEL.value)
             ),
             job_function=JobFunction(data.get("job_function", JobFunction.OTHER.value)),
-            province=data.get("province", ""),
-            city=data.get("city", ""),
             description=data.get("description", ""),
         )
 
