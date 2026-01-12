@@ -84,14 +84,10 @@ class SelectorTester:
         self.output_format = output_format
         self.results_dir = Path(__file__).parent / "results"
 
-        # Create browser and extraction configs
-        # Use 'networkidle' to wait for API fetches that may be triggered
-        # by DOMContentLoaded event listeners (common in dynamic JS pages)
-        # Include realistic user agent and viewport to avoid bot detection
         self.browser_config = browser_config or BrowserConfig(
             headless=headless,
             timeout=30000,
-            wait_until="networkidle",
+            wait_until="domcontentloaded",
             user_agent=(
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -543,9 +539,9 @@ async def _dispatch_test_mode(
     # Default test configuration
     logger.info("Using default test configuration")
     return await tester.test_selectors(
-        "https://10pearls.com/latin-america-job-openings/",
-        ["#jobs_table_body"],
-        ParserType.DYNAMIC_JS,
+        "https://fractal-river.breezy.hr/p/60cec77079df-data-engineer-remote-latin-america",
+        [".body-wrapper"],
+        ParserType.DEFAULT,
     )
 
 
