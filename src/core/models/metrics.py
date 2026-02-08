@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 
-class StageStatus(str, Enum):
+class StageStatus(StrEnum):
     """Valid status values for stage metrics."""
 
     SUCCESS = "success"
@@ -12,7 +12,7 @@ class StageStatus(str, Enum):
     UNKNOWN = "unknown"
 
 
-class CompanyStatus(str, Enum):
+class CompanyStatus(StrEnum):
     """Valid status values for company processing."""
 
     SUCCESS = "success"

@@ -9,7 +9,7 @@ class PathsConfig:
     prompts_dir: Path
     companies_file: Path
     technologies_file: Path
-    project_root: Path = field(default_factory=lambda: Path.cwd())
+    project_root: Path = field(default_factory=Path.cwd)
 
     def initialize_paths(self) -> None:
         """Convert relative paths to absolute paths using project_root."""

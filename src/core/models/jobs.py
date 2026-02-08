@@ -1,12 +1,12 @@
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from core.config.services import WebParserConfig
 from core.models.parsers import ParserType
 
 
-class Location(str, Enum):
+class Location(StrEnum):
     SAN_JOSE = "San Jose"
     ALAJUELA = "Alajuela"
     HEREDIA = "Heredia"
@@ -16,13 +16,13 @@ class Location(str, Enum):
     CARTAGO = "Cartago"
 
 
-class WorkMode(str, Enum):
+class WorkMode(StrEnum):
     REMOTE = "Remote"
     HYBRID = "Hybrid"
     ONSITE = "Onsite"
 
 
-class EmploymentType(str, Enum):
+class EmploymentType(StrEnum):
     FULL_TIME = "Full-time"
     PART_TIME = "Part-time"
     CONTRACT = "Contract"
@@ -31,7 +31,7 @@ class EmploymentType(str, Enum):
     INTERNSHIP = "Internship"
 
 
-class ExperienceLevel(str, Enum):
+class ExperienceLevel(StrEnum):
     ENTRY_LEVEL = "Entry-level"
     JUNIOR = "Junior"
     MID_LEVEL = "Mid-level"
@@ -41,7 +41,7 @@ class ExperienceLevel(str, Enum):
     EXECUTIVE = "Executive"
 
 
-class JobFunction(str, Enum):
+class JobFunction(StrEnum):
     TECHNOLOGY_ENGINEERING = "Technology & Engineering"
     SALES_BUSINESS_DEVELOPMENT = "Sales & Business Development"
     MARKETING_COMMUNICATIONS = "Marketing & Communications"
