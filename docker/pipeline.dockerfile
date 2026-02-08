@@ -69,5 +69,10 @@ RUN chmod +x /app/scripts/start-pipeline.sh
 # Switch to non-root user (use UID instead of username for reliability)
 USER 1001
 
+# OCI labels for GitHub Packages integration
+# These link the image to the source repository and provide metadata
+LABEL org.opencontainers.image.source="https://github.com/rodruizronald/tw-data"
+LABEL org.opencontainers.image.description="Prefect pipeline worker with Playwright and OpenAI"
+
 # Start Prefect worker (pipeline)
 ENTRYPOINT ["/bin/bash", "/app/scripts/start-pipeline.sh"]
