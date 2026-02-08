@@ -1,9 +1,9 @@
 """Parser-related models."""
 
-from enum import Enum
+from enum import StrEnum
 
 
-class ParserType(str, Enum):
+class ParserType(StrEnum):
     """Types of parsers available for job extraction."""
 
     DEFAULT = "default"
