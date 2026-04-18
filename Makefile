@@ -114,7 +114,7 @@ yaml-check: ## Validate YAML files with yamllint
 	@yamllint pipeline.yaml companies.yaml .pre-commit-config.yaml
 	@echo "✅ YAML linting passed"
 
-check-all: format-check import-check lint type-check ## Run all code quality checks
+check-all: format-check import-check lint type-check yaml-check ## Run all code quality checks
 	@echo ""
 	@echo "════════════════════════════════════════"
 	@echo "✅ All code quality checks passed!"

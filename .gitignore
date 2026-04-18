@@ -1,5 +1,6 @@
 .venv/
 __pycache__/
+spike
 
 # Tabnine configuration
 .tabnine
@@ -11,3 +12,6 @@ __pycache__/
 .env
 .env.*
 !.env.example
+
+# Agent PoC output
+tools/agent_poc/output/*.json
